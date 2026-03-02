@@ -90,15 +90,14 @@ public sealed class GitHubService
 
     /// <summary>
     /// Fetch open PRs that target a <c>release/*</c> branch (hotfixes).
-    /// Searches PRs authored by the current user or where the user is a requested reviewer,
-    /// then filters client-side for <c>baseRefName</c> starting with "release/".
+    /// Uses <c>involves:@me</c> to catch PRs authored by bots where the user
+    /// is assignee, reviewer, mentioned, or has commented.
     /// </summary>
     public async Task<List<PullRequestInfo>> FetchHotfixPRsAsync(IReadOnlyList<string> organizations)
     {
         var allPrs = new List<PullRequestInfo>();
 
-        // Query 1: own PRs targeting release/*
-        foreach (var q in BuildSearchQueries("is:pr is:open author:@me", organizations))
+        foreach (var q in BuildSearchQueries("is:pr is:open involves:@me", organizations))
         {
             var json = await RunGraphQlAsync(ReviewRequestedQuery, q);
             if (json is not { } jsonValue) continue;
@@ -107,17 +106,6 @@ public sealed class GitHubService
                     .Where(p => p.BaseRefName.StartsWith("release/", StringComparison.OrdinalIgnoreCase)));
         }
 
-        // Query 2: PRs where review is requested from the current user, targeting release/*
-        foreach (var q in BuildSearchQueries("is:pr is:open review-requested:@me", organizations))
-        {
-            var json = await RunGraphQlAsync(ReviewRequestedQuery, q);
-            if (json is not { } jsonValue) continue;
-            allPrs.AddRange(
-                ParseReviewPrs(jsonValue)
-                    .Where(p => p.BaseRefName.StartsWith("release/", StringComparison.OrdinalIgnoreCase)));
-        }
-
-        // Deduplicate by key in case a PR matches both queries
         return allPrs.DistinctBy(p => p.Key).ToList();
     }
 
