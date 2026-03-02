@@ -79,6 +79,32 @@
                         <TextBlock FontSize="11" Foreground="#6E7681" VerticalAlignment="Center"
                                    Text="{Binding LastUpdated, StringFormat='Updated {0}'}"
                                    Margin="0,0,8,0"/>
+                        <!-- Refresh button -->
+                        <Border x:Name="RefreshButton" CornerRadius="4" Padding="5,3"
+                                Cursor="Hand" ToolTip="Refresh now"
+                                MouseLeftButtonUp="RefreshButton_Click"
+                                Background="#21262D" Margin="0,0,4,0">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#30363D"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock x:Name="RefreshIcon"
+                                       Text="&#xE72C;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="12"
+                                       Foreground="#6E7681"
+                                       VerticalAlignment="Center"
+                                       RenderTransformOrigin="0.5,0.5">
+                                <TextBlock.RenderTransform>
+                                    <RotateTransform x:Name="RefreshRotate" Angle="0"/>
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                        </Border>
                         <!-- Pin / unpin toggle -->
                         <Border x:Name="PinButton" CornerRadius="4"
                                 Padding="5,3" Cursor="Hand" ToolTip="Pin window (stay on top)"

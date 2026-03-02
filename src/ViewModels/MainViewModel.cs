@@ -13,6 +13,8 @@ namespace PrBot.ViewModels;
 /// </summary>
 public sealed class MainViewModel : INotifyPropertyChanged
 {
+    private PollingService? _polling;
+
     public ObservableCollection<PrItemViewModel> AutoMergePrs { get; } = [];
     public ObservableCollection<PrItemViewModel> ReviewRequestedPrs { get; } = [];
 
@@ -37,18 +39,36 @@ public sealed class MainViewModel : INotifyPropertyChanged
         private set => SetField(ref _lastUpdated, value);
     }
 
+    private bool _isRefreshing;
+    public bool IsRefreshing
+    {
+        get => _isRefreshing;
+        private set => SetField(ref _isRefreshing, value);
+    }
+
     // ── Subscribe ───────────────────────────────────────────────────
 
     public void Subscribe(PollingService polling)
     {
+        _polling = polling;
         polling.Polled += (_, snapshot) =>
         {
             System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-                UpdateFromSnapshot(snapshot));
+            {
+                IsRefreshing = false;
+                UpdateFromSnapshot(snapshot);
+            });
         };
     }
 
     // ── Commands ────────────────────────────────────────────────────
+
+    public async Task RefreshAsync()
+    {
+        if (_polling is null || IsRefreshing) return;
+        IsRefreshing = true;
+        await _polling.RefreshAsync();
+    }
 
     public void OpenMyPrsInBrowser() =>
         OpenUrl("https://github.com/pulls?q=is%3Aopen+is%3Apr+author%3A%40me");

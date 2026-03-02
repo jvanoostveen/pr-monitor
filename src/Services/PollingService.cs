@@ -83,6 +83,11 @@ public sealed class PollingService : IDisposable
             _timer.Interval = seconds * 1000;
     }
 
+    /// <summary>
+    /// Trigger an immediate poll outside the regular interval.
+    /// </summary>
+    public Task RefreshAsync() => PollAsync();
+
     public void Dispose()
     {
         _timer?.Stop();
