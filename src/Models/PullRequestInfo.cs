@@ -30,6 +30,9 @@ public sealed class PullRequestInfo
     /// <summary>Aggregate CI status of the latest commit.</summary>
     public CIState CIState { get; init; } = CIState.Unknown;
 
+    /// <summary>Base branch name (e.g. "release/1.2").</summary>
+    public string BaseRefName { get; init; } = "";
+
     /// <summary>
     /// Unique key used for delta-detection across polls.
     /// </summary>

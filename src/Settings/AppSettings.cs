@@ -45,6 +45,9 @@ public sealed class AppSettings
     /// <summary>Whether the "Awaiting My Review" section is expanded in the window.</summary>
     public bool ReviewExpanded { get; set; } = true;
 
+    /// <summary>Whether the "Hotfixes" section is expanded in the window.</summary>
+    public bool HotfixExpanded { get; set; } = true;
+
     /// <summary>Whether the "Later" section is expanded in the window.</summary>
     public bool LaterExpanded { get; set; } = false;
 

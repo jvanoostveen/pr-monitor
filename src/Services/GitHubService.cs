@@ -49,6 +49,7 @@ public sealed class GitHubService
                 repository { nameWithOwner }
                 author { login }
                 createdAt
+                baseRefName
                 commits(last: 1) {
                   nodes {
                     commit {
@@ -82,6 +83,30 @@ public sealed class GitHubService
 
             var prs = ParseMyPrs(jsonValue);
             allPrs.AddRange(prs.Where(p => p.HasAutoMerge));
+        }
+
+        return allPrs;
+    }
+
+    /// <summary>
+    /// Fetch open PRs that target a <c>release/*</c> branch (hotfixes),
+    /// optionally filtered by orgs.
+    /// </summary>
+    public async Task<List<PullRequestInfo>> FetchHotfixPRsAsync(IReadOnlyList<string> organizations)
+    {
+        var allPrs = new List<PullRequestInfo>();
+        var queries = BuildSearchQueries("is:pr is:open", organizations);
+
+        foreach (var q in queries)
+        {
+            var json = await RunGraphQlAsync(ReviewRequestedQuery, q);
+            if (json is not { } jsonValue) continue;
+
+            // Filter client-side: only PRs targeting release/* branches
+            var prs = ParseReviewPrs(jsonValue)
+                .Where(p => p.BaseRefName.StartsWith("release/", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            allPrs.AddRange(prs);
         }
 
         return allPrs;
@@ -239,6 +264,9 @@ public sealed class GitHubService
                 CreatedAt = node.TryGetProperty("createdAt", out var ca)
                     ? DateTimeOffset.Parse(ca.GetString()!)
                     : DateTimeOffset.MinValue,
+                BaseRefName = node.TryGetProperty("baseRefName", out var brn)
+                    ? brn.GetString() ?? ""
+                    : "",
                 CIState = ciState,
             });
         }

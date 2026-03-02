@@ -152,6 +152,12 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void HotfixHeader_Click(object sender, MouseButtonEventArgs e)
+    {
+        ViewModel.ToggleHotfixExpanded();
+        e.Handled = true;
+    }
+
     private void LaterHeader_Click(object sender, MouseButtonEventArgs e)
     {
         ViewModel.ToggleLaterExpanded();

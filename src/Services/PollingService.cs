@@ -30,6 +30,7 @@ public sealed class PollSnapshot
 {
     public IReadOnlyList<PullRequestInfo> AutoMergePrs { get; init; } = [];
     public IReadOnlyList<PullRequestInfo> ReviewRequestedPrs { get; init; } = [];
+    public IReadOnlyList<PullRequestInfo> HotfixPrs { get; init; } = [];
     public int FailedCICount => AutoMergePrs.Count(p => p.CIState == CIState.Failure);
     public int PendingCICount => AutoMergePrs.Count(p => p.CIState is CIState.Pending or CIState.Unknown);
     public int TotalCount => AutoMergePrs.Count + ReviewRequestedPrs.Count;
@@ -102,6 +103,7 @@ public sealed class PollingService : IDisposable
         {
             var autoMergePrs = await _github.FetchMyAutoMergePRsAsync(_settings.Organizations);
             var reviewPrs = await _github.FetchPRsAwaitingMyReviewAsync(_settings.Organizations);
+            var hotfixPrs = await _github.FetchHotfixPRsAsync(_settings.Organizations);
 
             DetectAutoMergeChanges(autoMergePrs);
             DetectReviewChanges(reviewPrs);
@@ -110,6 +112,7 @@ public sealed class PollingService : IDisposable
             {
                 AutoMergePrs = autoMergePrs,
                 ReviewRequestedPrs = reviewPrs,
+                HotfixPrs = hotfixPrs,
             };
 
             LatestSnapshot = snapshot;

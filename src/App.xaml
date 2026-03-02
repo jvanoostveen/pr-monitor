@@ -5,6 +5,7 @@
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <conv:ZeroToVisibleConverter x:Key="ZeroToVisibleConverter"/>
+        <conv:NonZeroToVisibleConverter x:Key="NonZeroToVisibleConverter"/>
         <conv:BoolToAngleConverter x:Key="BoolToAngleConverter"/>
         <conv:CIStateToBrushConverter x:Key="CIStateToBrush"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
