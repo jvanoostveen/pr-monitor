@@ -110,7 +110,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
         // Find item in active lists, move it to HiddenPrs immediately
         var item = FindAndRemove(AutoMergePrs, key)
                 ?? FindAndRemove(ReviewRequestedPrs, key);
-        if (item is not null) HiddenPrs.Add(item);
+        if (item is not null)
+        {
+            HiddenPrs.Add(item);
+            // Auto-expand the Later section so the user sees where it went
+            LaterExpanded = true;
+        }
 
         AutoMergeCount = AutoMergePrs.Count;
         ReviewCount = ReviewRequestedPrs.Count;
@@ -122,6 +127,20 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _settings.HiddenPrKeys.Remove(key);
         _settings.Save();
         var item = FindAndRemove(HiddenPrs, key);
+        if (item is not null)
+        {
+            // Put back into the correct section immediately
+            if (item.IsAutoMergePr)
+            {
+                AutoMergePrs.Add(item);
+                AutoMergeCount = AutoMergePrs.Count;
+            }
+            else
+            {
+                ReviewRequestedPrs.Add(item);
+                ReviewCount = ReviewRequestedPrs.Count;
+            }
+        }
         HiddenCount = HiddenPrs.Count;
     }
 
@@ -182,23 +201,24 @@ public sealed class MainViewModel : INotifyPropertyChanged
         foreach (var pr in snapshot.AutoMergePrs)
         {
             if (!hidden.Contains(pr.Key))
-                AutoMergePrs.Add(PrItemViewModel.From(pr));
+                AutoMergePrs.Add(PrItemViewModel.From(pr, isAutoMerge: true));
         }
 
         ReviewRequestedPrs.Clear();
         foreach (var pr in snapshot.ReviewRequestedPrs)
         {
             if (!hidden.Contains(pr.Key))
-                ReviewRequestedPrs.Add(PrItemViewModel.From(pr));
+                ReviewRequestedPrs.Add(PrItemViewModel.From(pr, isAutoMerge: false));
         }
 
         // Rebuild hidden list from all PRs in this snapshot
         HiddenPrs.Clear();
-        foreach (var pr in snapshot.AutoMergePrs.Concat(snapshot.ReviewRequestedPrs)
-                     .DistinctBy(p => p.Key)
-                     .Where(p => hidden.Contains(p.Key)))
+        foreach (var pr in snapshot.AutoMergePrs.Select(p => (pr: p, isAm: true))
+                     .Concat(snapshot.ReviewRequestedPrs.Select(p => (pr: p, isAm: false)))
+                     .DistinctBy(x => x.pr.Key)
+                     .Where(x => hidden.Contains(x.pr.Key)))
         {
-            HiddenPrs.Add(PrItemViewModel.From(pr));
+            HiddenPrs.Add(PrItemViewModel.From(pr.pr, isAutoMerge: pr.isAm));
         }
 
         AutoMergeCount = AutoMergePrs.Count;
@@ -239,11 +259,12 @@ public sealed class PrItemViewModel
     public required string CIIcon { get; init; }
     public required CIState CIState { get; init; }
     public int Number { get; init; }
+    public bool IsAutoMergePr { get; init; }
 
     public void OpenInBrowser() =>
         Process.Start(new ProcessStartInfo(Url) { UseShellExecute = true });
 
-    public static PrItemViewModel From(PullRequestInfo pr) => new()
+    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false) => new()
     {
         Key = pr.Key,
         Repository = pr.Repository,
@@ -252,6 +273,7 @@ public sealed class PrItemViewModel
         Author = pr.Author,
         Number = pr.Number,
         CIState = pr.CIState,
+        IsAutoMergePr = isAutoMerge,
         CIIcon = pr.CIState switch
         {
             CIState.Success => "✅",
