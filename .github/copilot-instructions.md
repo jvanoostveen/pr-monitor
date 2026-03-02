@@ -56,7 +56,36 @@ pr-bot/
 
 ---
 
-## Run & Stop Workflow
+## Planning & Execution Workflow
+
+For **every user request** — no matter how small — follow this process:
+
+### 1. Create a todo list first
+Before writing any code, break the work into concrete, actionable steps and track them with the `manage_todo_list` tool. Mark each item as `in-progress` when starting it, and `completed` immediately when done.
+
+Example for "add a new section to the window":
+- [ ] Read relevant files (ViewModel, XAML, service)
+- [ ] Update model/service layer
+- [ ] Update ViewModel
+- [ ] Update XAML
+- [ ] Build and verify no errors
+- [ ] Commit and restart
+
+### 2. Use subagents for multi-file changes
+When a task touches **3 or more files** or requires independent research alongside implementation, delegate to a subagent using the `runSubagent` tool with the **"Beast Mode"** agent. Provide the subagent with:
+- The full task description
+- Relevant file paths to read
+- Expected output (which files to change and how)
+- The build/commit/restart commands to run at the end
+
+Use the main agent for: simple single-file edits, quick investigations, running terminal commands, and reviewing subagent output.
+
+### 3. Validate before committing
+Always run `dotnet build .\src\PrBot.csproj -v q` and confirm `ExitCode: 0` before committing.
+
+---
+
+
 
 **Always stop the running instance before building**, because the build tries to overwrite the exe and will retry 5 times if it is locked.
 
