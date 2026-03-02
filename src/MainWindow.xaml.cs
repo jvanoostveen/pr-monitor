@@ -48,7 +48,9 @@ public partial class MainWindow : Window
         _isProgrammaticMove = true;
         Left = left;
         Top = top;
-        _isProgrammaticMove = false;
+        // Defer reset so any WPF-internal OnLocationChanged calls fired
+        // asynchronously by SizeToContent are still suppressed.
+        Dispatcher.BeginInvoke(() => _isProgrammaticMove = false);
     }
 
     private void AlignToBottomRight(double? width = null, double? height = null)
@@ -80,10 +82,16 @@ public partial class MainWindow : Window
 
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (_userMoved)
-            EnsureFullyVisible();
-        else
-            AlignToBottomRight(e.NewSize.Width, e.NewSize.Height);
+        // Defer until after WPF finishes all internal layout/position adjustments
+        // triggered by SizeToContent, so _isProgrammaticMove is still active.
+        var newSize = e.NewSize;
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (_userMoved)
+                EnsureFullyVisible();
+            else
+                AlignToBottomRight(newSize.Width, newSize.Height);
+        });
     }
 
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
