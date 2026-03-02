@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -149,5 +150,23 @@ public partial class MainWindow : Window
     {
         ViewModel.ToggleReviewExpanded();
         e.Handled = true;
+    }
+
+    private void LaterHeader_Click(object sender, MouseButtonEventArgs e)
+    {
+        ViewModel.ToggleLaterExpanded();
+        e.Handled = true;
+    }
+
+    private void PrRow_Hide_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: PrItemViewModel vm })
+            ViewModel.HideItem(vm.Key);
+    }
+
+    private void PrRow_Restore_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: PrItemViewModel vm })
+            ViewModel.RestoreItem(vm.Key);
     }
 }

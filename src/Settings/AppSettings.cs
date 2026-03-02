@@ -45,6 +45,12 @@ public sealed class AppSettings
     /// <summary>Whether the "Awaiting My Review" section is expanded in the window.</summary>
     public bool ReviewExpanded { get; set; } = true;
 
+    /// <summary>Whether the "Later" section is expanded in the window.</summary>
+    public bool LaterExpanded { get; set; } = false;
+
+    /// <summary>Keys of PRs the user has hidden to the "Later" section.</summary>
+    public HashSet<string> HiddenPrKeys { get; set; } = [];
+
     /// <summary>
     /// Load settings from disk, or return defaults if no file exists.
     /// </summary>

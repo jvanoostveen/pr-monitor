@@ -24,6 +24,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<PrItemViewModel> AutoMergePrs { get; } = [];
     public ObservableCollection<PrItemViewModel> ReviewRequestedPrs { get; } = [];
+    public ObservableCollection<PrItemViewModel> HiddenPrs { get; } = [];
 
     private int _autoMergeCount;
     public int AutoMergeCount
@@ -37,6 +38,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         get => _reviewCount;
         private set => SetField(ref _reviewCount, value);
+    }
+
+    private int _hiddenCount;
+    public int HiddenCount
+    {
+        get => _hiddenCount;
+        private set => SetField(ref _hiddenCount, value);
     }
 
     private string _lastUpdated = "—";
@@ -77,8 +85,50 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool LaterExpanded
+    {
+        get => _settings.LaterExpanded;
+        set
+        {
+            if (_settings.LaterExpanded == value) return;
+            _settings.LaterExpanded = value;
+            _settings.Save();
+            OnPropertyChanged();
+        }
+    }
+
     public void ToggleAutoMergeExpanded() => AutoMergeExpanded = !AutoMergeExpanded;
     public void ToggleReviewExpanded() => ReviewExpanded = !ReviewExpanded;
+    public void ToggleLaterExpanded() => LaterExpanded = !LaterExpanded;
+
+    public void HideItem(string key)
+    {
+        _settings.HiddenPrKeys.Add(key);
+        _settings.Save();
+        // Move from active lists to HiddenPrs immediately
+        MoveToHidden(AutoMergePrs, key);
+        MoveToHidden(ReviewRequestedPrs, key);
+        AutoMergeCount = AutoMergePrs.Count;
+        ReviewCount = ReviewRequestedPrs.Count;
+        HiddenCount = HiddenPrs.Count;
+    }
+
+    public void RestoreItem(string key)
+    {
+        _settings.HiddenPrKeys.Remove(key);
+        _settings.Save();
+        // The item will reappear on the next poll snapshot
+        var item = HiddenPrs.FirstOrDefault(p => p.Key == key);
+        if (item is not null) HiddenPrs.Remove(item);
+        HiddenCount = HiddenPrs.Count;
+    }
+
+    private static void MoveToHidden(ObservableCollection<PrItemViewModel> source, string key)
+    {
+        // Items are moved to HiddenPrs by UpdateFromSnapshot; here we just remove from active list
+        var item = source.FirstOrDefault(p => p.Key == key);
+        if (item is not null) source.Remove(item);
+    }
 
     // ── Subscribe ───────────────────────────────────────────────────
 
@@ -114,16 +164,44 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void UpdateFromSnapshot(PollSnapshot snapshot)
     {
+        // All PR keys seen in this poll
+        var allKeys = snapshot.AutoMergePrs.Select(p => p.Key)
+            .Concat(snapshot.ReviewRequestedPrs.Select(p => p.Key))
+            .ToHashSet();
+
+        // Remove hidden keys for PRs that no longer exist
+        var stale = _settings.HiddenPrKeys.Where(k => !allKeys.Contains(k)).ToList();
+        foreach (var k in stale) _settings.HiddenPrKeys.Remove(k);
+        if (stale.Count > 0) _settings.Save();
+
+        var hidden = _settings.HiddenPrKeys;
+
         AutoMergePrs.Clear();
         foreach (var pr in snapshot.AutoMergePrs)
-            AutoMergePrs.Add(PrItemViewModel.From(pr));
+        {
+            if (!hidden.Contains(pr.Key))
+                AutoMergePrs.Add(PrItemViewModel.From(pr));
+        }
 
         ReviewRequestedPrs.Clear();
         foreach (var pr in snapshot.ReviewRequestedPrs)
-            ReviewRequestedPrs.Add(PrItemViewModel.From(pr));
+        {
+            if (!hidden.Contains(pr.Key))
+                ReviewRequestedPrs.Add(PrItemViewModel.From(pr));
+        }
 
-        AutoMergeCount = snapshot.AutoMergePrs.Count;
-        ReviewCount = snapshot.ReviewRequestedPrs.Count;
+        // Rebuild hidden list from all PRs in this snapshot
+        HiddenPrs.Clear();
+        foreach (var pr in snapshot.AutoMergePrs.Concat(snapshot.ReviewRequestedPrs)
+                     .DistinctBy(p => p.Key)
+                     .Where(p => hidden.Contains(p.Key)))
+        {
+            HiddenPrs.Add(PrItemViewModel.From(pr));
+        }
+
+        AutoMergeCount = AutoMergePrs.Count;
+        ReviewCount = ReviewRequestedPrs.Count;
+        HiddenCount = HiddenPrs.Count;
         LastUpdated = DateTime.Now.ToString("HH:mm:ss");
     }
 
@@ -150,6 +228,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 /// </summary>
 public sealed class PrItemViewModel
 {
+    public required string Key { get; init; }
     public required string Repository { get; init; }
     public required string Title { get; init; }
     public required string Url { get; init; }
@@ -164,6 +243,7 @@ public sealed class PrItemViewModel
 
     public static PrItemViewModel From(PullRequestInfo pr) => new()
     {
+        Key = pr.Key,
         Repository = pr.Repository,
         Title = pr.Title,
         Url = pr.Url,
