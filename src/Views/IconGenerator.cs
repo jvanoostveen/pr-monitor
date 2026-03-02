@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
-using PrBot.Models;
+using System.Windows.Forms;
 
 namespace PrBot.Views;
 
@@ -18,7 +18,8 @@ public static class IconGenerator
     /// </summary>
     public static Icon CreateTrayIcon(int totalCount, int failedCICount, int reviewCount)
     {
-        const int size = 16;
+        // Use the system-recommended small icon size (DPI-aware: 16, 20, 24, 32 …)
+        int size = SystemInformation.SmallIconSize.Width;
 
         using var bmp = new Bitmap(size, size);
         using var g = Graphics.FromImage(bmp);
@@ -34,7 +35,8 @@ public static class IconGenerator
         if (totalCount > 0)
         {
             var text = totalCount > 99 ? "…" : totalCount.ToString();
-            using var font = new Font("Segoe UI", totalCount > 9 ? 6.5f : 7.5f, FontStyle.Bold, GraphicsUnit.Point);
+            float fontSize = totalCount > 9 ? size * 0.40f : size * 0.48f;
+            using var font = new Font("Segoe UI", fontSize, FontStyle.Bold, GraphicsUnit.Point);
             using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
             g.DrawString(text, font, Brushes.White, new RectangleF(0, 0, size, size), sf);
         }
