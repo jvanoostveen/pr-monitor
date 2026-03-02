@@ -121,16 +121,17 @@
                                        VerticalAlignment="Center"/>
                         </Border>
                     </StackPanel>
-                    <!-- Drag handle: title area -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
-                                Cursor="SizeAll"
-                                MouseLeftButtonDown="Header_MouseLeftButtonDown">
-                        <TextBlock Text="PR Monitor" FontSize="14" FontWeight="Bold" Foreground="#E6EDF3"
-                                   VerticalAlignment="Center" Margin="0,0,10,0"/>
-                        <TextBlock FontSize="11" Foreground="#6E7681" VerticalAlignment="Center"
-                                   Text="{Binding LastUpdated, StringFormat='Updated {0}'}"
-                                   Margin="0,0,8,0"/>
-                    </StackPanel>
+                    <!-- Drag handle: entire left area -->
+                    <Border Background="Transparent" Cursor="SizeAll"
+                            MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="PR Monitor" FontSize="14" FontWeight="Bold" Foreground="#E6EDF3"
+                                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBlock FontSize="11" Foreground="#6E7681" VerticalAlignment="Center"
+                                       Text="{Binding LastUpdated, StringFormat='Updated {0}'}"
+                                       Margin="0,0,8,0"/>
+                        </StackPanel>
+                    </Border>
                 </DockPanel>
             </Border>
 
