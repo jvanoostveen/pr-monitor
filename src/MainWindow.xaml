@@ -77,7 +77,15 @@
                                VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
                         <TextBlock FontSize="11" Foreground="#6E7681" VerticalAlignment="Center"
-                                   Text="{Binding LastUpdated, StringFormat='Updated {0}'}"/>
+                                   Text="{Binding LastUpdated, StringFormat='Updated {0}'}"
+                                   Margin="0,0,8,0"/>
+                        <!-- Pin / unpin toggle -->
+                        <Border x:Name="PinButton" Background="Transparent" CornerRadius="3"
+                                Padding="4,2" Cursor="Hand" ToolTip="Pin window (stay on top)"
+                                MouseLeftButtonUp="PinButton_Click">
+                            <TextBlock x:Name="PinIcon" Text="📌" FontSize="13" Opacity="0.4"
+                                       VerticalAlignment="Center"/>
+                        </Border>
                     </StackPanel>
                 </DockPanel>
             </Border>
