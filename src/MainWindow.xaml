@@ -320,7 +320,7 @@
                                             Tag="{Binding}">
                                         <Border.ContextMenu>
                                             <ContextMenu>
-                                                <MenuItem Header="Terugzetten" Tag="{Binding}"
+                                                <MenuItem Header="Restore" Tag="{Binding}"
                                                           Click="PrRow_Restore_Click"/>
                                             </ContextMenu>
                                         </Border.ContextMenu>

@@ -3,6 +3,8 @@
 ## Project Overview
 Windows system-tray app that monitors GitHub PRs: own auto-merge PRs (with CI status) and PRs awaiting your review. Built with C# / WPF / .NET 8 and the `gh` CLI for authentication and API access.
 
+**Language**: The entire UI (labels, menu items, tooltips, messages) must be in **English**.
+
 ---
 
 ## Tech Stack
