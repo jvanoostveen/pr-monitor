@@ -49,6 +49,15 @@ public sealed class GitHubService
                 repository { nameWithOwner }
                 author { login }
                 createdAt
+                commits(last: 1) {
+                  nodes {
+                    commit {
+                      statusCheckRollup {
+                        state
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -202,6 +211,22 @@ public sealed class GitHubService
         {
             if (!node.TryGetProperty("number", out _)) continue;
 
+            var ciState = CIState.Unknown;
+            if (node.TryGetProperty("commits", out var commits)
+                && commits.TryGetProperty("nodes", out var commitNodes))
+            {
+                foreach (var cn in commitNodes.EnumerateArray())
+                {
+                    if (cn.TryGetProperty("commit", out var commit)
+                        && commit.TryGetProperty("statusCheckRollup", out var rollup)
+                        && rollup.ValueKind != JsonValueKind.Null
+                        && rollup.TryGetProperty("state", out var state))
+                    {
+                        ciState = ParseCIState(state.GetString());
+                    }
+                }
+            }
+
             result.Add(new PullRequestInfo
             {
                 Number = node.GetProperty("number").GetInt32(),
@@ -214,6 +239,7 @@ public sealed class GitHubService
                 CreatedAt = node.TryGetProperty("createdAt", out var ca)
                     ? DateTimeOffset.Parse(ca.GetString()!)
                     : DateTimeOffset.MinValue,
+                CIState = ciState,
             });
         }
 

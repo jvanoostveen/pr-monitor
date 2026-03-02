@@ -6,6 +6,7 @@
     <Application.Resources>
         <conv:ZeroToVisibleConverter x:Key="ZeroToVisibleConverter"/>
         <conv:BoolToAngleConverter x:Key="BoolToAngleConverter"/>
+        <conv:CIStateToBrushConverter x:Key="CIStateToBrush"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
     </Application.Resources>
 </Application>
