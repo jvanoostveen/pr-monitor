@@ -21,6 +21,7 @@ public sealed class TrayIconManager : IDisposable
     // Menu items that get their text updated on poll
     private readonly Forms.ToolStripMenuItem _myPrsItem;
     private readonly Forms.ToolStripMenuItem _reviewsItem;
+    private readonly Forms.ToolStripMenuItem _hotfixesItem;
 
     private Action? _openWindowAction;
     private Action? _openSettingsAction;
@@ -38,6 +39,11 @@ public sealed class TrayIconManager : IDisposable
         _reviewsItem.Click += (_, _) => OpenInBrowser(
             "https://github.com/pulls?q=is%3Aopen+is%3Apr+review-requested%3A%40me");
 
+        _hotfixesItem = new Forms.ToolStripMenuItem("Hotfixes (…)");
+        _hotfixesItem.Click += (_, _) => OpenInBrowser(
+            "https://github.com/pulls?q=is%3Aopen+is%3Apr+involves%3A%40me+base%3Arelease");
+        _hotfixesItem.Visible = false;
+
         var openItem = new Forms.ToolStripMenuItem("Open PR Monitor");
         openItem.Font = new Font(openItem.Font, System.Drawing.FontStyle.Bold);
         openItem.Click += (_, _) => _openWindowAction?.Invoke();
@@ -52,6 +58,7 @@ public sealed class TrayIconManager : IDisposable
         _contextMenu.Items.AddRange([
             openItem,
             new Forms.ToolStripSeparator(),
+            _hotfixesItem,
             _myPrsItem,
             _reviewsItem,
             new Forms.ToolStripSeparator(),
@@ -104,8 +111,10 @@ public sealed class TrayIconManager : IDisposable
         var hidden = _settings.HiddenPrKeys;
         int visibleAuto = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key));
         int visibleReview = snapshot.ReviewRequestedPrs.Count(p => !hidden.Contains(p.Key));
-        int totalVisible = visibleAuto + visibleReview;
-        int failedCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure);
+        int visibleHotfix = snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key));
+        int totalVisible = visibleAuto + visibleReview + visibleHotfix;
+        int failedCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure)
+                     + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure);
 
         // Update icon
         var oldIcon = _notifyIcon.Icon;
@@ -113,10 +122,16 @@ public sealed class TrayIconManager : IDisposable
         oldIcon?.Dispose();
 
         // Tooltip
-        var tooltip = $"PR Monitor\nAuto-merge PRs: {visibleAuto}\nAwaiting review: {visibleReview}";
+        var tooltipParts = new System.Text.StringBuilder("PR Monitor");
+        if (visibleHotfix > 0) tooltipParts.Append($"\nHotfixes: {visibleHotfix}");
+        tooltipParts.Append($"\nAuto-merge PRs: {visibleAuto}");
+        tooltipParts.Append($"\nAwaiting review: {visibleReview}");
+        var tooltip = tooltipParts.ToString();
         _notifyIcon.Text = tooltip.Length > 127 ? tooltip[..127] : tooltip;
 
         // Menu item labels
+        _hotfixesItem.Text = $"Hotfixes ({visibleHotfix})";
+        _hotfixesItem.Visible = visibleHotfix > 0;
         _myPrsItem.Text = $"My PRs ({visibleAuto})";
         _reviewsItem.Text = $"Awaiting Review ({visibleReview})";
     }
