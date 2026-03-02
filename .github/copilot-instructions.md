@@ -175,3 +175,18 @@ dotnet build .\src\PrBot.csproj -v q
 git add -A
 git commit -m "type: description"
 ```
+
+After every commit, restart the app so changes are visible:
+```powershell
+Stop-Process -Name PrBot -Force -ErrorAction SilentlyContinue
+Start-Process dotnet -ArgumentList "run --project .\src\PrBot.csproj" -WorkingDirectory "d:\Private\pr-bot"
+```
+
+Full iteration sequence (stop → build → commit → restart):
+```powershell
+Stop-Process -Name PrBot -Force -ErrorAction SilentlyContinue
+dotnet build .\src\PrBot.csproj -v q
+git add -A
+git commit -m "type: description"
+Start-Process dotnet -ArgumentList "run --project .\src\PrBot.csproj" -WorkingDirectory "d:\Private\pr-bot"
+```
