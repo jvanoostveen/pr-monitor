@@ -3,10 +3,186 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:PrBot"
+        xmlns:vm="clr-namespace:PrBot.ViewModels"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="PR Monitor"
+        Width="380" SizeToContent="Height"
+        MaxHeight="600"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ResizeMode="NoResize"
+        Deactivated="Window_Deactivated">
 
-    </Grid>
+    <Window.Resources>
+        <!-- Shared styles -->
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#E6EDF3"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <Style x:Key="PrRow" TargetType="Border">
+            <Setter Property="Background" Value="#161B22"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#21262D"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="RepoText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="Foreground" Value="#8B949E"/>
+        </Style>
+
+        <Style x:Key="TitleText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#C9D1D9"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+
+        <Style x:Key="MetaText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Foreground" Value="#6E7681"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- Outer border with rounded corners and shadow -->
+    <Border Background="#0D1117" CornerRadius="8" BorderBrush="#30363D" BorderThickness="1"
+            Margin="8">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="12" Opacity="0.5" ShadowDepth="2" Color="Black"/>
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>  <!-- Header -->
+                <RowDefinition Height="*"/>     <!-- Content -->
+                <RowDefinition Height="Auto"/>  <!-- Footer -->
+            </Grid.RowDefinitions>
+
+            <!-- Header bar -->
+            <Border Grid.Row="0" Background="#161B22" CornerRadius="8,8,0,0" Padding="12,8">
+                <DockPanel>
+                    <TextBlock Text="PR Monitor" FontSize="14" FontWeight="Bold" Foreground="#E6EDF3"
+                               VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
+                        <TextBlock FontSize="11" Foreground="#6E7681" VerticalAlignment="Center"
+                                   Text="{Binding LastUpdated, StringFormat='Updated {0}'}"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Scrollable content -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="12,8">
+                <StackPanel>
+
+                    <!-- Section: Auto-Merge PRs -->
+                    <TextBlock Style="{StaticResource SectionHeader}"
+                               MouseLeftButtonUp="AutoMergeHeader_Click">
+                        <Run Text="🔀 My Auto-Merge PRs"/>
+                        <Run Text="{Binding AutoMergeCount, StringFormat='({0})', Mode=OneWay}"
+                             Foreground="#8B949E"/>
+                    </TextBlock>
+
+                    <ItemsControl ItemsSource="{Binding AutoMergePrs}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource PrRow}"
+                                        MouseLeftButtonUp="PrItem_Click"
+                                        Tag="{Binding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding CIIcon}"
+                                                   FontSize="14" VerticalAlignment="Center"
+                                                   Margin="0,0,8,0"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Style="{StaticResource RepoText}">
+                                                <Run Text="{Binding Repository, Mode=OneWay}"/>
+                                                <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource TitleText}"
+                                                       Text="{Binding Title}"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Style="{StaticResource MetaText}"
+                                                   Text="{Binding TimeAgo}" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Empty state -->
+                    <TextBlock Text="No auto-merge PRs"
+                               Style="{StaticResource MetaText}" Margin="0,4,0,12"
+                               Visibility="{Binding AutoMergeCount, 
+                                   Converter={StaticResource ZeroToVisibleConverter}}"/>
+
+                    <!-- Separator -->
+                    <Border Height="1" Background="#21262D" Margin="0,4,0,8"/>
+
+                    <!-- Section: Review Requested -->
+                    <TextBlock Style="{StaticResource SectionHeader}"
+                               MouseLeftButtonUp="ReviewHeader_Click">
+                        <Run Text="👀 Awaiting My Review"/>
+                        <Run Text="{Binding ReviewCount, StringFormat='({0})', Mode=OneWay}"
+                             Foreground="#8B949E"/>
+                    </TextBlock>
+
+                    <ItemsControl ItemsSource="{Binding ReviewRequestedPrs}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource PrRow}"
+                                        MouseLeftButtonUp="PrItem_Click"
+                                        Tag="{Binding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Style="{StaticResource RepoText}">
+                                                <Run Text="{Binding Repository, Mode=OneWay}"/>
+                                                <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
+                                                <Run Text=" by "/>
+                                                <Run Text="{Binding Author, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource TitleText}"
+                                                       Text="{Binding Title}"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Style="{StaticResource MetaText}"
+                                                   Text="{Binding TimeAgo}" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="No pending reviews"
+                               Style="{StaticResource MetaText}" Margin="0,4,0,0"
+                               Visibility="{Binding ReviewCount, 
+                                   Converter={StaticResource ZeroToVisibleConverter}}"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer -->
+            <Border Grid.Row="2" Background="#161B22" CornerRadius="0,0,8,8" Padding="12,6">
+                <TextBlock FontSize="10" Foreground="#484F58" HorizontalAlignment="Center"
+                           Text="Click a PR to open in GitHub · Right-click tray icon for more"/>
+            </Border>
+        </Grid>
+    </Border>
 </Window>
