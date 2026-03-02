@@ -13,8 +13,7 @@
         Background="Transparent"
         ShowInTaskbar="False"
         Topmost="True"
-        ResizeMode="NoResize"
-        Deactivated="Window_Deactivated">
+        ResizeMode="NoResize">
 
     <Window.Resources>
         <!-- Shared styles -->
@@ -105,25 +104,24 @@
                                 </TextBlock.RenderTransform>
                             </TextBlock>
                         </Border>
-                        <!-- Pin / unpin toggle -->
-                        <Border x:Name="PinButton" CornerRadius="4"
-                                Padding="5,3" Cursor="Hand" ToolTip="Pin window (stay on top)"
-                                MouseLeftButtonUp="PinButton_Click"
+                        <!-- Close button -->
+                        <Border CornerRadius="4"
+                                Padding="5,3" Cursor="Hand" ToolTip="Close"
+                                MouseLeftButtonUp="CloseButton_Click"
                                 Background="#21262D">
                             <Border.Style>
                                 <Style TargetType="Border">
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#30363D"/>
+                                            <Setter Property="Background" Value="#8B1A1A"/>
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
-                            <TextBlock x:Name="PinIcon"
-                                       Text="&#xE718;"
+                            <TextBlock Text="&#xE711;"
                                        FontFamily="Segoe MDL2 Assets"
                                        FontSize="12"
-                                       Foreground="#6E7681"
+                                       Foreground="#8B949E"
                                        VerticalAlignment="Center"/>
                         </Border>
                     </StackPanel>

@@ -13,7 +13,6 @@ namespace PrBot;
 public partial class MainWindow : Window
 {
     public MainViewModel ViewModel { get; }
-    private bool _pinned;
     private DoubleAnimation? _spinAnimation;
 
     public MainWindow(MainViewModel viewModel)
@@ -57,13 +56,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void Window_Deactivated(object sender, EventArgs e)
-    {
-        // When pinned, keep the window visible
-        if (_pinned) return;
-        Hide();
-    }
-
     private void UpdateRefreshIcon(bool isRefreshing)
     {
         var blue = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#58A6FF"));
@@ -86,21 +78,14 @@ public partial class MainWindow : Window
         }
     }
 
+    private void CloseButton_Click(object sender, MouseButtonEventArgs e)
+    {
+        Hide();
+    }
+
     private void RefreshButton_Click(object sender, MouseButtonEventArgs e)
     {
         _ = ViewModel.RefreshAsync();
-    }
-
-    private void PinButton_Click(object sender, MouseButtonEventArgs e)
-    {
-        _pinned = !_pinned;
-        Topmost = true; // always topmost, but pinned controls hide-on-deactivate
-        PinIcon.Foreground = _pinned
-            ? new System.Windows.Media.SolidColorBrush(
-                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#58A6FF"))
-            : new System.Windows.Media.SolidColorBrush(
-                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#6E7681"));
-        PinButton.ToolTip = _pinned ? "Unpin window" : "Pin window (stay on top)";
     }
 
     private void PrItem_Click(object sender, MouseButtonEventArgs e)
