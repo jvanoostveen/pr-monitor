@@ -11,17 +11,13 @@ namespace PrBot.Views;
 /// </summary>
 public static class IconGenerator
 {
-    private static readonly Color ColorGreen = Color.FromArgb(63, 185, 80);   // #3FB950 – all good
-    private static readonly Color ColorRed = Color.FromArgb(248, 81, 73);     // #F85149 – CI failure
-    private static readonly Color ColorOrange = Color.FromArgb(210, 153, 34); // #D29922 – pending reviews
-    private static readonly Color ColorGray = Color.FromArgb(139, 148, 158);  // #8B949E – idle / no items
+    private static readonly Color ColorCircle = Color.FromArgb(0, 95, 170);   // #005FAA – project blue
 
     /// <summary>
     /// Create a 16×16 icon with a coloured circle and optional badge count.
     /// </summary>
     public static Icon CreateTrayIcon(int totalCount, int failedCICount, int reviewCount)
     {
-        var colour = DetermineColour(failedCICount, reviewCount, totalCount);
         const int size = 16;
 
         using var bmp = new Bitmap(size, size);
@@ -30,15 +26,11 @@ public static class IconGenerator
         g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         g.Clear(Color.Transparent);
 
-        // Filled circle (slightly inset to leave room for outline)
-        using var brush = new SolidBrush(colour);
-        g.FillEllipse(brush, 1, 1, size - 3, size - 3);
+        // Filled circle – always project blue
+        using var brush = new SolidBrush(ColorCircle);
+        g.FillEllipse(brush, 0, 0, size - 1, size - 1);
 
-        // White outline for contrast against any taskbar colour
-        using var pen = new Pen(Color.White, 1.2f);
-        g.DrawEllipse(pen, 1, 1, size - 3, size - 3);
-
-        // Badge number
+        // Badge number in white
         if (totalCount > 0)
         {
             var text = totalCount > 99 ? "…" : totalCount.ToString();
@@ -49,13 +41,5 @@ public static class IconGenerator
 
         var hIcon = bmp.GetHicon();
         return Icon.FromHandle(hIcon);
-    }
-
-    private static Color DetermineColour(int failedCI, int reviews, int total)
-    {
-        if (failedCI > 0) return ColorRed;
-        if (reviews > 0) return ColorOrange;
-        if (total > 0) return ColorGreen;
-        return ColorGray;
     }
 }
