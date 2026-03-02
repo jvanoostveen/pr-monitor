@@ -55,7 +55,7 @@ public partial class App : System.Windows.Application
         _notifications.Subscribe(_polling);
 
         // ── View layer ─────────────────────────────────────────────
-        var mainVm = new MainViewModel();
+        var mainVm = new MainViewModel(settings);
         mainVm.Subscribe(_polling);
 
         _mainWindow = new MainWindow(mainVm);

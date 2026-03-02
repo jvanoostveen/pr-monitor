@@ -65,7 +65,12 @@ public sealed class TrayIconManager : IDisposable
             ContextMenuStrip = _contextMenu,
         };
 
-        _notifyIcon.DoubleClick += (_, _) => _openWindowAction?.Invoke();
+        // Single left-click toggles the window
+        _notifyIcon.MouseClick += (_, e) =>
+        {
+            if (e.Button == Forms.MouseButtons.Left)
+                _openWindowAction?.Invoke();
+        };
     }
 
     // ── Configuration ───────────────────────────────────────────────

@@ -5,5 +5,7 @@
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <conv:ZeroToVisibleConverter x:Key="ZeroToVisibleConverter"/>
+        <conv:BoolToAngleConverter x:Key="BoolToAngleConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
     </Application.Resources>
 </Application>

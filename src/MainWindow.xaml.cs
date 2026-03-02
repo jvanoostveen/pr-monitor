@@ -113,11 +113,13 @@ public partial class MainWindow : Window
 
     private void AutoMergeHeader_Click(object sender, MouseButtonEventArgs e)
     {
-        ViewModel.OpenMyPrsInBrowser();
+        ViewModel.ToggleAutoMergeExpanded();
+        e.Handled = true;
     }
 
     private void ReviewHeader_Click(object sender, MouseButtonEventArgs e)
     {
-        ViewModel.OpenReviewsInBrowser();
+        ViewModel.ToggleReviewExpanded();
+        e.Handled = true;
     }
 }

@@ -135,14 +135,31 @@
                 <StackPanel>
 
                     <!-- Section: Auto-Merge PRs -->
-                    <TextBlock Style="{StaticResource SectionHeader}"
-                               MouseLeftButtonUp="AutoMergeHeader_Click">
-                        <Run Text="🔀 My Auto-Merge PRs"/>
-                        <Run Text="{Binding AutoMergeCount, StringFormat='({0})', Mode=OneWay}"
-                             Foreground="#8B949E"/>
-                    </TextBlock>
+                    <Border MouseLeftButtonUp="AutoMergeHeader_Click" Cursor="Hand"
+                            Background="Transparent" Margin="0,0,0,6">
+                        <DockPanel>
+                            <!-- Chevron -->
+                            <TextBlock DockPanel.Dock="Left"
+                                       Text="&#xE70D;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="10" Foreground="#6E7681"
+                                       VerticalAlignment="Center" Margin="0,0,6,0"
+                                       RenderTransformOrigin="0.5,0.5">
+                                <TextBlock.RenderTransform>
+                                    <RotateTransform Angle="{Binding AutoMergeExpanded, 
+                                        Converter={StaticResource BoolToAngleConverter}}"/>
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource SectionHeader}" Margin="0">
+                                <Run Text="🔀 My Auto-Merge PRs"/>
+                                <Run Text="{Binding AutoMergeCount, StringFormat='({0})', Mode=OneWay}"
+                                     Foreground="#8B949E"/>
+                            </TextBlock>
+                        </DockPanel>
+                    </Border>
 
-                    <ItemsControl ItemsSource="{Binding AutoMergePrs}">
+                    <StackPanel Visibility="{Binding AutoMergeExpanded, Converter={StaticResource BoolToVisibility}}">
+                        <ItemsControl ItemsSource="{Binding AutoMergePrs}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border Style="{StaticResource PrRow}"
@@ -173,24 +190,42 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <!-- Empty state -->
-                    <TextBlock Text="No auto-merge PRs"
-                               Style="{StaticResource MetaText}" Margin="0,4,0,12"
-                               Visibility="{Binding AutoMergeCount, 
-                                   Converter={StaticResource ZeroToVisibleConverter}}"/>
+                        <!-- Empty state -->
+                        <TextBlock Text="No auto-merge PRs"
+                                   Style="{StaticResource MetaText}" Margin="0,4,0,12"
+                                   Visibility="{Binding AutoMergeCount, 
+                                       Converter={StaticResource ZeroToVisibleConverter}}"/>
+                    </StackPanel>
 
                     <!-- Separator -->
                     <Border Height="1" Background="#21262D" Margin="0,4,0,8"/>
 
                     <!-- Section: Review Requested -->
-                    <TextBlock Style="{StaticResource SectionHeader}"
-                               MouseLeftButtonUp="ReviewHeader_Click">
-                        <Run Text="👀 Awaiting My Review"/>
-                        <Run Text="{Binding ReviewCount, StringFormat='({0})', Mode=OneWay}"
-                             Foreground="#8B949E"/>
-                    </TextBlock>
+                    <Border MouseLeftButtonUp="ReviewHeader_Click" Cursor="Hand"
+                            Background="Transparent" Margin="0,0,0,6">
+                        <DockPanel>
+                            <!-- Chevron -->
+                            <TextBlock DockPanel.Dock="Left"
+                                       Text="&#xE70D;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="10" Foreground="#6E7681"
+                                       VerticalAlignment="Center" Margin="0,0,6,0"
+                                       RenderTransformOrigin="0.5,0.5">
+                                <TextBlock.RenderTransform>
+                                    <RotateTransform Angle="{Binding ReviewExpanded, 
+                                        Converter={StaticResource BoolToAngleConverter}}"/>
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource SectionHeader}" Margin="0">
+                                <Run Text="👀 Awaiting My Review"/>
+                                <Run Text="{Binding ReviewCount, StringFormat='({0})', Mode=OneWay}"
+                                     Foreground="#8B949E"/>
+                            </TextBlock>
+                        </DockPanel>
+                    </Border>
 
-                    <ItemsControl ItemsSource="{Binding ReviewRequestedPrs}">
+                    <StackPanel Visibility="{Binding ReviewExpanded, Converter={StaticResource BoolToVisibility}}">
+                        <ItemsControl ItemsSource="{Binding ReviewRequestedPrs}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border Style="{StaticResource PrRow}"
@@ -219,10 +254,11 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <TextBlock Text="No pending reviews"
-                               Style="{StaticResource MetaText}" Margin="0,4,0,0"
-                               Visibility="{Binding ReviewCount, 
-                                   Converter={StaticResource ZeroToVisibleConverter}}"/>
+                        <TextBlock Text="No pending reviews"
+                                   Style="{StaticResource MetaText}" Margin="0,4,0,0"
+                                   Visibility="{Binding ReviewCount, 
+                                       Converter={StaticResource ZeroToVisibleConverter}}"/>
+                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
 

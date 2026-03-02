@@ -39,6 +39,12 @@ public sealed class AppSettings
     /// </summary>
     public string? GitHubUsername { get; set; }
 
+    /// <summary>Whether the "My Auto-Merge PRs" section is expanded in the window.</summary>
+    public bool AutoMergeExpanded { get; set; } = true;
+
+    /// <summary>Whether the "Awaiting My Review" section is expanded in the window.</summary>
+    public bool ReviewExpanded { get; set; } = true;
+
     /// <summary>
     /// Load settings from disk, or return defaults if no file exists.
     /// </summary>

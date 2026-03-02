@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using PrBot.Models;
 using PrBot.Services;
+using PrBot.Settings;
 
 namespace PrBot.ViewModels;
 
@@ -13,7 +14,13 @@ namespace PrBot.ViewModels;
 /// </summary>
 public sealed class MainViewModel : INotifyPropertyChanged
 {
+    private readonly AppSettings _settings;
     private PollingService? _polling;
+
+    public MainViewModel(AppSettings settings)
+    {
+        _settings = settings;
+    }
 
     public ObservableCollection<PrItemViewModel> AutoMergePrs { get; } = [];
     public ObservableCollection<PrItemViewModel> ReviewRequestedPrs { get; } = [];
@@ -45,6 +52,33 @@ public sealed class MainViewModel : INotifyPropertyChanged
         get => _isRefreshing;
         private set => SetField(ref _isRefreshing, value);
     }
+
+    public bool AutoMergeExpanded
+    {
+        get => _settings.AutoMergeExpanded;
+        set
+        {
+            if (_settings.AutoMergeExpanded == value) return;
+            _settings.AutoMergeExpanded = value;
+            _settings.Save();
+            OnPropertyChanged();
+        }
+    }
+
+    public bool ReviewExpanded
+    {
+        get => _settings.ReviewExpanded;
+        set
+        {
+            if (_settings.ReviewExpanded == value) return;
+            _settings.ReviewExpanded = value;
+            _settings.Save();
+            OnPropertyChanged();
+        }
+    }
+
+    public void ToggleAutoMergeExpanded() => AutoMergeExpanded = !AutoMergeExpanded;
+    public void ToggleReviewExpanded() => ReviewExpanded = !ReviewExpanded;
 
     // ── Subscribe ───────────────────────────────────────────────────
 
@@ -106,6 +140,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         field = value;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
+
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
 /// <summary>
