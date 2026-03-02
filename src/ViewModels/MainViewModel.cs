@@ -134,9 +134,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 ?? FindAndRemove(ReviewRequestedPrs, key);
         if (item is not null)
         {
+            var wasEmpty = HiddenPrs.Count == 0;
             HiddenPrs.Add(item);
-            // Auto-expand the Later section so the user sees where it went
-            LaterExpanded = true;
+            // Only auto-expand Later if it was empty before — don't override user's collapsed state
+            if (wasEmpty)
+                LaterExpanded = true;
         }
 
         AutoMergeCount = AutoMergePrs.Count;
