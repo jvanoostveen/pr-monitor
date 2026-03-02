@@ -51,11 +51,11 @@ public partial class MainWindow : Window
         _isProgrammaticMove = false;
     }
 
-    private void AlignToBottomRight()
+    private void AlignToBottomRight(double? width = null, double? height = null)
     {
         var wa = SystemParameters.WorkArea;
-        double w = ActualWidth  > 0 ? ActualWidth  : Width;
-        double h = ActualHeight > 0 ? ActualHeight : 0;
+        double w = width  ?? (ActualWidth  > 0 ? ActualWidth  : Width);
+        double h = height ?? (ActualHeight > 0 ? ActualHeight : 0);
         SetWindowPosition(wa.Right - w - 12, wa.Bottom - h - 12);
     }
 
@@ -83,7 +83,7 @@ public partial class MainWindow : Window
         if (_userMoved)
             EnsureFullyVisible();
         else
-            AlignToBottomRight();
+            AlignToBottomRight(e.NewSize.Width, e.NewSize.Height);
     }
 
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
