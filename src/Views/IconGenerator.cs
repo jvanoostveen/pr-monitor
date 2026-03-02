@@ -30,9 +30,13 @@ public static class IconGenerator
         g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         g.Clear(Color.Transparent);
 
-        // Filled circle
+        // Filled circle (slightly inset to leave room for outline)
         using var brush = new SolidBrush(colour);
-        g.FillEllipse(brush, 0, 0, size - 1, size - 1);
+        g.FillEllipse(brush, 1, 1, size - 3, size - 3);
+
+        // White outline for contrast against any taskbar colour
+        using var pen = new Pen(Color.White, 1.2f);
+        g.DrawEllipse(pen, 1, 1, size - 3, size - 3);
 
         // Badge number
         if (totalCount > 0)
