@@ -58,7 +58,11 @@ public partial class MainWindow : Window
     {
         _pinned = !_pinned;
         Topmost = true; // always topmost, but pinned controls hide-on-deactivate
-        PinIcon.Opacity = _pinned ? 1.0 : 0.4;
+        PinIcon.Foreground = _pinned
+            ? new System.Windows.Media.SolidColorBrush(
+                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#58A6FF"))
+            : new System.Windows.Media.SolidColorBrush(
+                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#6E7681"));
         PinButton.ToolTip = _pinned ? "Unpin window" : "Pin window (stay on top)";
     }
 
