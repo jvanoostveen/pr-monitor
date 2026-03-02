@@ -90,7 +90,7 @@
                             </Border.Style>
                             <TextBlock x:Name="RefreshIcon"
                                        Text="&#xE72C;"
-                                       FontFamily="Segoe MDL2 Assets"
+                                       FontFamily="Segoe Fluent Icons"
                                        FontSize="12"
                                        Foreground="#6E7681"
                                        VerticalAlignment="Center"
@@ -115,7 +115,7 @@
                                 </Style>
                             </Border.Style>
                             <TextBlock Text="&#xE711;"
-                                       FontFamily="Segoe MDL2 Assets"
+                                       FontFamily="Segoe Fluent Icons"
                                        FontSize="12"
                                        Foreground="#8B949E"
                                        VerticalAlignment="Center"/>
@@ -144,7 +144,7 @@
                         <Border MouseLeftButtonUp="HotfixHeader_Click" Cursor="Hand"
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
                                            FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
@@ -153,7 +153,7 @@
                                     </TextBlock.RenderTransform>
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="&#xE7EF;" FontFamily="Segoe MDL2 Assets"
+                                    <TextBlock Text="&#xE90F;" FontFamily="Segoe Fluent Icons"
                                                FontSize="12" Foreground="#F85149"
                                                VerticalAlignment="Center" Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
@@ -218,7 +218,7 @@
                             <!-- Chevron -->
                             <TextBlock DockPanel.Dock="Left"
                                        Text="&#xE70D;"
-                                       FontFamily="Segoe MDL2 Assets"
+                                       FontFamily="Segoe Fluent Icons"
                                        FontSize="10" Foreground="#6E7681"
                                        VerticalAlignment="Center" Margin="0,0,6,0"
                                        RenderTransformOrigin="0.5,0.5">
@@ -228,7 +228,7 @@
                                 </TextBlock.RenderTransform>
                             </TextBlock>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets"
+                                <TextBlock Text="&#xE72C;" FontFamily="Segoe Fluent Icons"
                                            FontSize="12" Foreground="#58A6FF"
                                            VerticalAlignment="Center" Margin="0,0,6,0"/>
                                 <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
@@ -289,7 +289,7 @@
                     <Border MouseLeftButtonUp="ReviewHeader_Click" Cursor="Hand"
                             Background="Transparent" Margin="0,0,0,6">
                         <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                            <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
                                        FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
                                        Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                 <TextBlock.RenderTransform>
@@ -298,7 +298,7 @@
                                 </TextBlock.RenderTransform>
                             </TextBlock>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE7EE;" FontFamily="Segoe MDL2 Assets"
+                                <TextBlock Text="&#xE7EE;" FontFamily="Segoe Fluent Icons"
                                            FontSize="12" Foreground="#D29922"
                                            VerticalAlignment="Center" Margin="0,0,6,0"/>
                                 <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
@@ -361,7 +361,7 @@
                     <Border MouseLeftButtonUp="LaterHeader_Click" Cursor="Hand"
                             Background="Transparent" Margin="0,0,0,6">
                         <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                            <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
                                        FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
                                        Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                 <TextBlock.RenderTransform>
@@ -370,7 +370,7 @@
                                 </TextBlock.RenderTransform>
                             </TextBlock>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE823;" FontFamily="Segoe MDL2 Assets"
+                                <TextBlock Text="&#xE823;" FontFamily="Segoe Fluent Icons"
                                            FontSize="12" Foreground="#6E7681"
                                            VerticalAlignment="Center" Margin="0,0,6,0"/>
                                 <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#6E7681"
