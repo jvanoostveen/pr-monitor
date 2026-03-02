@@ -20,6 +20,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public MainViewModel(AppSettings settings)
     {
         _settings = settings;
+        _hiddenCount = settings.HiddenPrKeys.Count;
     }
 
     public ObservableCollection<PrItemViewModel> AutoMergePrs { get; } = [];
@@ -105,9 +106,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         _settings.HiddenPrKeys.Add(key);
         _settings.Save();
-        // Move from active lists to HiddenPrs immediately
-        MoveToHidden(AutoMergePrs, key);
-        MoveToHidden(ReviewRequestedPrs, key);
+
+        // Find item in active lists, move it to HiddenPrs immediately
+        var item = FindAndRemove(AutoMergePrs, key)
+                ?? FindAndRemove(ReviewRequestedPrs, key);
+        if (item is not null) HiddenPrs.Add(item);
+
         AutoMergeCount = AutoMergePrs.Count;
         ReviewCount = ReviewRequestedPrs.Count;
         HiddenCount = HiddenPrs.Count;
@@ -117,17 +121,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         _settings.HiddenPrKeys.Remove(key);
         _settings.Save();
-        // The item will reappear on the next poll snapshot
-        var item = HiddenPrs.FirstOrDefault(p => p.Key == key);
-        if (item is not null) HiddenPrs.Remove(item);
+        var item = FindAndRemove(HiddenPrs, key);
         HiddenCount = HiddenPrs.Count;
     }
 
-    private static void MoveToHidden(ObservableCollection<PrItemViewModel> source, string key)
+    private static PrItemViewModel? FindAndRemove(ObservableCollection<PrItemViewModel> list, string key)
     {
-        // Items are moved to HiddenPrs by UpdateFromSnapshot; here we just remove from active list
-        var item = source.FirstOrDefault(p => p.Key == key);
-        if (item is not null) source.Remove(item);
+        var item = list.FirstOrDefault(p => p.Key == key);
+        if (item is not null) list.Remove(item);
+        return item;
     }
 
     // ── Subscribe ───────────────────────────────────────────────────

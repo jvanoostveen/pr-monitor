@@ -2,7 +2,9 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Windows;
 using Forms = System.Windows.Forms;
+using PrBot.Models;
 using PrBot.Services;
+using PrBot.Settings;
 
 namespace PrBot.Views;
 
@@ -14,6 +16,7 @@ public sealed class TrayIconManager : IDisposable
 {
     private readonly Forms.NotifyIcon _notifyIcon;
     private readonly Forms.ContextMenuStrip _contextMenu;
+    private readonly AppSettings _settings;
 
     // Menu items that get their text updated on poll
     private readonly Forms.ToolStripMenuItem _myPrsItem;
@@ -23,8 +26,9 @@ public sealed class TrayIconManager : IDisposable
     private Action? _openSettingsAction;
     private Action? _exitAction;
 
-    public TrayIconManager()
+    public TrayIconManager(AppSettings settings)
     {
+        _settings = settings;
         // ── Context menu ────────────────────────────────────────────
         _myPrsItem = new Forms.ToolStripMenuItem("My PRs (…)");
         _myPrsItem.Click += (_, _) => OpenInBrowser(
@@ -96,24 +100,25 @@ public sealed class TrayIconManager : IDisposable
 
     private void UpdateFromSnapshot(PollSnapshot snapshot)
     {
+        // Exclude hidden PRs from counts
+        var hidden = _settings.HiddenPrKeys;
+        int visibleAuto = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key));
+        int visibleReview = snapshot.ReviewRequestedPrs.Count(p => !hidden.Contains(p.Key));
+        int totalVisible = visibleAuto + visibleReview;
+        int failedCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure);
+
         // Update icon
         var oldIcon = _notifyIcon.Icon;
-        _notifyIcon.Icon = IconGenerator.CreateTrayIcon(
-            snapshot.TotalCount,
-            snapshot.FailedCICount,
-            snapshot.ReviewRequestedPrs.Count);
+        _notifyIcon.Icon = IconGenerator.CreateTrayIcon(totalVisible, failedCI, visibleReview);
         oldIcon?.Dispose();
 
         // Tooltip
-        var tooltip = $"PR Monitor\n" +
-                      $"Auto-merge PRs: {snapshot.AutoMergePrs.Count}\n" +
-                      $"Awaiting review: {snapshot.ReviewRequestedPrs.Count}";
-        // NotifyIcon.Text max length is 127 chars; truncate if needed
+        var tooltip = $"PR Monitor\nAuto-merge PRs: {visibleAuto}\nAwaiting review: {visibleReview}";
         _notifyIcon.Text = tooltip.Length > 127 ? tooltip[..127] : tooltip;
 
         // Menu item labels
-        _myPrsItem.Text = $"My PRs ({snapshot.AutoMergePrs.Count})";
-        _reviewsItem.Text = $"Awaiting Review ({snapshot.ReviewRequestedPrs.Count})";
+        _myPrsItem.Text = $"My PRs ({visibleAuto})";
+        _reviewsItem.Text = $"Awaiting Review ({visibleReview})";
     }
 
     // ── Helpers ─────────────────────────────────────────────────────

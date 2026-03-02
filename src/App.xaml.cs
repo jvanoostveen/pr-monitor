@@ -60,7 +60,7 @@ public partial class App : System.Windows.Application
 
         _mainWindow = new MainWindow(mainVm);
 
-        _trayIcon = new TrayIconManager();
+        _trayIcon = new TrayIconManager(settings);
         _trayIcon.Subscribe(_polling);
         _trayIcon.OnOpenWindow(() =>
         {
