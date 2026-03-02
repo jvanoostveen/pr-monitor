@@ -14,6 +14,8 @@ public partial class MainWindow : Window
 {
     public MainViewModel ViewModel { get; }
     private DoubleAnimation? _spinAnimation;
+    private bool _userMoved;
+    private bool _isProgrammaticMove;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -27,33 +29,66 @@ public partial class MainWindow : Window
             if (e.PropertyName == nameof(MainViewModel.IsRefreshing))
                 UpdateRefreshIcon(viewModel.IsRefreshing);
         };
+
+        Loaded += (_, _) => AlignToBottomRight();
     }
 
     /// <summary>
-    /// Show the window positioned just above the system tray area.
+    /// Show the window. Snaps to bottom-right unless the user has manually moved it.
     /// </summary>
     public void ShowAtTray()
     {
-        PositionNearTray();
+        if (!_userMoved) AlignToBottomRight();
         Show();
         Activate();
     }
 
-    private void PositionNearTray()
+    private void SetWindowPosition(double left, double top)
     {
-        var workArea = SystemParameters.WorkArea;
-        Left = workArea.Right - Width - 8;
-        Top = workArea.Bottom - ActualHeight - 8;
+        _isProgrammaticMove = true;
+        Left = left;
+        Top = top;
+        _isProgrammaticMove = false;
+    }
 
-        // ActualHeight may be 0 before first render; handle with Loaded
-        if (ActualHeight == 0)
-        {
-            Loaded += (_, _) =>
-            {
-                Left = workArea.Right - ActualWidth - 8;
-                Top = workArea.Bottom - ActualHeight - 8;
-            };
-        }
+    private void AlignToBottomRight()
+    {
+        var wa = SystemParameters.WorkArea;
+        double w = ActualWidth  > 0 ? ActualWidth  : Width;
+        double h = ActualHeight > 0 ? ActualHeight : 0;
+        SetWindowPosition(wa.Right - w - 12, wa.Bottom - h - 12);
+    }
+
+    private void EnsureFullyVisible()
+    {
+        var wa = SystemParameters.WorkArea;
+        double left = Left, top = Top;
+        if (left + ActualWidth  > wa.Right)  left = wa.Right  - ActualWidth;
+        if (top  + ActualHeight > wa.Bottom) top  = wa.Bottom - ActualHeight;
+        if (left < wa.Left) left = wa.Left;
+        if (top  < wa.Top)  top  = wa.Top;
+        if (Math.Abs(left - Left) > 0.5 || Math.Abs(top - Top) > 0.5)
+            SetWindowPosition(left, top);
+    }
+
+    protected override void OnLocationChanged(EventArgs e)
+    {
+        base.OnLocationChanged(e);
+        if (!_isProgrammaticMove)
+            _userMoved = true;
+    }
+
+    private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_userMoved)
+            EnsureFullyVisible();
+        else
+            AlignToBottomRight();
+    }
+
+    private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        DragMove();
     }
 
     private void UpdateRefreshIcon(bool isRefreshing)
