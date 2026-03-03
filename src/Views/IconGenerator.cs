@@ -40,17 +40,41 @@ public static class IconGenerator
         using var brush = new SolidBrush(circleColor);
         g.FillEllipse(brush, 0, 0, size - 1, size - 1);
 
-        // Badge number in white
+        // Badge number – pick black or white based on background luminance for best contrast
         if (totalCount > 0)
         {
             var text = totalCount > 99 ? "…" : totalCount.ToString();
             float fontSize = totalCount > 9 ? size * 0.40f : size * 0.48f;
             using var font = new Font("Segoe UI", fontSize, FontStyle.Bold, GraphicsUnit.Point);
             using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.DrawString(text, font, Brushes.White, new RectangleF(0, 0, size, size), sf);
+            var textBrush = GetContrastBrush(circleColor);
+            g.DrawString(text, font, textBrush, new RectangleF(0, 0, size, size), sf);
         }
 
         var hIcon = bmp.GetHicon();
         return Icon.FromHandle(hIcon);
+    }
+
+    /// <summary>
+    /// Returns black or white brush, whichever has higher contrast against <paramref name="background"/>.
+    /// Uses WCAG relative-luminance formula.
+    /// </summary>
+    private static Brush GetContrastBrush(Color background)
+    {
+        static double Linearize(double c)
+        {
+            c /= 255.0;
+            return c <= 0.04045 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4);
+        }
+
+        double L = 0.2126 * Linearize(background.R)
+                 + 0.7152 * Linearize(background.G)
+                 + 0.0722 * Linearize(background.B);
+
+        // WCAG: contrast with white = (1+0.05)/(L+0.05), with black = (L+0.05)/(0+0.05)
+        double contrastWithWhite = 1.05 / (L + 0.05);
+        double contrastWithBlack = (L + 0.05) / 0.05;
+
+        return contrastWithWhite >= contrastWithBlack ? Brushes.White : Brushes.Black;
     }
 }
