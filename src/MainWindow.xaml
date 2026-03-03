@@ -212,178 +212,179 @@
                     </StackPanel>
 
                     <!-- Section: Auto-Merge PRs -->
-                    <Border MouseLeftButtonUp="AutoMergeHeader_Click" Cursor="Hand"
-                            Background="Transparent" Margin="0,0,0,6">
-                        <DockPanel>
-                            <!-- Chevron -->
-                            <TextBlock DockPanel.Dock="Left"
-                                       Text="&#xE70D;"
-                                       FontFamily="Segoe Fluent Icons"
-                                       FontSize="10" Foreground="#6E7681"
-                                       VerticalAlignment="Center" Margin="0,0,6,0"
-                                       RenderTransformOrigin="0.5,0.5">
-                                <TextBlock.RenderTransform>
-                                    <RotateTransform Angle="{Binding AutoMergeExpanded, 
-                                        Converter={StaticResource BoolToAngleConverter}}"/>
-                                </TextBlock.RenderTransform>
-                            </TextBlock>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE72C;" FontFamily="Segoe Fluent Icons"
-                                           FontSize="12" Foreground="#58A6FF"
-                                           VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
-                                           VerticalAlignment="Center">
-                                    <Run Text="My Auto-Merge PRs "/>
-                                    <Run Text="{Binding AutoMergeCount, StringFormat='({0})', Mode=OneWay}"
-                                         Foreground="#8B949E"/>
+                    <StackPanel Visibility="{Binding AutoMergeCount, Converter={StaticResource NonZeroToVisibleConverter}}">
+                        <Border MouseLeftButtonUp="AutoMergeHeader_Click" Cursor="Hand"
+                                Background="Transparent" Margin="0,0,0,6">
+                            <DockPanel>
+                                <!-- Chevron -->
+                                <TextBlock DockPanel.Dock="Left"
+                                           Text="&#xE70D;"
+                                           FontFamily="Segoe Fluent Icons"
+                                           FontSize="10" Foreground="#6E7681"
+                                           VerticalAlignment="Center" Margin="0,0,6,0"
+                                           RenderTransformOrigin="0.5,0.5">
+                                    <TextBlock.RenderTransform>
+                                        <RotateTransform Angle="{Binding AutoMergeExpanded, 
+                                            Converter={StaticResource BoolToAngleConverter}}"/>
+                                    </TextBlock.RenderTransform>
                                 </TextBlock>
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE72C;" FontFamily="Segoe Fluent Icons"
+                                               FontSize="12" Foreground="#58A6FF"
+                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
+                                               VerticalAlignment="Center">
+                                        <Run Text="My Auto-Merge PRs "/>
+                                        <Run Text="{Binding AutoMergeCount, StringFormat='({0})', Mode=OneWay}"
+                                             Foreground="#8B949E"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
 
-                    <StackPanel Visibility="{Binding AutoMergeExpanded, Converter={StaticResource BoolToVisibility}}">
-                        <ItemsControl ItemsSource="{Binding AutoMergePrs}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Style="{StaticResource PrRow}"
-                                            MouseLeftButtonUp="PrItem_Click"
-                                            Tag="{Binding}">
-                                        <Border.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Header="Move to later" Tag="{Binding}"
-                                                          Click="PrRow_Hide_Click"/>
-                                            </ContextMenu>
-                                        </Border.ContextMenu>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <Ellipse Grid.Column="0" Width="10" Height="10"
-                                                     Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
-                                                     VerticalAlignment="Center" Margin="0,0,8,0"
-                                                     ToolTip="{Binding CIState}"/>
-                                            <StackPanel Grid.Column="1">
-                                                <TextBlock Style="{StaticResource RepoText}">
-                                                    <Run Text="{Binding Repository, Mode=OneWay}"/>
-                                                    <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
-                                                </TextBlock>
-                                                <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
-                                            </StackPanel>
-                                            <TextBlock Grid.Column="2" Style="{StaticResource MetaText}"
-                                                       Text="{Binding TimeAgo}" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Text="No auto-merge PRs" Style="{StaticResource MetaText}" Margin="0,4,0,12"
-                                   Visibility="{Binding AutoMergeCount, Converter={StaticResource ZeroToVisibleConverter}}"/>
+                        <StackPanel Visibility="{Binding AutoMergeExpanded, Converter={StaticResource BoolToVisibility}}">
+                            <ItemsControl ItemsSource="{Binding AutoMergePrs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource PrRow}"
+                                                MouseLeftButtonUp="PrItem_Click"
+                                                Tag="{Binding}">
+                                            <Border.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Move to later" Tag="{Binding}"
+                                                              Click="PrRow_Hide_Click"/>
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Ellipse Grid.Column="0" Width="10" Height="10"
+                                                         Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                         VerticalAlignment="Center" Margin="0,0,8,0"
+                                                         ToolTip="{Binding CIState}"/>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Style="{StaticResource RepoText}">
+                                                        <Run Text="{Binding Repository, Mode=OneWay}"/>
+                                                        <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
+                                                    </TextBlock>
+                                                    <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Style="{StaticResource MetaText}"
+                                                           Text="{Binding TimeAgo}" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- Separator after Auto-Merge -->
+                        <Border Height="1" Background="#21262D" Margin="0,4,0,8"/>
                     </StackPanel>
-
-                    <!-- Separator -->
-                    <Border Height="1" Background="#21262D" Margin="0,4,0,8"/>
 
                     <!-- Section: Review Requested -->
-                    <Border MouseLeftButtonUp="ReviewHeader_Click" Cursor="Hand"
-                            Background="Transparent" Margin="0,0,0,6">
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
-                                       FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
-                                       Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
-                                <TextBlock.RenderTransform>
-                                    <RotateTransform Angle="{Binding ReviewExpanded,
-                                        Converter={StaticResource BoolToAngleConverter}}"/>
-                                </TextBlock.RenderTransform>
-                            </TextBlock>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE7EE;" FontFamily="Segoe Fluent Icons"
-                                           FontSize="12" Foreground="#D29922"
-                                           VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
-                                           VerticalAlignment="Center">
-                                    <Run Text="Awaiting My Review "/>
-                                    <Run Text="{Binding ReviewCount, StringFormat='({0})', Mode=OneWay}"
-                                         Foreground="#8B949E"/>
+                    <StackPanel Visibility="{Binding ReviewCount, Converter={StaticResource NonZeroToVisibleConverter}}">
+                        <Border MouseLeftButtonUp="ReviewHeader_Click" Cursor="Hand"
+                                Background="Transparent" Margin="0,0,0,6">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
+                                           FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
+                                           Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
+                                    <TextBlock.RenderTransform>
+                                        <RotateTransform Angle="{Binding ReviewExpanded,
+                                            Converter={StaticResource BoolToAngleConverter}}"/>
+                                    </TextBlock.RenderTransform>
                                 </TextBlock>
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE7EE;" FontFamily="Segoe Fluent Icons"
+                                               FontSize="12" Foreground="#D29922"
+                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
+                                               VerticalAlignment="Center">
+                                        <Run Text="Awaiting My Review "/>
+                                        <Run Text="{Binding ReviewCount, StringFormat='({0})', Mode=OneWay}"
+                                             Foreground="#8B949E"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
 
-                    <StackPanel Visibility="{Binding ReviewExpanded, Converter={StaticResource BoolToVisibility}}">
-                        <ItemsControl ItemsSource="{Binding ReviewRequestedPrs}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Style="{StaticResource PrRow}"
-                                            MouseLeftButtonUp="PrItem_Click"
-                                            Tag="{Binding}">
-                                        <Border.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Header="Move to later" Tag="{Binding}"
-                                                          Click="PrRow_Hide_Click"/>
-                                            </ContextMenu>
-                                        </Border.ContextMenu>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <Ellipse Grid.Column="0" Width="10" Height="10"
-                                                     Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
-                                                     VerticalAlignment="Center" Margin="0,0,8,0"
-                                                     ToolTip="{Binding CIState}"/>
-                                            <StackPanel Grid.Column="1">
-                                                <TextBlock Style="{StaticResource RepoText}">
-                                                    <Run Text="{Binding Repository, Mode=OneWay}"/>
-                                                    <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
-                                                    <Run Text=" by "/>
-                                                    <Run Text="{Binding Author, Mode=OneWay}"/>
-                                                </TextBlock>
-                                                <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
-                                            </StackPanel>
-                                            <TextBlock Grid.Column="2" Style="{StaticResource MetaText}"
-                                                       Text="{Binding TimeAgo}" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Text="No pending reviews" Style="{StaticResource MetaText}" Margin="0,4,0,0"
-                                   Visibility="{Binding ReviewCount, Converter={StaticResource ZeroToVisibleConverter}}"/>
+                        <StackPanel Visibility="{Binding ReviewExpanded, Converter={StaticResource BoolToVisibility}}">
+                            <ItemsControl ItemsSource="{Binding ReviewRequestedPrs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource PrRow}"
+                                                MouseLeftButtonUp="PrItem_Click"
+                                                Tag="{Binding}">
+                                            <Border.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Move to later" Tag="{Binding}"
+                                                              Click="PrRow_Hide_Click"/>
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Ellipse Grid.Column="0" Width="10" Height="10"
+                                                         Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                         VerticalAlignment="Center" Margin="0,0,8,0"
+                                                         ToolTip="{Binding CIState}"/>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Style="{StaticResource RepoText}">
+                                                        <Run Text="{Binding Repository, Mode=OneWay}"/>
+                                                        <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
+                                                        <Run Text=" by "/>
+                                                        <Run Text="{Binding Author, Mode=OneWay}"/>
+                                                    </TextBlock>
+                                                    <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Style="{StaticResource MetaText}"
+                                                           Text="{Binding TimeAgo}" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- Separator after Review -->
+                        <Border Height="1" Background="#21262D" Margin="0,4,0,8"/>
                     </StackPanel>
 
-                    <!-- Separator -->
-                    <Border Height="1" Background="#21262D" Margin="0,4,0,8"/>
-
                     <!-- Section: Later -->
-                    <Border MouseLeftButtonUp="LaterHeader_Click" Cursor="Hand"
-                            Background="Transparent" Margin="0,0,0,6">
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
-                                       FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
-                                       Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
-                                <TextBlock.RenderTransform>
-                                    <RotateTransform Angle="{Binding LaterExpanded,
-                                        Converter={StaticResource BoolToAngleConverter}}"/>
-                                </TextBlock.RenderTransform>
-                            </TextBlock>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE823;" FontFamily="Segoe Fluent Icons"
-                                           FontSize="12" Foreground="#6E7681"
-                                           VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#6E7681"
-                                           VerticalAlignment="Center">
-                                    <Run Text="Later "/>
-                                    <Run Text="{Binding HiddenCount, StringFormat='({0})', Mode=OneWay}"
-                                         Foreground="#484F58"/>
+                    <StackPanel Visibility="{Binding HiddenCount, Converter={StaticResource NonZeroToVisibleConverter}}">
+                        <Border MouseLeftButtonUp="LaterHeader_Click" Cursor="Hand"
+                                Background="Transparent" Margin="0,0,0,6">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
+                                           FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
+                                           Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
+                                    <TextBlock.RenderTransform>
+                                        <RotateTransform Angle="{Binding LaterExpanded,
+                                            Converter={StaticResource BoolToAngleConverter}}"/>
+                                    </TextBlock.RenderTransform>
                                 </TextBlock>
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE823;" FontFamily="Segoe Fluent Icons"
+                                               FontSize="12" Foreground="#6E7681"
+                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#6E7681"
+                                               VerticalAlignment="Center">
+                                        <Run Text="Later "/>
+                                        <Run Text="{Binding HiddenCount, StringFormat='({0})', Mode=OneWay}"
+                                             Foreground="#484F58"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
 
-                    <StackPanel Visibility="{Binding LaterExpanded, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Visibility="{Binding LaterExpanded, Converter={StaticResource BoolToVisibility}}">
                         <ItemsControl ItemsSource="{Binding HiddenPrs}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -421,6 +422,7 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
