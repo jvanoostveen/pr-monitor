@@ -123,9 +123,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void ToggleHotfixExpanded() => HotfixExpanded = !HotfixExpanded;
     public void ToggleLaterExpanded() => LaterExpanded = !LaterExpanded;
 
+    private static readonly TimeSpan StaleCooldown = TimeSpan.FromDays(14);
+
     public void HideItem(string key)
     {
         _settings.HiddenPrKeys.Add(key);
+        _settings.HiddenPrLastSeen[key] = DateTimeOffset.UtcNow;
         _settings.Save();
 
         // Find item in active lists, move it to HiddenPrs immediately
@@ -150,6 +153,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void RestoreItem(string key)
     {
         _settings.HiddenPrKeys.Remove(key);
+        _settings.HiddenPrLastSeen.Remove(key);
         _settings.Save();
         var item = FindAndRemove(HiddenPrs, key);
         if (item is not null)
@@ -221,10 +225,41 @@ public sealed class MainViewModel : INotifyPropertyChanged
             .Concat(snapshot.HotfixPrs.Select(p => p.Key))
             .ToHashSet();
 
-        // Remove hidden keys for PRs that no longer exist
-        var stale = _settings.HiddenPrKeys.Where(k => !allKeys.Contains(k)).ToList();
-        foreach (var k in stale) _settings.HiddenPrKeys.Remove(k);
-        if (stale.Count > 0) _settings.Save();
+        // Guard: if the poll returned nothing at all (network failure / auth error),
+        // skip stale-key cleanup entirely to avoid wrongly evicting hidden PRs.
+        if (allKeys.Count > 0 || _settings.HiddenPrKeys.Count == 0)
+        {
+            var now = DateTimeOffset.UtcNow;
+
+            // Initialize last-seen for any key that has no record yet (e.g. migrated settings)
+            bool lastSeenChanged = false;
+            foreach (var key in _settings.HiddenPrKeys.Where(k => !_settings.HiddenPrLastSeen.ContainsKey(k)))
+            {
+                _settings.HiddenPrLastSeen[key] = now;
+                lastSeenChanged = true;
+            }
+
+            // Update last-seen timestamp for every hidden key present in this poll
+            foreach (var key in _settings.HiddenPrKeys.Where(k => allKeys.Contains(k)))
+            {
+                _settings.HiddenPrLastSeen[key] = now;
+                lastSeenChanged = true;
+            }
+
+            // Remove keys that have been gone for longer than the cooldown period
+            var stale = _settings.HiddenPrKeys
+                .Where(k => !allKeys.Contains(k) &&
+                            _settings.HiddenPrLastSeen.TryGetValue(k, out var seen) &&
+                            (now - seen) > StaleCooldown)
+                .ToList();
+            foreach (var k in stale)
+            {
+                _settings.HiddenPrKeys.Remove(k);
+                _settings.HiddenPrLastSeen.Remove(k);
+            }
+
+            if (lastSeenChanged || stale.Count > 0) _settings.Save();
+        }
 
         var hidden = _settings.HiddenPrKeys;
 

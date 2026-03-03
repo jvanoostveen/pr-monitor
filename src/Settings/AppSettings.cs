@@ -55,6 +55,12 @@ public sealed class AppSettings
     public HashSet<string> HiddenPrKeys { get; set; } = [];
 
     /// <summary>
+    /// Tracks the last time each hidden PR key was seen in a successful poll.
+    /// Keys unseen for longer than the cooldown period are eligible for removal.
+    /// </summary>
+    public Dictionary<string, DateTimeOffset> HiddenPrLastSeen { get; set; } = [];
+
+    /// <summary>
     /// Load settings from disk, or return defaults if no file exists.
     /// </summary>
     public static AppSettings Load()
