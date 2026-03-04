@@ -87,6 +87,10 @@ dotnet publish .\src\PrMonitor.csproj -c Release -r win-x64 --self-contained
 
 The output is placed in `src\bin\Release\net10.0-windows10.0.17763.0\win-x64\publish\`.
 
+## Version history
+
+See [CHANGELOG.md](CHANGELOG.md) for the versioned release history and notable changes.
+
 ## GitHub Actions workflows
 
 The repository includes two separate GitHub Actions workflows:

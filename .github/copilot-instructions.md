@@ -93,6 +93,8 @@ After completing any user-facing change, update **both**:
 - `README.md` — reflect new sections, behaviours, or settings in the feature table and prose
 - `.github/copilot-instructions.md` — update architecture notes, settings schema, and section descriptions to match the current state of the code
 
+For user-facing or versioned changes, also update `CHANGELOG.md` using Keep a Changelog style (`[Unreleased]` + version sections).
+
 Commit the documentation in the same commit as the code change.
 
 ### 5. Commit every completed step
@@ -219,6 +221,10 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 ### README onboarding
 - `README.md` uses a release-first onboarding flow in **Getting started** (download latest release + run executable).
 - Clone/run-from-source instructions are documented under a separate development-focused section.
+
+### Changelog
+- `CHANGELOG.md` in the repository root is the canonical version history for user-facing and versioned changes.
+- Keep entries concise and grouped by Keep a Changelog categories under `[Unreleased]` and released versions.
 
 ---
 
