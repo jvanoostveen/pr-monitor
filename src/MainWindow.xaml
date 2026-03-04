@@ -57,7 +57,7 @@
     </Window.Resources>
 
     <!-- Outer border with rounded corners and shadow -->
-    <Border Background="#0D1117" CornerRadius="8" BorderBrush="#30363D" BorderThickness="1"
+    <Border x:Name="OuterBorder" Background="#0D1117" CornerRadius="8" BorderBrush="#30363D" BorderThickness="1"
             Margin="8">
         <Border.Effect>
             <DropShadowEffect BlurRadius="12" Opacity="0.5" ShadowDepth="2" Color="Black"/>
