@@ -81,7 +81,7 @@ When a task touches **3 or more files** or requires independent research alongsi
 Use the main agent for: simple single-file edits, quick investigations, running terminal commands, and reviewing subagent output.
 
 ### 3. Validate before committing
-Always run `dotnet build .\src\PrBot.csproj -v q` and confirm `ExitCode: 0` before committing.
+Always run `dotnet build .\src\PrMonitor.csproj -v q` and confirm `ExitCode: 0` before committing.
 
 ### 4. Update documentation
 After completing any user-facing change, update **both**:
@@ -89,6 +89,15 @@ After completing any user-facing change, update **both**:
 - `.github/copilot-instructions.md` — update architecture notes, settings schema, and section descriptions to match the current state of the code
 
 Commit the documentation in the same commit as the code change.
+
+### 5. Commit every completed step
+Do not batch unrelated work into one commit. After each completed implementation step:
+- Stop the running app
+- Build and confirm success (`ExitCode: 0`)
+- Commit only the files for that step
+- Continue with the next step in a new commit
+
+When a request contains multiple deliverables (for example framework migration + UI polish), create separate commits per deliverable.
 
 ---
 
