@@ -5,62 +5,130 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="PR Monitor – Settings"
-        Width="400" Height="340"
+        Width="400" MinHeight="340"
+        SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Background="#0D1117">
 
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Window.Resources>
+        <Style x:Key="SettingsButtonBase" TargetType="Button">
+            <Setter Property="Padding" Value="0,6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinHeight" Value="32"/>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.55"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SettingsTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#161B22"/>
+            <Setter Property="Foreground" Value="#C9D1D9"/>
+            <Setter Property="BorderBrush" Value="#30363D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Style.Triggers>
+                <Trigger Property="IsKeyboardFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="#58A6FF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource SettingsButtonBase}">
+            <Setter Property="Background" Value="#21262D"/>
+            <Setter Property="Foreground" Value="#C9D1D9"/>
+            <Setter Property="BorderBrush" Value="#30363D"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#30363D"/>
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                    <Setter Property="BorderBrush" Value="#484F58"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#161B22"/>
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                    <Setter Property="BorderBrush" Value="#30363D"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource SettingsButtonBase}">
+            <Setter Property="Background" Value="#238636"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#2EA043"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2EA043"/>
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                    <Setter Property="BorderBrush" Value="#3FB950"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1F6F2D"/>
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                    <Setter Property="BorderBrush" Value="#238636"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Border Margin="12" Padding="20" Background="#0D1117" BorderBrush="#30363D" BorderThickness="1" CornerRadius="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
         <!-- Organizations -->
-        <StackPanel Grid.Row="0">
-            <TextBlock Text="GitHub Organizations (one per line)"
-                       Foreground="#C9D1D9" FontSize="13" Margin="0,0,0,4"/>
-            <TextBox Text="{Binding OrganizationsText, UpdateSourceTrigger=PropertyChanged}"
-                     AcceptsReturn="True" TextWrapping="Wrap"
-                     Background="#161B22" Foreground="#C9D1D9"
-                     BorderBrush="#30363D" Padding="6,4"
-                     FontSize="12" FontFamily="Consolas"
-                     Height="100" VerticalScrollBarVisibility="Auto"/>
-        </StackPanel>
+            <StackPanel Grid.Row="0">
+                <TextBlock Text="GitHub Organizations (one per line)"
+                           Foreground="#C9D1D9" FontSize="13" Margin="0,0,0,6"/>
+                <TextBox Style="{StaticResource SettingsTextBox}"
+                         Text="{Binding OrganizationsText, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True" TextWrapping="Wrap"
+                         Height="110" VerticalScrollBarVisibility="Auto"/>
+            </StackPanel>
 
         <!-- Polling interval -->
-        <StackPanel Grid.Row="2" Margin="0,16,0,0">
-            <TextBlock Foreground="#C9D1D9" FontSize="13" Margin="0,0,0,4">
-                <Run Text="Polling interval: "/>
-                <Run Text="{Binding PollingIntervalSeconds, Mode=OneWay}"/>
-                <Run Text=" seconds"/>
-            </TextBlock>
-            <Slider Minimum="30" Maximum="600"
-                    TickFrequency="30" IsSnapToTickEnabled="True"
-                    Value="{Binding PollingIntervalSeconds}"
-                    Foreground="#58A6FF"/>
-        </StackPanel>
+            <StackPanel Grid.Row="2" Margin="0,16,0,0">
+                <TextBlock Foreground="#C9D1D9" FontSize="13" Margin="0,0,0,6">
+                    <Run Text="Polling interval: "/>
+                    <Run Text="{Binding PollingIntervalSeconds, Mode=OneWay}"/>
+                    <Run Text=" seconds"/>
+                </TextBlock>
+                <Slider Minimum="30" Maximum="600"
+                        TickFrequency="30" IsSnapToTickEnabled="True"
+                        Value="{Binding PollingIntervalSeconds}"
+                        Foreground="#58A6FF"/>
+            </StackPanel>
 
         <!-- Auto-start -->
-        <CheckBox Grid.Row="3" Margin="0,16,0,0"
-                  IsChecked="{Binding AutoStartWithWindows}"
-                  Foreground="#C9D1D9" FontSize="13"
-                  Content="Start with Windows"/>
+            <CheckBox Grid.Row="3" Margin="0,16,0,0"
+                      IsChecked="{Binding AutoStartWithWindows}"
+                      Foreground="#C9D1D9" FontSize="13"
+                      VerticalContentAlignment="Center"
+                      Content="Start with Windows"/>
 
         <!-- Buttons -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal"
-                    HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button Content="Cancel" Width="80" Margin="0,0,8,0"
-                    Click="Cancel_Click"
-                    Background="#21262D" Foreground="#C9D1D9" BorderBrush="#30363D"
-                    Padding="0,6"/>
-            <Button Content="Save" Width="80"
-                    Click="Save_Click"
-                    Background="#238636" Foreground="White" BorderBrush="#2EA043"
-                    Padding="0,6" FontWeight="SemiBold"/>
-        </StackPanel>
-    </Grid>
+            <StackPanel Grid.Row="4" Orientation="Horizontal"
+                        HorizontalAlignment="Right" Margin="0,20,0,0">
+                <Button Content="Cancel" Width="92" Margin="0,0,8,0"
+                        Style="{StaticResource SecondaryButton}"
+                        Click="Cancel_Click"
+                        IsCancel="True"/>
+                <Button Content="Save" Width="92"
+                        Style="{StaticResource PrimaryButton}"
+                        Click="Save_Click"
+                        IsDefault="True"/>
+            </StackPanel>
+        </Grid>
+    </Border>
 </Window>
