@@ -19,6 +19,7 @@ Repository license: MIT (see `LICENSE`).
 | Auth / API | `gh` CLI → `gh api graphql` subprocess |
 | Notifications | `Microsoft.Toolkit.Uwp.Notifications` v7.1.3 |
 | Settings | JSON in `%APPDATA%/pr-monitor/settings.json` |
+| Diagnostics log | `%APPDATA%/pr-monitor/logs/pr-monitor.log` |
 | Version source | `<Version>` in `src/PrMonitor.csproj` |
 
 ---
@@ -143,6 +144,14 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - `PrChanged(PrChangeEvent)` — per individual change (for toast)
 - `Polled(PollSnapshot)` — full snapshot after each poll cycle
 
+`PollingService` also writes lightweight diagnostics log entries for poll start/end and poll exceptions.
+
+### Diagnostics logging
+- `DiagnosticsLogger` writes thread-safe append-only log entries to `%APPDATA%/pr-monitor/logs/pr-monitor.log`.
+- Log format includes timestamp + level (`INFO`, `WARN`, `ERROR`).
+- `GitHubService` logs GraphQL/`gh` failures (non-zero exit with stderr, GraphQL errors, JSON parse failures).
+- `PollingService` logs poll lifecycle and exceptions for intermittent "no data" investigations.
+
 ### Main Window behavior
 - Borderless, transparent, `Topmost=True`, `SizeToContent=Height`, `MaxHeight=600`
 - **No auto-hide on deactivate** — stays visible until user clicks X or tray icon
@@ -166,6 +175,11 @@ Each PR row shows a colored 10×10 `Ellipse`:
 - `#484F58` gray — Unknown
 
 For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CIState` — draft PRs always return `CIState.Unknown` so their indicator is grey regardless of actual build state.
+
+### Unresolved review comments indicator
+- PR rows keep the CI circle unchanged and can show an additional message icon (`Segoe MDL2 Assets`, `E8BD`) when unresolved review comments are present.
+- Tooltip text is in English and includes the unresolved comment count (for example: `3 unresolved review comments`).
+- Data is sourced from GraphQL `reviewThreads` per PR by counting unresolved threads (`isResolved == false`) and summing their `comments.totalCount`.
 
 ### Tray icon colors
 - Red `#F85149` — CI failures present

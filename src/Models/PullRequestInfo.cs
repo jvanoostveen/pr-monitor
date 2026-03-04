@@ -33,6 +33,9 @@ public sealed class PullRequestInfo
     /// <summary>Aggregate CI status of the latest commit.</summary>
     public CIState CIState { get; init; } = CIState.Unknown;
 
+    /// <summary>Number of unresolved review comments across unresolved review threads.</summary>
+    public int UnresolvedReviewCommentCount { get; init; }
+
     /// <summary>Base branch name (e.g. "release/1.2").</summary>
     public string BaseRefName { get; init; } = "";
 

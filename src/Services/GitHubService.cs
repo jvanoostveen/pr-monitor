@@ -9,6 +9,13 @@ namespace PrMonitor.Services;
 /// </summary>
 public sealed class GitHubService
 {
+    private readonly DiagnosticsLogger _logger;
+
+    public GitHubService(DiagnosticsLogger logger)
+    {
+        _logger = logger;
+    }
+
     // ── GraphQL fragments ───────────────────────────────────────────────
 
     private const string MyPrsQuery = """
@@ -33,6 +40,14 @@ public sealed class GitHubService
                     }
                   }
                 }
+                                reviewThreads(first: 50) {
+                                    nodes {
+                                        isResolved
+                                        comments(first: 1) {
+                                            totalCount
+                                        }
+                                    }
+                                }
               }
             }
           }
@@ -60,6 +75,14 @@ public sealed class GitHubService
                     }
                   }
                 }
+                                reviewThreads(first: 50) {
+                                    nodes {
+                                        isResolved
+                                        comments(first: 1) {
+                                            totalCount
+                                        }
+                                    }
+                                }
               }
             }
           }
@@ -142,7 +165,7 @@ public sealed class GitHubService
     /// </summary>
     public async Task<string?> GetCurrentUserAsync()
     {
-        var output = await RunGhAsync("api user -q .login");
+        var (output, _, _) = await RunGhAsync("api user -q .login");
         return string.IsNullOrWhiteSpace(output) ? null : output.Trim();
     }
 
@@ -158,21 +181,36 @@ public sealed class GitHubService
         return orgs.Select(org => $"{baseQuery} org:{org}").ToList();
     }
 
-    private static async Task<JsonElement?> RunGraphQlAsync(string query, string searchString)
+    private async Task<JsonElement?> RunGraphQlAsync(string query, string searchString)
     {
         // Escape the query for passing as -f argument
         var args = $"api graphql -f query=\"{EscapeForShell(query)}\" -f q=\"{EscapeForShell(searchString)}\"";
-        var output = await RunGhAsync(args);
-        if (string.IsNullOrWhiteSpace(output)) return null;
+        var (output, stderr, exitCode) = await RunGhAsync(args);
+        if (exitCode != 0)
+        {
+            _logger.Error($"GitHubService GraphQL call failed (exit={exitCode}) for query '{searchString}'. stderr: {stderr?.Trim()}");
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            _logger.Warn($"GitHubService GraphQL call returned empty output for query '{searchString}'.");
+            return null;
+        }
 
         try
         {
             using var doc = JsonDocument.Parse(output);
+            if (doc.RootElement.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Array)
+            {
+                _logger.Warn($"GitHubService GraphQL response contains errors for query '{searchString}': {errors}");
+            }
             // Clone so we can dispose the document
             return doc.RootElement.Clone();
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            _logger.Error($"GitHubService JSON parse failed for GraphQL query '{searchString}'.", ex);
             return null;
         }
     }
@@ -224,15 +262,14 @@ public sealed class GitHubService
                 Title = node.GetProperty("title").GetString() ?? "",
                 Url = node.GetProperty("url").GetString() ?? "",
                 Repository = node.GetProperty("repository").GetProperty("nameWithOwner").GetString() ?? "",
-                Author = node.TryGetProperty("author", out var author)
-                    ? author.GetProperty("login").GetString() ?? ""
-                    : "",
+                Author = GetAuthorLogin(node),
                 CreatedAt = node.TryGetProperty("createdAt", out var ca)
                     ? DateTimeOffset.Parse(ca.GetString()!)
                     : DateTimeOffset.MinValue,
                 HasAutoMerge = hasAutoMerge,
                 IsDraft = isDraft,
                 CIState = ciState,
+                UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
             });
         }
 
@@ -279,9 +316,7 @@ public sealed class GitHubService
                 Title = node.GetProperty("title").GetString() ?? "",
                 Url = node.GetProperty("url").GetString() ?? "",
                 Repository = node.GetProperty("repository").GetProperty("nameWithOwner").GetString() ?? "",
-                Author = node.TryGetProperty("author", out var author)
-                    ? author.GetProperty("login").GetString() ?? ""
-                    : "",
+                Author = GetAuthorLogin(node),
                 CreatedAt = node.TryGetProperty("createdAt", out var ca)
                     ? DateTimeOffset.Parse(ca.GetString()!)
                     : DateTimeOffset.MinValue,
@@ -289,10 +324,56 @@ public sealed class GitHubService
                     ? brn.GetString() ?? ""
                     : "",
                 CIState = ciState,
+                UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
             });
         }
 
         return result;
+    }
+
+    private static int ParseUnresolvedReviewCommentCount(JsonElement node)
+    {
+        if (!node.TryGetProperty("reviewThreads", out var reviewThreads)) return 0;
+        if (reviewThreads.ValueKind != JsonValueKind.Object) return 0;
+        if (!reviewThreads.TryGetProperty("nodes", out var threadNodes)) return 0;
+        if (threadNodes.ValueKind != JsonValueKind.Array) return 0;
+
+        var unresolvedComments = 0;
+        foreach (var thread in threadNodes.EnumerateArray())
+        {
+            if (thread.ValueKind != JsonValueKind.Object)
+                continue;
+
+            var isResolved = thread.TryGetProperty("isResolved", out var resolvedNode)
+                             && resolvedNode.ValueKind == JsonValueKind.True;
+            if (isResolved) continue;
+
+            if (thread.TryGetProperty("comments", out var comments)
+                && comments.ValueKind == JsonValueKind.Object
+                && comments.TryGetProperty("totalCount", out var totalCount)
+                && totalCount.TryGetInt32(out var count))
+            {
+                unresolvedComments += count;
+            }
+            else
+            {
+                unresolvedComments += 1;
+            }
+        }
+
+        return unresolvedComments;
+    }
+
+    private static string GetAuthorLogin(JsonElement node)
+    {
+        if (!node.TryGetProperty("author", out var author))
+            return "";
+        if (author.ValueKind != JsonValueKind.Object)
+            return "";
+        if (!author.TryGetProperty("login", out var login))
+            return "";
+
+        return login.GetString() ?? "";
     }
 
     private static CIState ParseCIState(string? state) => state?.ToUpperInvariant() switch
@@ -307,7 +388,7 @@ public sealed class GitHubService
 
     // ── Process helpers ─────────────────────────────────────────────────
 
-    private static async Task<string?> RunGhAsync(string arguments)
+    private async Task<(string? Output, string? Stderr, int ExitCode)> RunGhAsync(string arguments)
     {
         try
         {
@@ -324,14 +405,21 @@ public sealed class GitHubService
 
             process.Start();
             var output = await process.StandardOutput.ReadToEndAsync();
+            var stderr = await process.StandardError.ReadToEndAsync();
             await process.WaitForExitAsync();
 
-            return process.ExitCode == 0 ? output : null;
+            if (process.ExitCode != 0)
+            {
+                _logger.Error($"GitHubService gh command failed (exit={process.ExitCode}). args: {arguments}. stderr: {stderr?.Trim()}");
+            }
+
+            return (process.ExitCode == 0 ? output : null, stderr, process.ExitCode);
         }
-        catch
+        catch (Exception ex)
         {
             // gh CLI not installed or not on PATH
-            return null;
+            _logger.Error("GitHubService failed to start gh process.", ex);
+            return (null, null, -1);
         }
     }
 

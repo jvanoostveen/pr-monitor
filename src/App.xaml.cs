@@ -20,6 +20,7 @@ public partial class App : System.Windows.Application
     private NotificationService? _notifications;
     private MainWindow? _mainWindow;
     private UpdateService? _updates;
+    private DiagnosticsLogger? _logger;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -37,9 +38,10 @@ public partial class App : System.Windows.Application
 
         // ── Settings ───────────────────────────────────────────────
         var settings = AppSettings.Load();
+        _logger = new DiagnosticsLogger();
 
         // Auto-detect username if not cached
-        var github = new GitHubService();
+        var github = new GitHubService(_logger);
         if (string.IsNullOrEmpty(settings.GitHubUsername))
         {
             settings.GitHubUsername = await github.GetCurrentUserAsync();
@@ -50,7 +52,7 @@ public partial class App : System.Windows.Application
         SettingsViewModel.ApplyAutoStart(settings.AutoStartWithWindows);
 
         // ── Services ───────────────────────────────────────────────
-        _polling = new PollingService(github, settings);
+        _polling = new PollingService(github, settings, _logger);
 
         _notifications = new NotificationService();
         _notifications.Initialize();

@@ -44,15 +44,17 @@ public sealed class PollingService : IDisposable
 {
     private readonly GitHubService _github;
     private readonly AppSettings _settings;
+    private readonly DiagnosticsLogger _logger;
     private System.Timers.Timer? _timer;
 
     private Dictionary<string, PullRequestInfo> _previousAutoMerge = new();
     private Dictionary<string, PullRequestInfo> _previousReviews = new();
 
-    public PollingService(GitHubService github, AppSettings settings)
+    public PollingService(GitHubService github, AppSettings settings, DiagnosticsLogger logger)
     {
         _github = github;
         _settings = settings;
+        _logger = logger;
     }
 
     // ── Events ──────────────────────────────────────────────────────────
@@ -100,6 +102,7 @@ public sealed class PollingService : IDisposable
 
     private async Task PollAsync()
     {
+        _logger.Info("PollingService poll started.");
         try
         {
             // Fetch all my PRs in a single API call, then split by auto-merge flag
@@ -123,9 +126,12 @@ public sealed class PollingService : IDisposable
 
             LatestSnapshot = snapshot;
             Polled?.Invoke(this, snapshot);
+
+            _logger.Info($"PollingService poll finished. AutoMerge={autoMergePrs.Count}, MyPrs={myPrs.Count}, AwaitingReview={reviewPrs.Count}, Hotfixes={hotfixPrs.Count}.");
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.Error("PollingService poll failed.", ex);
             // Swallow – we'll try again next interval.
         }
     }

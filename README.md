@@ -16,6 +16,8 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 | **My PRs** | Your own open PRs without auto-merge (collapsed by default); draft PRs show a grey CI indicator |
 | **Later** | PRs you've snoozed with "Move to later" |
 
+Each PR row keeps its CI status circle and also shows a message icon when unresolved review comments exist; hovering the icon shows the unresolved comment count.
+
 Empty sections are hidden automatically. The tray icon badge changes colour to reflect the worst state:
 
 - 🔴 Red — one or more CI failures
@@ -112,6 +114,14 @@ dotnet run --project .\src\PrMonitor.csproj
 ```
 
 The app enforces a single instance via a named mutex (`PrMonitor_SingleInstance`). Launching a second instance shows a message and exits.
+
+### Troubleshooting
+
+For diagnostics when polling or GitHub API calls intermittently return no data, check the local log file:
+
+- `%APPDATA%\pr-monitor\logs\pr-monitor.log`
+
+The file contains timestamped `INFO`, `WARN`, and `ERROR` entries.
 
 ## License
 

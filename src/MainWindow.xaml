@@ -185,10 +185,20 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Ellipse Grid.Column="0" Width="10" Height="10"
-                                                         Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
-                                                         VerticalAlignment="Center" Margin="0,0,8,0"
-                                                         ToolTip="{Binding CIState}"/>
+                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                    <Ellipse Width="10" Height="10"
+                                                             Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                             VerticalAlignment="Center"
+                                                             ToolTip="{Binding CIState}"/>
+                                                    <TextBlock Text="&#xE8BD;"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="11"
+                                                               Foreground="#8B949E"
+                                                               VerticalAlignment="Center"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
+                                                               ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
+                                                </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
                                                         <Run Text="{Binding Repository, Mode=OneWay}"/>
@@ -261,10 +271,20 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Ellipse Grid.Column="0" Width="10" Height="10"
-                                                         Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
-                                                         VerticalAlignment="Center" Margin="0,0,8,0"
-                                                         ToolTip="{Binding CIState}"/>
+                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                    <Ellipse Width="10" Height="10"
+                                                             Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                             VerticalAlignment="Center"
+                                                             ToolTip="{Binding CIState}"/>
+                                                    <TextBlock Text="&#xE8BD;"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="11"
+                                                               Foreground="#8B949E"
+                                                               VerticalAlignment="Center"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
+                                                               ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
+                                                </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
                                                         <Run Text="{Binding Repository, Mode=OneWay}"/>
@@ -331,10 +351,20 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Ellipse Grid.Column="0" Width="10" Height="10"
-                                                         Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
-                                                         VerticalAlignment="Center" Margin="0,0,8,0"
-                                                         ToolTip="{Binding CIState}"/>
+                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                    <Ellipse Width="10" Height="10"
+                                                             Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                             VerticalAlignment="Center"
+                                                             ToolTip="{Binding CIState}"/>
+                                                    <TextBlock Text="&#xE8BD;"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="11"
+                                                               Foreground="#8B949E"
+                                                               VerticalAlignment="Center"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
+                                                               ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
+                                                </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
                                                         <Run Text="{Binding Repository, Mode=OneWay}"/>
@@ -404,10 +434,20 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <!-- EffectiveCIState is grey for draft PRs -->
-                                                <Ellipse Grid.Column="0" Width="10" Height="10"
-                                                         Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                         VerticalAlignment="Center" Margin="0,0,8,0"
-                                                         ToolTip="{Binding CIState}"/>
+                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                    <Ellipse Width="10" Height="10"
+                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                                                             VerticalAlignment="Center"
+                                                             ToolTip="{Binding CIState}"/>
+                                                    <TextBlock Text="&#xE8BD;"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="11"
+                                                               Foreground="#8B949E"
+                                                               VerticalAlignment="Center"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
+                                                               ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
+                                                </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
                                                         <Run Text="{Binding Repository, Mode=OneWay}"/>
@@ -474,10 +514,20 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <Ellipse Grid.Column="0" Width="10" Height="10"
-                                                     Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
-                                                     VerticalAlignment="Center" Margin="0,0,8,0"
-                                                     ToolTip="{Binding CIState}"/>
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                <Ellipse Width="10" Height="10"
+                                                         Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                         VerticalAlignment="Center"
+                                                         ToolTip="{Binding CIState}"/>
+                                                <TextBlock Text="&#xE8BD;"
+                                                           FontFamily="Segoe MDL2 Assets"
+                                                           FontSize="11"
+                                                           Foreground="#8B949E"
+                                                           VerticalAlignment="Center"
+                                                           Margin="5,0,0,0"
+                                                           Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
+                                                           ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
+                                            </StackPanel>
                                             <StackPanel Grid.Column="1">
                                                 <TextBlock Style="{StaticResource RepoText}">
                                                     <Run Text="{Binding Repository, Mode=OneWay}"/>

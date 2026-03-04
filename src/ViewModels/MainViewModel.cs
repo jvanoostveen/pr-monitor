@@ -371,6 +371,11 @@ public sealed class PrItemViewModel
     public required string TimeAgo { get; init; }
     public required string CIIcon { get; init; }
     public required CIState CIState { get; init; }
+    public int UnresolvedReviewCommentCount { get; init; }
+    public bool HasUnresolvedReviewComments => UnresolvedReviewCommentCount > 0;
+    public string UnresolvedReviewCommentsToolTip => UnresolvedReviewCommentCount == 1
+        ? "1 unresolved review comment"
+        : $"{UnresolvedReviewCommentCount} unresolved review comments";
     public int Number { get; init; }
     public bool IsAutoMergePr { get; init; }
     public bool IsMyPr { get; init; }
@@ -394,6 +399,7 @@ public sealed class PrItemViewModel
         Author = pr.Author,
         Number = pr.Number,
         CIState = pr.CIState,
+        UnresolvedReviewCommentCount = pr.UnresolvedReviewCommentCount,
         IsAutoMergePr = isAutoMerge,
         IsMyPr = isMyPr,
         IsHotfixPr = isHotfix,
