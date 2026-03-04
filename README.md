@@ -44,8 +44,8 @@ Follow the prompts. PR Bot uses the `gh` CLI for all API calls, so no tokens or 
 ### 2. Clone and run
 
 ```powershell
-git clone https://github.com/your-username/pr-bot.git
-cd pr-bot
+git clone https://github.com/jvanoostveen/pr-monitor.git
+cd pr-monitor
 dotnet run --project .\src\PrMonitor.csproj
 ```
 
