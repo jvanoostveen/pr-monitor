@@ -4,7 +4,7 @@ A lightweight Windows system-tray app that keeps an eye on your GitHub pull requ
 
 ## What it does
 
-PR Bot polls GitHub every two minutes and shows a floating window with:
+PR Monitor polls GitHub every two minutes and shows a floating window with:
 
 | Section | What's in it |
 |---|---|
@@ -39,7 +39,7 @@ The window can be **snapped to any corner** of any monitor by dragging it near a
 gh auth login
 ```
 
-Follow the prompts. PR Bot uses the `gh` CLI for all API calls, so no tokens or secrets need to be stored.
+Follow the prompts. PR Monitor uses the `gh` CLI for all API calls, so no tokens or secrets need to be stored.
 
 ### 2. Clone and run
 
