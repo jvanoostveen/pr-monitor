@@ -216,6 +216,10 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
   - Skips if tag `v<version>` already exists
   - Publishes `win-x64` build zip and attaches it to GitHub Release
 
+### README onboarding
+- `README.md` uses a release-first onboarding flow in **Getting started** (download latest release + run executable).
+- Clone/run-from-source instructions are documented under a separate development-focused section.
+
 ---
 
 ## Common WPF Pitfalls in This Project

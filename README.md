@@ -47,13 +47,13 @@ gh auth login
 
 Follow the prompts. PR Monitor uses the `gh` CLI for all API calls, so no tokens or secrets need to be stored.
 
-### 2. Clone and run
+### 2. Download and run the latest release
 
-```powershell
-git clone https://github.com/jvanoostveen/pr-monitor.git
-cd pr-monitor
-dotnet run --project .\src\PrMonitor.csproj
-```
+Download the latest `win-x64` package from:
+
+- https://github.com/jvanoostveen/pr-monitor/releases/latest
+
+Extract the zip and run `PrMonitor.exe`.
 
 The app starts minimised to the system tray. Click the tray icon to open the PR window.
 
@@ -68,6 +68,16 @@ Right-click the tray icon and choose **Settings** to:
 Settings are stored in `%APPDATA%\pr-monitor\settings.json`.
 
 You can also run a manual update check at any time from the tray menu using **Check for updates…**.
+
+## Running from source (development)
+
+```powershell
+git clone https://github.com/jvanoostveen/pr-monitor.git
+cd pr-monitor
+dotnet run --project .\src\PrMonitor.csproj
+```
+
+This is the recommended path for contributors and local development.
 
 ## Building a release executable
 
