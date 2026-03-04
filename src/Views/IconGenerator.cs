@@ -14,7 +14,7 @@ public static class IconGenerator
     private static readonly Color ColorRed    = Color.FromArgb(0xF8, 0x51, 0x49); // #F85149 – CI failure
     private static readonly Color ColorAmber  = Color.FromArgb(0xD2, 0x99, 0x22); // #D29922 – reviews pending
     private static readonly Color ColorGreen  = Color.FromArgb(0x3F, 0xB9, 0x50); // #3FB950 – all clear
-    private static readonly Color ColorBlue   = Color.FromArgb(0x00, 0x5F, 0xAA); // #005FAA – project blue (Later PRs only)
+    private static readonly Color ColorBlue   = Color.FromArgb(0x00, 0x5F, 0xAA); // #005FAA – later items only
     private static readonly Color ColorGray   = Color.FromArgb(0x8B, 0x94, 0x9E); // #8B949E – idle / not polled
 
     /// <summary>

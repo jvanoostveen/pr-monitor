@@ -83,3 +83,7 @@ dotnet run --project .\src\PrMonitor.csproj
 ```
 
 The app enforces a single instance via a named mutex (`PrMonitor_SingleInstance`). Launching a second instance shows a message and exits.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
