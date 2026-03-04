@@ -1,5 +1,7 @@
 # PR Monitor
 
+[![CI Build](https://github.com/jvanoostveen/pr-monitor/actions/workflows/ci-build.yml/badge.svg?branch=main)](https://github.com/jvanoostveen/pr-monitor/actions/workflows/ci-build.yml)
+
 A lightweight Windows system-tray app that keeps an eye on your GitHub pull requests so you don't have to constantly check GitHub.
 
 ## What it does
