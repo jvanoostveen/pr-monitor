@@ -19,7 +19,7 @@ public sealed class GitHubService
                 number
                 title
                 url
-                repository { nameWithOwner }
+                repository { nameWithOwner isArchived }
                 author { login }
                 createdAt
                 isDraft
@@ -47,7 +47,7 @@ public sealed class GitHubService
                 number
                 title
                 url
-                repository { nameWithOwner }
+                repository { nameWithOwner isArchived }
                 author { login }
                 createdAt
                 baseRefName
@@ -190,6 +190,12 @@ public sealed class GitHubService
             // Skip nodes that didn't resolve as a PR (empty objects)
             if (!node.TryGetProperty("number", out _)) continue;
 
+            // Skip PRs from archived repositories
+            if (node.TryGetProperty("repository", out var repoNode)
+                && repoNode.TryGetProperty("isArchived", out var isArchivedProp)
+                && isArchivedProp.GetBoolean())
+                continue;
+
             var hasAutoMerge = node.TryGetProperty("autoMergeRequest", out var amr)
                                && amr.ValueKind != JsonValueKind.Null;
 
@@ -244,6 +250,12 @@ public sealed class GitHubService
         foreach (var node in nodes.EnumerateArray())
         {
             if (!node.TryGetProperty("number", out _)) continue;
+
+            // Skip PRs from archived repositories
+            if (node.TryGetProperty("repository", out var repoNode)
+                && repoNode.TryGetProperty("isArchived", out var isArchivedProp)
+                && isArchivedProp.GetBoolean())
+                continue;
 
             var ciState = CIState.Unknown;
             if (node.TryGetProperty("commits", out var commits)
