@@ -29,6 +29,7 @@ public enum PrChangeKind
 public sealed class PollSnapshot
 {
     public IReadOnlyList<PullRequestInfo> AutoMergePrs { get; init; } = [];
+    public IReadOnlyList<PullRequestInfo> MyPrs { get; init; } = [];
     public IReadOnlyList<PullRequestInfo> ReviewRequestedPrs { get; init; } = [];
     public IReadOnlyList<PullRequestInfo> HotfixPrs { get; init; } = [];
     public int FailedCICount => AutoMergePrs.Count(p => p.CIState == CIState.Failure);
@@ -101,7 +102,11 @@ public sealed class PollingService : IDisposable
     {
         try
         {
-            var autoMergePrs = await _github.FetchMyAutoMergePRsAsync(_settings.Organizations);
+            // Fetch all my PRs in a single API call, then split by auto-merge flag
+            var allMyPrs  = await _github.FetchAllMyPRsAsync(_settings.Organizations);
+            var autoMergePrs = allMyPrs.Where(p => p.HasAutoMerge).ToList();
+            var myPrs        = allMyPrs.Where(p => !p.HasAutoMerge).ToList();
+
             var reviewPrs = await _github.FetchPRsAwaitingMyReviewAsync(_settings.Organizations);
             var hotfixPrs = await _github.FetchHotfixPRsAsync(_settings.Organizations);
 
@@ -111,6 +116,7 @@ public sealed class PollingService : IDisposable
             var snapshot = new PollSnapshot
             {
                 AutoMergePrs = autoMergePrs,
+                MyPrs        = myPrs,
                 ReviewRequestedPrs = reviewPrs,
                 HotfixPrs = hotfixPrs,
             };
@@ -121,7 +127,6 @@ public sealed class PollingService : IDisposable
         catch
         {
             // Swallow – we'll try again next interval.
-            // Could add logging here later.
         }
     }
 

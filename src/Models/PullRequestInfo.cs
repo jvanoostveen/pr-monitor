@@ -27,6 +27,9 @@ public sealed class PullRequestInfo
     /// <summary>Whether auto-merge is enabled on this PR.</summary>
     public bool HasAutoMerge { get; init; }
 
+    /// <summary>Whether this PR is a draft.</summary>
+    public bool IsDraft { get; init; }
+
     /// <summary>Aggregate CI status of the latest commit.</summary>
     public CIState CIState { get; init; } = CIState.Unknown;
 

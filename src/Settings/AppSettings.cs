@@ -48,6 +48,9 @@ public sealed class AppSettings
     /// <summary>Whether the "Hotfixes" section is expanded in the window.</summary>
     public bool HotfixExpanded { get; set; } = true;
 
+    /// <summary>Whether the "My PRs" (non-auto-merge) section is expanded in the window.</summary>
+    public bool MyPrsExpanded { get; set; } = false;
+
     /// <summary>Whether the "Later" section is expanded in the window.</summary>
     public bool LaterExpanded { get; set; } = false;
 

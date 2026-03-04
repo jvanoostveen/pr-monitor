@@ -357,6 +357,77 @@
                         <Border Height="1" Background="#21262D" Margin="0,4,0,8"/>
                     </StackPanel>
 
+                    <!-- Section: My PRs (non-auto-merge, collapsed by default) -->
+                    <StackPanel Visibility="{Binding MyPrsCount, Converter={StaticResource NonZeroToVisibleConverter}}">
+                        <Border MouseLeftButtonUp="MyPrsHeader_Click" Cursor="Hand"
+                                Background="Transparent" Margin="0,0,0,6">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
+                                           FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
+                                           Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
+                                    <TextBlock.RenderTransform>
+                                        <RotateTransform Angle="{Binding MyPrsExpanded,
+                                            Converter={StaticResource BoolToAngleConverter}}"/>
+                                    </TextBlock.RenderTransform>
+                                </TextBlock>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE8A5;" FontFamily="Segoe Fluent Icons"
+                                               FontSize="12" Foreground="#8B949E"
+                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#C9D1D9"
+                                               VerticalAlignment="Center">
+                                        <Run Text="My PRs "/>
+                                        <Run Text="{Binding MyPrsCount, StringFormat='({0})', Mode=OneWay}"
+                                             Foreground="#8B949E"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
+                        <StackPanel Visibility="{Binding MyPrsExpanded, Converter={StaticResource BoolToVisibility}}">
+                            <ItemsControl ItemsSource="{Binding MyPrs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource PrRow}"
+                                                MouseLeftButtonUp="PrItem_Click"
+                                                Tag="{Binding}">
+                                            <Border.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Move to later" Tag="{Binding}"
+                                                              Click="PrRow_Hide_Click"/>
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <!-- EffectiveCIState is grey for draft PRs -->
+                                                <Ellipse Grid.Column="0" Width="10" Height="10"
+                                                         Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                                                         VerticalAlignment="Center" Margin="0,0,8,0"
+                                                         ToolTip="{Binding CIState}"/>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Style="{StaticResource RepoText}">
+                                                        <Run Text="{Binding Repository, Mode=OneWay}"/>
+                                                        <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
+                                                    </TextBlock>
+                                                    <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Style="{StaticResource MetaText}"
+                                                           Text="{Binding TimeAgo}" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- Separator after My PRs -->
+                        <Border Height="1" Background="#21262D" Margin="0,4,0,8"/>
+                    </StackPanel>
+
                     <!-- Section: Later -->
                     <StackPanel Visibility="{Binding HiddenCount, Converter={StaticResource NonZeroToVisibleConverter}}">
                         <Border MouseLeftButtonUp="LaterHeader_Click" Cursor="Hand"

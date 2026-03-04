@@ -22,6 +22,7 @@ public sealed class GitHubService
                 repository { nameWithOwner }
                 author { login }
                 createdAt
+                isDraft
                 autoMergeRequest { enabledAt }
                 commits(last: 1) {
                   nodes {
@@ -68,10 +69,9 @@ public sealed class GitHubService
     // ── Public API ──────────────────────────────────────────────────────
 
     /// <summary>
-    /// Fetch the current user's open PRs (optionally filtered by orgs),
-    /// keeping only those that have auto-merge enabled.
+    /// Fetch ALL open PRs authored by the current user (auto-merge and non-auto-merge).
     /// </summary>
-    public async Task<List<PullRequestInfo>> FetchMyAutoMergePRsAsync(IReadOnlyList<string> organizations)
+    public async Task<List<PullRequestInfo>> FetchAllMyPRsAsync(IReadOnlyList<string> organizations)
     {
         var allPrs = new List<PullRequestInfo>();
         var queries = BuildSearchQueries("is:pr is:open author:@me", organizations);
@@ -80,12 +80,20 @@ public sealed class GitHubService
         {
             var json = await RunGraphQlAsync(MyPrsQuery, q);
             if (json is not { } jsonValue) continue;
-
-            var prs = ParseMyPrs(jsonValue);
-            allPrs.AddRange(prs.Where(p => p.HasAutoMerge));
+            allPrs.AddRange(ParseMyPrs(jsonValue));
         }
 
-        return allPrs;
+        return allPrs.DistinctBy(p => p.Key).ToList();
+    }
+
+    /// <summary>
+    /// Fetch the current user's open PRs (optionally filtered by orgs),
+    /// keeping only those that have auto-merge enabled.
+    /// </summary>
+    public async Task<List<PullRequestInfo>> FetchMyAutoMergePRsAsync(IReadOnlyList<string> organizations)
+    {
+        var all = await FetchAllMyPRsAsync(organizations);
+        return all.Where(p => p.HasAutoMerge).ToList();
     }
 
     /// <summary>
@@ -185,6 +193,9 @@ public sealed class GitHubService
             var hasAutoMerge = node.TryGetProperty("autoMergeRequest", out var amr)
                                && amr.ValueKind != JsonValueKind.Null;
 
+            var isDraft = node.TryGetProperty("isDraft", out var draftProp)
+                          && draftProp.ValueKind == JsonValueKind.True;
+
             var ciState = CIState.Unknown;
             if (node.TryGetProperty("commits", out var commits)
                 && commits.TryGetProperty("nodes", out var commitNodes))
@@ -214,6 +225,7 @@ public sealed class GitHubService
                     ? DateTimeOffset.Parse(ca.GetString()!)
                     : DateTimeOffset.MinValue,
                 HasAutoMerge = hasAutoMerge,
+                IsDraft = isDraft,
                 CIState = ciState,
             });
         }

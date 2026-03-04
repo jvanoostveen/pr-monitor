@@ -336,6 +336,12 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void MyPrsHeader_Click(object sender, MouseButtonEventArgs e)
+    {
+        ViewModel.ToggleMyPrsExpanded();
+        e.Handled = true;
+    }
+
     private void LaterHeader_Click(object sender, MouseButtonEventArgs e)
     {
         ViewModel.ToggleLaterExpanded();
