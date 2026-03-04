@@ -28,7 +28,7 @@ The window can be **snapped to any corner** of any monitor by dragging it near a
 ## Requirements
 
 - Windows 10 or later
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [GitHub CLI (`gh`)](https://cli.github.com/) — authenticated with `gh auth login`
 
 ## Getting started
@@ -67,7 +67,7 @@ Settings are stored in `%APPDATA%\pr-monitor\settings.json`.
 dotnet publish .\src\PrMonitor.csproj -c Release -r win-x64 --self-contained
 ```
 
-The output is placed in `src\bin\Release\net8.0-windows10.0.17763.0\win-x64\publish\`.
+The output is placed in `src\bin\Release\net10.0-windows10.0.17763.0\win-x64\publish\`.
 
 ## Development
 

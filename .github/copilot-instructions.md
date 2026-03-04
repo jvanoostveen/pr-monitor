@@ -1,7 +1,7 @@
 # PR Monitor – Copilot Instructions
 
 ## Project Overview
-Windows system-tray app that monitors GitHub PRs: own auto-merge PRs (with CI status) and PRs awaiting your review. Built with C# / WPF / .NET 8 and the `gh` CLI for authentication and API access.
+Windows system-tray app that monitors GitHub PRs: own auto-merge PRs (with CI status) and PRs awaiting your review. Built with C# / WPF / .NET 10 and the `gh` CLI for authentication and API access.
 
 **Language**: The entire UI (labels, menu items, tooltips, messages) must be in **English**.
 
@@ -12,7 +12,7 @@ Windows system-tray app that monitors GitHub PRs: own auto-merge PRs (with CI st
 | Concern | Choice |
 |---|---|
 | Language | C# 12 |
-| Framework | .NET 8 WPF (`net8.0-windows10.0.17763.0`) |
+| Framework | .NET 10 WPF (`net10.0-windows10.0.17763.0`) |
 | UI extras | WinForms (`UseWindowsForms=true`) for `NotifyIcon` |
 | Auth / API | `gh` CLI → `gh api graphql` subprocess |
 | Notifications | `Microsoft.Toolkit.Uwp.Notifications` v7.1.3 |

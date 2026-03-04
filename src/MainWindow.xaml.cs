@@ -350,13 +350,13 @@ public partial class MainWindow : Window
 
     private void PrRow_Hide_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is MenuItem { Tag: PrItemViewModel vm })
+        if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
             ViewModel.HideItem(vm.Key);
     }
 
     private void PrRow_Restore_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is MenuItem { Tag: PrItemViewModel vm })
+        if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
             ViewModel.RestoreItem(vm.Key);
     }
 }
