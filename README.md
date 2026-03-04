@@ -82,10 +82,10 @@ This is the recommended path for contributors and local development.
 ## Building a release executable
 
 ```powershell
-dotnet publish .\src\PrMonitor.csproj -c Release -r win-x64 --self-contained
+dotnet publish .\src\PrMonitor.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
 ```
 
-The output is placed in `src\bin\Release\net10.0-windows10.0.17763.0\win-x64\publish\`.
+The output is placed in `src\bin\Release\net10.0-windows10.0.17763.0\win-x64\publish\` as a single runnable `PrMonitor.exe`.
 
 ## Version history
 
@@ -112,7 +112,7 @@ Workflow: `.github/workflows/release-on-version-change.yml`
 - Reads the app version from `<Version>` in `src/PrMonitor.csproj`
 - On push, creates a release only if the version changed compared to the previous commit
 - Skips release creation if tag `v<version>` already exists
-- Publishes a Windows `win-x64` build and uploads `PrMonitor-<version>-win-x64.zip` to the GitHub Release
+- Publishes a single-file Windows `win-x64` executable and uploads `PrMonitor-<version>-win-x64.zip` (containing only `PrMonitor.exe`) to the GitHub Release
 
 ## Development
 
