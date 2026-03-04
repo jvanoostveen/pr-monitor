@@ -1,12 +1,12 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Drawing;
 using System.Windows;
 using Forms = System.Windows.Forms;
-using PrBot.Models;
-using PrBot.Services;
-using PrBot.Settings;
+using PrMonitor.Models;
+using PrMonitor.Services;
+using PrMonitor.Settings;
 
-namespace PrBot.Views;
+namespace PrMonitor.Views;
 
 /// <summary>
 /// Manages the system tray (notification-area) icon, its context menu,

@@ -8,8 +8,8 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
-    <AssemblyName>PrBot</AssemblyName>
-    <RootNamespace>PrBot</RootNamespace>
+    <AssemblyName>PrMonitor</AssemblyName>
+    <RootNamespace>PrMonitor</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

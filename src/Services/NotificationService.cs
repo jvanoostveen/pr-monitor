@@ -1,8 +1,8 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.Toolkit.Uwp.Notifications;
-using PrBot.Models;
+using PrMonitor.Models;
 
-namespace PrBot.Services;
+namespace PrMonitor.Services;
 
 /// <summary>
 /// Sends Windows toast notifications for PR state changes.

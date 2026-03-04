@@ -1,7 +1,7 @@
-using PrBot.Models;
-using PrBot.Settings;
+﻿using PrMonitor.Models;
+using PrMonitor.Settings;
 
-namespace PrBot.Services;
+namespace PrMonitor.Services;
 
 /// <summary>
 /// Event args carrying information about a change detected between polls.

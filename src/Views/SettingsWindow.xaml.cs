@@ -1,7 +1,7 @@
-using System.Windows;
-using PrBot.ViewModels;
+﻿using System.Windows;
+using PrMonitor.ViewModels;
 
-namespace PrBot.Views;
+namespace PrMonitor.Views;
 
 public partial class SettingsWindow : Window
 {

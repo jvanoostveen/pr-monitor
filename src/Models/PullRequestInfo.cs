@@ -1,4 +1,4 @@
-namespace PrBot.Models;
+﻿namespace PrMonitor.Models;
 
 /// <summary>
 /// Lightweight representation of a GitHub pull request with the fields

@@ -1,12 +1,12 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using PrBot.Models;
-using PrBot.Services;
-using PrBot.Settings;
+using PrMonitor.Models;
+using PrMonitor.Services;
+using PrMonitor.Settings;
 
-namespace PrBot.ViewModels;
+namespace PrMonitor.ViewModels;
 
 /// <summary>
 /// ViewModel for the floating PR monitor window.

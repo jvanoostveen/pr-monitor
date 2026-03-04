@@ -1,11 +1,11 @@
 ﻿using System.Threading;
 using System.Windows;
-using PrBot.Services;
-using PrBot.Settings;
-using PrBot.ViewModels;
-using PrBot.Views;
+using PrMonitor.Services;
+using PrMonitor.Settings;
+using PrMonitor.ViewModels;
+using PrMonitor.Views;
 
-namespace PrBot;
+namespace PrMonitor;
 
 /// <summary>
 /// Application entry point. Wires services, tray icon, and windows.
@@ -24,7 +24,7 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
 
         // ── Single-instance guard ──────────────────────────────────
-        _singleInstanceMutex = new Mutex(true, "PrBot_SingleInstance", out var createdNew);
+        _singleInstanceMutex = new Mutex(true, "PrMonitor_SingleInstance", out var createdNew);
         if (!createdNew)
         {
             System.Windows.MessageBox.Show("PR Monitor is already running.", "PR Monitor",

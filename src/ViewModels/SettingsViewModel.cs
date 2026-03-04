@@ -1,9 +1,9 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.Win32;
-using PrBot.Settings;
+using PrMonitor.Settings;
 
-namespace PrBot.ViewModels;
+namespace PrMonitor.ViewModels;
 
 /// <summary>
 /// ViewModel for the Settings window.

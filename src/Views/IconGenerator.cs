@@ -1,9 +1,9 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Windows.Forms;
 
-namespace PrBot.Views;
+namespace PrMonitor.Views;
 
 /// <summary>
 /// Generates tray icons dynamically: a base circle with an overlay badge count

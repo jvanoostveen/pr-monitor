@@ -1,8 +1,8 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
-namespace PrBot.Converters;
+namespace PrMonitor.Converters;
 
 /// <summary>
 /// Returns <see cref="Visibility.Visible"/> when the bound integer is greater than 0,

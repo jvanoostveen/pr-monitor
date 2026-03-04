@@ -4,10 +4,10 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using PrBot.ViewModels;
+using PrMonitor.ViewModels;
 using WinForms = System.Windows.Forms;
 
-namespace PrBot;
+namespace PrMonitor;
 
 /// <summary>
 /// Floating window that shows PR lists. Positions itself above the

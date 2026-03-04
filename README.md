@@ -1,4 +1,4 @@
-# PR Bot
+# PR Monitor
 
 A lightweight Windows system-tray app that keeps an eye on your GitHub pull requests so you don't have to constantly check GitHub.
 
@@ -46,7 +46,7 @@ Follow the prompts. PR Bot uses the `gh` CLI for all API calls, so no tokens or 
 ```powershell
 git clone https://github.com/your-username/pr-bot.git
 cd pr-bot
-dotnet run --project .\src\PrBot.csproj
+dotnet run --project .\src\PrMonitor.csproj
 ```
 
 The app starts minimised to the system tray. Click the tray icon to open the PR window.
@@ -59,12 +59,12 @@ Right-click the tray icon and choose **Settings** to:
 - Adjust the **polling interval** (default: 120 seconds)
 - Enable **auto-start with Windows**
 
-Settings are stored in `%APPDATA%\pr-bot\settings.json`.
+Settings are stored in `%APPDATA%\pr-monitor\settings.json`.
 
 ## Building a release executable
 
 ```powershell
-dotnet publish .\src\PrBot.csproj -c Release -r win-x64 --self-contained
+dotnet publish .\src\PrMonitor.csproj -c Release -r win-x64 --self-contained
 ```
 
 The output is placed in `src\bin\Release\net8.0-windows10.0.17763.0\win-x64\publish\`.
@@ -73,13 +73,13 @@ The output is placed in `src\bin\Release\net8.0-windows10.0.17763.0\win-x64\publ
 
 ```powershell
 # Stop any running instance before rebuilding (the build overwrites the exe)
-Stop-Process -Name PrBot -Force -ErrorAction SilentlyContinue
+Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
 
 # Build
-dotnet build .\src\PrBot.csproj
+dotnet build .\src\PrMonitor.csproj
 
 # Run
-dotnet run --project .\src\PrBot.csproj
+dotnet run --project .\src\PrMonitor.csproj
 ```
 
-The app enforces a single instance via a named mutex (`PrBot_SingleInstance`). Launching a second instance shows a message and exits.
+The app enforces a single instance via a named mutex (`PrMonitor_SingleInstance`). Launching a second instance shows a message and exits.

@@ -1,7 +1,7 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows.Data;
 
-namespace PrBot.Converters;
+namespace PrMonitor.Converters;
 
 /// <summary>
 /// Converts a bool to a rotation angle for the section chevron:

@@ -1,9 +1,9 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
-using PrBot.Models;
+using PrMonitor.Models;
 
-namespace PrBot.Converters;
+namespace PrMonitor.Converters;
 
 /// <summary>
 /// Maps a <see cref="CIState"/> to a <see cref="SolidColorBrush"/>

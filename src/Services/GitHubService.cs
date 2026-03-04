@@ -1,8 +1,8 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
-using PrBot.Models;
+using PrMonitor.Models;
 
-namespace PrBot.Services;
+namespace PrMonitor.Services;
 
 /// <summary>
 /// Talks to the GitHub GraphQL API through the <c>gh</c> CLI.

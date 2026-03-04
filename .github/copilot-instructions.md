@@ -1,4 +1,4 @@
-# PR Bot – Copilot Instructions
+# PR Monitor – Copilot Instructions
 
 ## Project Overview
 Windows system-tray app that monitors GitHub PRs: own auto-merge PRs (with CI status) and PRs awaiting your review. Built with C# / WPF / .NET 8 and the `gh` CLI for authentication and API access.
@@ -16,7 +16,7 @@ Windows system-tray app that monitors GitHub PRs: own auto-merge PRs (with CI st
 | UI extras | WinForms (`UseWindowsForms=true`) for `NotifyIcon` |
 | Auth / API | `gh` CLI → `gh api graphql` subprocess |
 | Notifications | `Microsoft.Toolkit.Uwp.Notifications` v7.1.3 |
-| Settings | JSON in `%APPDATA%/pr-bot/settings.json` |
+| Settings | JSON in `%APPDATA%/pr-monitor/settings.json` |
 
 ---
 
@@ -26,7 +26,7 @@ Windows system-tray app that monitors GitHub PRs: own auto-merge PRs (with CI st
 pr-bot/
 ├── pr-bot.slnx
 └── src/
-    ├── PrBot.csproj
+    ├── PrMonitor.csproj
     ├── App.xaml / App.xaml.cs          # Entry point, wiring, single-instance
     ├── MainWindow.xaml / .xaml.cs      # Floating PR list window
     ├── AssemblyInfo.cs
@@ -98,21 +98,21 @@ Commit the documentation in the same commit as the code change.
 
 ```powershell
 # Stop any running instance
-Stop-Process -Name PrBot -Force -ErrorAction SilentlyContinue
+Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
 
 # Build
-dotnet build .\src\PrBot.csproj
+dotnet build .\src\PrMonitor.csproj
 
 # Run (development)
-dotnet run --project .\src\PrBot.csproj
+dotnet run --project .\src\PrMonitor.csproj
 ```
 
 Or combined before a build/commit:
 ```powershell
-Stop-Process -Name PrBot -Force -ErrorAction SilentlyContinue; dotnet build .\src\PrBot.csproj
+Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue; dotnet build .\src\PrMonitor.csproj
 ```
 
-The app is **single-instance** (Mutex `PrBot_SingleInstance`). Launching a second instance shows a message box and exits immediately.
+The app is **single-instance** (Mutex `PrMonitor_SingleInstance`). Launching a second instance shows a message box and exits immediately.
 
 ---
 
@@ -214,23 +214,23 @@ Commits follow conventional commits: `feat:`, `fix:`, `refactor:` etc.
 
 Before every commit:
 ```powershell
-Stop-Process -Name PrBot -Force -ErrorAction SilentlyContinue
-dotnet build .\src\PrBot.csproj -v q
+Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
+dotnet build .\src\PrMonitor.csproj -v q
 git add -A
 git commit -m "type: description"
 ```
 
 After every commit, restart the app so changes are visible:
 ```powershell
-Stop-Process -Name PrBot -Force -ErrorAction SilentlyContinue
-Start-Process dotnet -ArgumentList "run --project .\src\PrBot.csproj" -WorkingDirectory "d:\Private\pr-bot" -WindowStyle Hidden
+Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
+Start-Process dotnet -ArgumentList "run --project .\src\PrMonitor.csproj" -WorkingDirectory "d:\Private\pr-bot" -WindowStyle Hidden
 ```
 
 Full iteration sequence (stop → build → commit → restart):
 ```powershell
-Stop-Process -Name PrBot -Force -ErrorAction SilentlyContinue
-dotnet build .\src\PrBot.csproj -v q
+Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
+dotnet build .\src\PrMonitor.csproj -v q
 git add -A
 git commit -m "type: description"
-Start-Process dotnet -ArgumentList "run --project .\src\PrBot.csproj" -WorkingDirectory "d:\Private\pr-bot" -WindowStyle Hidden
+Start-Process dotnet -ArgumentList "run --project .\src\PrMonitor.csproj" -WorkingDirectory "d:\Private\pr-bot" -WindowStyle Hidden
 ```

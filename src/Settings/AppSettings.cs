@@ -1,13 +1,13 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace PrBot.Settings;
+namespace PrMonitor.Settings;
 
 public sealed class AppSettings
 {
     private static readonly string SettingsDir =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "pr-bot");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "pr-monitor");
 
     private static readonly string SettingsPath =
         Path.Combine(SettingsDir, "settings.json");

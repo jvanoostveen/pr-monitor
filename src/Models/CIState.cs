@@ -1,4 +1,4 @@
-namespace PrBot.Models;
+﻿namespace PrMonitor.Models;
 
 /// <summary>
 /// Aggregate CI / check-run state for a pull request.
