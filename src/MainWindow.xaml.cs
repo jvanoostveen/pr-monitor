@@ -1,9 +1,11 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using PrBot.ViewModels;
+using WinForms = System.Windows.Forms;
 
 namespace PrBot;
 
@@ -39,15 +41,27 @@ public partial class MainWindow : Window
                 UpdateRefreshIcon(viewModel.IsRefreshing);
         };
 
-        Loaded += (_, _) => AlignToBottomRight();
+        Loaded += (_, _) =>
+        {
+            AlignToBottomRight();
+        };
     }
 
     /// <summary>
     /// Show the window. Snaps to bottom-right unless the user has manually moved it.
+    /// If the window's monitor is gone, recover it to the same corner on the primary.
     /// </summary>
     public void ShowAtTray()
     {
-        if (!_userMoved) AlignToBottomRight();
+        if (!_userMoved)
+        {
+            AlignToBottomRight();
+        }
+        else
+        {
+            // If the remembered position is off all screens, recover gracefully.
+            EnsureOnScreen();
+        }
         Show();
         Activate();
     }
@@ -64,21 +78,52 @@ public partial class MainWindow : Window
 
     private void AlignToBottomRight(double? width = null, double? height = null)
     {
-        var wa = SystemParameters.WorkArea;
+        // Always use primary screen for the default placement
+        var primary = WinForms.Screen.PrimaryScreen!.WorkingArea;
+        var wa = ScreenRectToWpf(primary);
         double w = width  ?? (ActualWidth  > 0 ? ActualWidth  : Width);
         double h = height ?? (ActualHeight > 0 ? ActualHeight : 0);
         SetWindowPosition(wa.Right - w - SnapInset, wa.Bottom - h - SnapInset);
+    }
+
+    // ── Multi-monitor helpers ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Convert a physical-pixel screen rect to WPF device-independent units.
+    /// </summary>
+    private Rect ScreenRectToWpf(System.Drawing.Rectangle r)
+    {
+        var source = PresentationSource.FromVisual(this);
+        if (source?.CompositionTarget == null)
+            return new Rect(r.X, r.Y, r.Width, r.Height);
+        var m = source.CompositionTarget.TransformFromDevice;
+        var tl = m.Transform(new System.Windows.Point(r.Left, r.Top));
+        var br = m.Transform(new System.Windows.Point(r.Right, r.Bottom));
+        return new Rect(tl, br);
+    }
+
+    /// <summary>
+    /// Work area of whichever monitor the window is currently displayed on.
+    /// Falls back to the primary screen when the handle isn't ready yet.
+    /// </summary>
+    private Rect GetCurrentWorkArea()
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        var screen = handle != IntPtr.Zero
+            ? WinForms.Screen.FromHandle(handle)
+            : WinForms.Screen.PrimaryScreen!;
+        return ScreenRectToWpf(screen!.WorkingArea);
     }
 
     // ── Corner snap helpers ──────────────────────────────────────────────────
 
     private SnapCorner DetectNearCorner()
     {
-        var wa = SystemParameters.WorkArea;
+        var wa = GetCurrentWorkArea();
         bool nearLeft   = Left < wa.Left + SnapThreshold;
         bool nearRight  = Left + ActualWidth > wa.Right - SnapThreshold;
-        bool nearTop    = Top < wa.Top + SnapThreshold;
-        bool nearBottom = Top + ActualHeight > wa.Bottom - SnapThreshold;
+        bool nearTop    = Top  < wa.Top  + SnapThreshold;
+        bool nearBottom = Top  + ActualHeight > wa.Bottom - SnapThreshold;
 
         if (nearLeft  && nearTop)    return SnapCorner.TopLeft;
         if (nearRight && nearTop)    return SnapCorner.TopRight;
@@ -87,17 +132,16 @@ public partial class MainWindow : Window
         return SnapCorner.None;
     }
 
-    private (double left, double top) GetCornerPosition(SnapCorner corner, double? width = null, double? height = null)
+    private (double left, double top) GetCornerPositionInArea(Rect wa, SnapCorner corner, double? width = null, double? height = null)
     {
-        var wa = SystemParameters.WorkArea;
         double w = width  ?? ActualWidth;
         double h = height ?? ActualHeight;
         return corner switch
         {
-            SnapCorner.TopLeft     => (wa.Left + SnapInset,      wa.Top + SnapInset),
-            SnapCorner.TopRight    => (wa.Right - w - SnapInset, wa.Top + SnapInset),
-            SnapCorner.BottomLeft  => (wa.Left + SnapInset,      wa.Bottom - h - SnapInset),
-            SnapCorner.BottomRight => (wa.Right - w - SnapInset, wa.Bottom - h - SnapInset),
+            SnapCorner.TopLeft     => (wa.Left + SnapInset,           wa.Top + SnapInset),
+            SnapCorner.TopRight    => (wa.Right  - w - SnapInset,     wa.Top + SnapInset),
+            SnapCorner.BottomLeft  => (wa.Left + SnapInset,           wa.Bottom - h - SnapInset),
+            SnapCorner.BottomRight => (wa.Right  - w - SnapInset,     wa.Bottom - h - SnapInset),
             _                      => (Left, Top)
         };
     }
@@ -105,7 +149,8 @@ public partial class MainWindow : Window
     private void ApplyCornerSnap(SnapCorner corner, double? width = null, double? height = null)
     {
         if (corner == SnapCorner.None) return;
-        var (l, t) = GetCornerPosition(corner, width, height);
+        var wa = GetCurrentWorkArea();
+        var (l, t) = GetCornerPositionInArea(wa, corner, width, height);
         SetWindowPosition(l, t);
     }
 
@@ -128,9 +173,12 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Keep the window fully inside its current monitor's work area.
+    /// </summary>
     private void EnsureFullyVisible()
     {
-        var wa = SystemParameters.WorkArea;
+        var wa = GetCurrentWorkArea();
         double left = Left, top = Top;
         if (left + ActualWidth  > wa.Right)  left = wa.Right  - ActualWidth;
         if (top  + ActualHeight > wa.Bottom) top  = wa.Bottom - ActualHeight;
@@ -138,6 +186,45 @@ public partial class MainWindow : Window
         if (top  < wa.Top)  top  = wa.Top;
         if (Math.Abs(left - Left) > 0.5 || Math.Abs(top - Top) > 0.5)
             SetWindowPosition(left, top);
+    }
+
+    /// <summary>
+    /// Called when showing the window: if it's not visible on any screen
+    /// (e.g. the monitor it lived on was disconnected), recover it to the
+    /// same logical corner on the primary monitor, clamped to be fully visible.
+    /// </summary>
+    private void EnsureOnScreen()
+    {
+        // Check whether the window center lies inside any screen's working area.
+        double cx = Left + ActualWidth  / 2;
+        double cy = Top  + ActualHeight / 2;
+
+        bool onScreen = false;
+        foreach (var screen in WinForms.Screen.AllScreens)
+        {
+            var wa = ScreenRectToWpf(screen.WorkingArea);
+            if (wa.Contains(cx, cy)) { onScreen = true; break; }
+        }
+
+        if (!onScreen)
+        {
+            // Fall back: use the same snap corner (or BottomRight) on the primary.
+            var fallbackCorner = _snappedCorner != SnapCorner.None
+                ? _snappedCorner
+                : SnapCorner.BottomRight;
+
+            var primary = WinForms.Screen.PrimaryScreen!.WorkingArea;
+            var wa = ScreenRectToWpf(primary);
+
+            var (l, t) = GetCornerPositionInArea(wa, fallbackCorner);
+
+            // Clamp so the window never overflows the primary work area.
+            l = Math.Max(wa.Left, Math.Min(l, wa.Right  - ActualWidth));
+            t = Math.Max(wa.Top,  Math.Min(t, wa.Bottom - ActualHeight));
+
+            SetWindowPosition(l, t);
+            _snappedCorner = fallbackCorner;
+        }
     }
 
     protected override void OnLocationChanged(EventArgs e)
