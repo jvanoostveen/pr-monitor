@@ -11,6 +11,7 @@ PR Bot polls GitHub every two minutes and shows a floating window with:
 | **Hotfixes** | Open PRs targeting a `release/*` branch that you are involved in |
 | **My Auto-Merge PRs** | Your own PRs with auto-merge enabled, including their CI status |
 | **Awaiting My Review** | PRs where your review has been requested |
+| **My PRs** | Your own open PRs without auto-merge (collapsed by default); draft PRs show a grey CI indicator |
 | **Later** | PRs you've snoozed with "Move to later" |
 
 Empty sections are hidden automatically. The tray icon badge changes colour to reflect the worst state:
@@ -21,6 +22,8 @@ Empty sections are hidden automatically. The tray icon badge changes colour to r
 - ⚫ Gray — not yet polled
 
 Click the tray icon to toggle the window. Right-click for a context menu with totals and a manual refresh option.
+
+The window can be **snapped to any corner** of any monitor by dragging it near a corner — the border turns blue to preview the snap, and the window locks into position on release. When a monitor is disconnected the window recovers to the same corner on the primary display.
 
 ## Requirements
 

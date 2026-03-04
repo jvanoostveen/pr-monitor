@@ -83,6 +83,13 @@ Use the main agent for: simple single-file edits, quick investigations, running 
 ### 3. Validate before committing
 Always run `dotnet build .\src\PrBot.csproj -v q` and confirm `ExitCode: 0` before committing.
 
+### 4. Update documentation
+After completing any user-facing change, update **both**:
+- `README.md` — reflect new sections, behaviours, or settings in the feature table and prose
+- `.github/copilot-instructions.md` — update architecture notes, settings schema, and section descriptions to match the current state of the code
+
+Commit the documentation in the same commit as the code change.
+
 ---
 
 
@@ -129,12 +136,13 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - **Tray left-click** toggles window visibility
 - **Draggable** by the title/timestamp area in the header (cursor: SizeAll)
 - **Buttons** (Refresh, Close) use `MouseLeftButtonUp` — NOT inside the drag zone — to avoid `DragMove()` hijacking mouse capture
-- Default position: bottom-right of `SystemParameters.WorkArea` (12 px inset)
+- Default position: bottom-right of primary monitor work area (12 px inset)
 - `_userMoved` flag: once user drags, window stays put; otherwise re-aligns on resize/expand/collapse
-- `EnsureFullyVisible()` applies minimum translation to keep window fully on-screen after resize
+- **Corner snapping**: while dragging, `DetectNearCorner()` checks the current monitor's work area via `Screen.FromHandle`. When the window is within 80 px of a corner the border turns blue (snap indicator). On mouse-up the window snaps into that corner. The snapped corner is remembered so expand/collapse re-applies it. `EnsureOnScreen()` recovers the window to the primary monitor if its monitor is disconnected.
+- All screen coordinates go through `ScreenRectToWpf()` (device → WPF units via `PresentationSource.TransformFromDevice`) to handle mixed-DPI setups.
 
 ### Collapsible sections
-Two sections: "Auto-Merge PRs" and "Awaiting Review". State persisted in `AppSettings` (`AutoMergeExpanded`, `ReviewExpanded`). `BoolToAngleConverter` rotates chevron (0° = expanded, -90° = collapsed).
+Five collapsible sections in order: Hotfixes, My Auto-Merge PRs, Awaiting My Review, My PRs, Later. State persisted in `AppSettings` (`HotfixExpanded`, `AutoMergeExpanded`, `ReviewExpanded`, `MyPrsExpanded`, `LaterExpanded`). `BoolToAngleConverter` rotates chevron (0° = expanded, -90° = collapsed). Hotfixes is only shown when `HotfixCount > 0`; all other sections likewise hide when their count is zero.
 
 ### CI status display
 Each PR row shows a colored 10×10 `Ellipse`:
@@ -143,6 +151,8 @@ Each PR row shows a colored 10×10 `Ellipse`:
 - `#D29922` amber — Pending
 - `#F0883E` orange — Error
 - `#484F58` gray — Unknown
+
+For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CIState` — draft PRs always return `CIState.Unknown` so their indicator is grey regardless of actual build state.
 
 ### Tray icon colors
 - Red `#F85149` — CI failures present
@@ -186,8 +196,11 @@ Each PR row shows a colored 10×10 `Ellipse`:
   "pollingIntervalSeconds": 120,
   "autoStartWithWindows": true,
   "gitHubUsername": "your-username",
+  "hotfixExpanded": true,
   "autoMergeExpanded": true,
-  "reviewExpanded": true
+  "reviewExpanded": true,
+  "myPrsExpanded": false,
+  "laterExpanded": false
 }
 ```
 
