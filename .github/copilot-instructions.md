@@ -86,7 +86,7 @@ When a task touches **3 or more files** or requires independent research alongsi
 Use the main agent for: simple single-file edits, quick investigations, running terminal commands, and reviewing subagent output.
 
 ### 3. Validate before committing
-Always run `dotnet build .\src\PrMonitor.csproj -v q` and confirm `ExitCode: 0` before committing.
+When a change includes files under `src/`, run `dotnet build .\src\PrMonitor.csproj -v q` and confirm `ExitCode: 0` before committing.
 
 ### 4. Update documentation
 After completing any user-facing change, update **both**:
@@ -99,9 +99,9 @@ Commit the documentation in the same commit as the code change.
 
 ### 5. Commit every completed step
 Do not batch unrelated work into one commit. After each completed implementation step:
-- Stop the running app
-- Build and confirm success (`ExitCode: 0`)
+- If `src/` files changed: stop the running app, build, and confirm success (`ExitCode: 0`)
 - Commit only the files for that step
+- If `src/` files changed: restart the app so changes are visible
 - Continue with the next step in a new commit
 
 When a request contains multiple deliverables (for example framework migration + UI polish), create separate commits per deliverable.
@@ -110,7 +110,7 @@ When a request contains multiple deliverables (for example framework migration +
 
 
 
-**Always stop the running instance before building**, because the build tries to overwrite the exe and will retry 5 times if it is locked.
+When a change includes files under `src/`, stop the running instance before building, because the build tries to overwrite the exe and will retry 5 times if it is locked.
 
 ```powershell
 # Stop any running instance
@@ -278,7 +278,7 @@ Serialized as camelCase. `AppSettings.Load()` / `settings.Save()` handle file I/
 
 Commits follow conventional commits: `feat:`, `fix:`, `refactor:` etc.
 
-Before every commit:
+Before every commit with `src/` file changes:
 ```powershell
 Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
 dotnet build .\src\PrMonitor.csproj -v q
@@ -286,13 +286,13 @@ git add -A
 git commit -m "type: description"
 ```
 
-After every commit, restart the app so changes are visible:
+After every commit with `src/` file changes, restart the app so changes are visible:
 ```powershell
 Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
 Start-Process dotnet -ArgumentList "run --project .\src\PrMonitor.csproj" -WorkingDirectory "d:\Private\pr-bot" -WindowStyle Hidden
 ```
 
-Full iteration sequence (stop → build → commit → restart):
+Full iteration sequence for `src/` changes (stop → build → commit → restart):
 ```powershell
 Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
 dotnet build .\src\PrMonitor.csproj -v q
@@ -300,3 +300,5 @@ git add -A
 git commit -m "type: description"
 Start-Process dotnet -ArgumentList "run --project .\src\PrMonitor.csproj" -WorkingDirectory "d:\Private\pr-bot" -WindowStyle Hidden
 ```
+
+For docs/workflow-only changes (no `src/` files), commit directly without build/restart.
