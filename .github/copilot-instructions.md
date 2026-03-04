@@ -45,7 +45,8 @@ pr-bot/
     ├── Services/
     │   ├── GitHubService.cs            # GraphQL via `gh api graphql`
     │   ├── PollingService.cs           # Timer polling + delta events
-    │   └── NotificationService.cs      # Windows toast on PR changes
+    │   ├── NotificationService.cs      # Windows toast on PR changes
+    │   └── UpdateService.cs            # GitHub latest release check + version compare
     ├── Settings/
     │   └── AppSettings.cs              # JSON-backed settings
     ├── ViewModels/
@@ -175,6 +176,12 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 ### Version display
 - App version is defined once in `src/PrMonitor.csproj` via `<Version>`.
 - Runtime reads the assembly informational/file version and shows it in tray context menu as a disabled item: `Version x.y.z`.
+
+### Update checks
+- `UpdateService` calls `GET https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest` and parses `tag_name` + `html_url`.
+- Current version is read from assembly metadata; tags like `v1.2.3` are normalized before semantic comparison.
+- App runs a non-blocking startup check and shows an English prompt when an update is available.
+- Tray context menu includes **Check for updates…** for manual checks; selecting update opens the latest release page in the default browser.
 
 ### Release automation
 - Build validation workflow: `.github/workflows/ci-build.yml`

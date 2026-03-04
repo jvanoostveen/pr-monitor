@@ -4,6 +4,7 @@ using PrMonitor.Services;
 using PrMonitor.Settings;
 using PrMonitor.ViewModels;
 using PrMonitor.Views;
+using System.Diagnostics;
 
 namespace PrMonitor;
 
@@ -18,6 +19,7 @@ public partial class App : System.Windows.Application
     private PollingService? _polling;
     private NotificationService? _notifications;
     private MainWindow? _mainWindow;
+    private UpdateService? _updates;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -53,6 +55,7 @@ public partial class App : System.Windows.Application
         _notifications = new NotificationService();
         _notifications.Initialize();
         _notifications.Subscribe(_polling);
+        _updates = new UpdateService();
 
         // ── View layer ─────────────────────────────────────────────
         var mainVm = new MainViewModel(settings);
@@ -79,10 +82,14 @@ public partial class App : System.Windows.Application
             });
             settingsWindow.ShowDialog();
         });
+        _trayIcon.OnCheckForUpdates(() => _ = CheckForUpdatesManuallyAsync());
         _trayIcon.OnExit(() => Shutdown());
 
         // ── Start polling ──────────────────────────────────────────
         _polling.Start();
+
+        // Non-blocking startup update check
+        _ = CheckForUpdatesOnStartupAsync();
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -94,6 +101,80 @@ public partial class App : System.Windows.Application
         _singleInstanceMutex?.Dispose();
 
         base.OnExit(e);
+    }
+
+    private async Task CheckForUpdatesOnStartupAsync()
+    {
+        if (_updates is null)
+            return;
+
+        var result = await _updates.CheckForUpdatesAsync();
+        if (!result.IsUpdateAvailable || string.IsNullOrWhiteSpace(result.ReleaseUrl))
+            return;
+
+        var message =
+            $"A new version of PR Monitor is available.\n\n" +
+            $"Current version: {result.CurrentVersion}\n" +
+            $"Latest version: {result.LatestVersionText}\n\n" +
+            "Do you want to open the latest release page?";
+
+        var answer = System.Windows.MessageBox.Show(
+            message,
+            "Update available",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Information);
+
+        if (answer == MessageBoxResult.Yes)
+            OpenInBrowser(result.ReleaseUrl);
+    }
+
+    private async Task CheckForUpdatesManuallyAsync()
+    {
+        if (_updates is null)
+            return;
+
+        var result = await _updates.CheckForUpdatesAsync();
+
+        if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+        {
+            System.Windows.MessageBox.Show(
+                "Unable to check for updates right now. Please try again later.",
+                "Check for updates",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        if (result.IsUpdateAvailable && !string.IsNullOrWhiteSpace(result.ReleaseUrl))
+        {
+            var message =
+                $"A new version of PR Monitor is available.\n\n" +
+                $"Current version: {result.CurrentVersion}\n" +
+                $"Latest version: {result.LatestVersionText}\n\n" +
+                "Do you want to open the latest release page?";
+
+            var answer = System.Windows.MessageBox.Show(
+                message,
+                "Update available",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+
+            if (answer == MessageBoxResult.Yes)
+                OpenInBrowser(result.ReleaseUrl);
+
+            return;
+        }
+
+        System.Windows.MessageBox.Show(
+            "You're using the latest version of PR Monitor.",
+            "Check for updates",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
+    private static void OpenInBrowser(string url)
+    {
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 }
 

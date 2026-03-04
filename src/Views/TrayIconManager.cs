@@ -26,6 +26,7 @@ public sealed class TrayIconManager : IDisposable
 
     private Action? _openWindowAction;
     private Action? _openSettingsAction;
+    private Action? _checkForUpdatesAction;
     private Action? _exitAction;
 
     public TrayIconManager(AppSettings settings)
@@ -52,6 +53,9 @@ public sealed class TrayIconManager : IDisposable
         var settingsItem = new Forms.ToolStripMenuItem("Settings…");
         settingsItem.Click += (_, _) => _openSettingsAction?.Invoke();
 
+        var checkForUpdatesItem = new Forms.ToolStripMenuItem("Check for updates…");
+        checkForUpdatesItem.Click += (_, _) => _checkForUpdatesAction?.Invoke();
+
         var versionItem = new Forms.ToolStripMenuItem($"Version {GetAppVersion()}")
         {
             Enabled = false,
@@ -69,6 +73,7 @@ public sealed class TrayIconManager : IDisposable
             _reviewsItem,
             new Forms.ToolStripSeparator(),
             settingsItem,
+            checkForUpdatesItem,
             versionItem,
             new Forms.ToolStripSeparator(),
             exitItem,
@@ -95,6 +100,7 @@ public sealed class TrayIconManager : IDisposable
 
     public void OnOpenWindow(Action action) => _openWindowAction = action;
     public void OnOpenSettings(Action action) => _openSettingsAction = action;
+    public void OnCheckForUpdates(Action action) => _checkForUpdatesAction = action;
     public void OnExit(Action action) => _exitAction = action;
 
     // ── Subscribe to polling ────────────────────────────────────────
