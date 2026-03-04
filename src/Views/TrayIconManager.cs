@@ -115,10 +115,13 @@ public sealed class TrayIconManager : IDisposable
         int totalVisible = visibleAuto + visibleReview + visibleHotfix;
         int failedCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure)
                      + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure);
+        bool hasLaterPrs = snapshot.AutoMergePrs.Any(p => hidden.Contains(p.Key))
+                        || snapshot.ReviewRequestedPrs.Any(p => hidden.Contains(p.Key))
+                        || snapshot.HotfixPrs.Any(p => hidden.Contains(p.Key));
 
         // Update icon
         var oldIcon = _notifyIcon.Icon;
-        _notifyIcon.Icon = IconGenerator.CreateTrayIcon(totalVisible, failedCI, visibleReview);
+        _notifyIcon.Icon = IconGenerator.CreateTrayIcon(totalVisible, failedCI, visibleReview, hasLaterPrs);
         oldIcon?.Dispose();
 
         // Tooltip
