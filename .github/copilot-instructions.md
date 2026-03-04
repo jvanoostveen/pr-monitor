@@ -226,6 +226,18 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 - `CHANGELOG.md` in the repository root is the canonical version history for user-facing and versioned changes.
 - Keep entries concise and grouped by Keep a Changelog categories under `[Unreleased]` and released versions.
 
+### Version change checklist
+When preparing a new version, complete these steps in the same implementation sequence:
+1. Update `<Version>` in `src/PrMonitor.csproj` (single source of truth).
+2. Update `CHANGELOG.md`:
+  - Move relevant entries from `[Unreleased]` into a new version section (for example `[1.2.0]`).
+  - Keep an `[Unreleased]` section at the top for future changes.
+3. Update `README.md` only if version-related behavior or release packaging changed.
+4. If `src/` files changed as part of the version prep: run build validation (`dotnet build .\src\PrMonitor.csproj -v q`).
+5. Commit version + changelog updates together.
+
+Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a version bump commit is what starts the release workflow on `main`.
+
 ---
 
 ## Common WPF Pitfalls in This Project
