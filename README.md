@@ -21,7 +21,7 @@ Empty sections are hidden automatically. The tray icon badge changes colour to r
 - 🟢 Green — everything is fine
 - ⚫ Gray — not yet polled
 
-Click the tray icon to toggle the window. Right-click for a context menu with totals and a manual refresh option.
+Click the tray icon to toggle the window. Right-click for a context menu with totals, settings, and a non-clickable app version line (for example, `Version 1.0.0`).
 
 The window can be **snapped to any corner** of any monitor by dragging it near a corner — the border turns blue to preview the snap, and the window locks into position on release. When a monitor is disconnected the window recovers to the same corner on the primary display.
 
@@ -68,6 +68,29 @@ dotnet publish .\src\PrMonitor.csproj -c Release -r win-x64 --self-contained
 ```
 
 The output is placed in `src\bin\Release\net10.0-windows10.0.17763.0\win-x64\publish\`.
+
+## GitHub Actions workflows
+
+The repository includes two separate GitHub Actions workflows:
+
+### Build validation (CI)
+
+Workflow: `.github/workflows/ci-build.yml`
+
+- Triggered on `pull_request` to `main`
+- Triggered on `push` to `main`
+- Runs restore + build for `src/PrMonitor.csproj` using .NET 10 on `windows-latest`
+- Build only (no tags, releases, or uploaded artifacts)
+
+### Release automation
+
+Workflow: `.github/workflows/release-on-version-change.yml`
+
+- Triggered on pushes to `main` when `src/PrMonitor.csproj` changes, or manually via `workflow_dispatch`
+- Reads the app version from `<Version>` in `src/PrMonitor.csproj`
+- On push, creates a release only if the version changed compared to the previous commit
+- Skips release creation if tag `v<version>` already exists
+- Publishes a Windows `win-x64` build and uploads `PrMonitor-<version>-win-x64.zip` to the GitHub Release
 
 ## Development
 

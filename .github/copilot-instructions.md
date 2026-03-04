@@ -19,6 +19,7 @@ Repository license: MIT (see `LICENSE`).
 | Auth / API | `gh` CLI → `gh api graphql` subprocess |
 | Notifications | `Microsoft.Toolkit.Uwp.Notifications` v7.1.3 |
 | Settings | JSON in `%APPDATA%/pr-monitor/settings.json` |
+| Version source | `<Version>` in `src/PrMonitor.csproj` |
 
 ---
 
@@ -170,6 +171,29 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 - Amber `#D29922` — reviews pending, no CI failures
 - Green `#3FB950` — all clear
 - Gray `#8B949E` — idle / not polled yet
+
+### Version display
+- App version is defined once in `src/PrMonitor.csproj` via `<Version>`.
+- Runtime reads the assembly informational/file version and shows it in tray context menu as a disabled item: `Version x.y.z`.
+
+### Release automation
+- Build validation workflow: `.github/workflows/ci-build.yml`
+- Triggers:
+  - `pull_request` to `main`
+  - `push` to `main`
+- Behavior:
+  - Restores and builds `src/PrMonitor.csproj` in `Release` with .NET 10 on `windows-latest`
+  - Build validation only (no tag/release/upload steps)
+
+- Release workflow: `.github/workflows/release-on-version-change.yml`
+- Triggers:
+  - `push` to `main` when `src/PrMonitor.csproj` changes
+  - `workflow_dispatch` (manual)
+- Behavior:
+  - Reads version from `src/PrMonitor.csproj`
+  - For push events, releases only when version changed from previous commit
+  - Skips if tag `v<version>` already exists
+  - Publishes `win-x64` build zip and attaches it to GitHub Release
 
 ---
 

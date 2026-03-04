@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Drawing;
+using System.Reflection;
 using System.Windows;
 using Forms = System.Windows.Forms;
 using PrMonitor.Models;
@@ -51,6 +52,11 @@ public sealed class TrayIconManager : IDisposable
         var settingsItem = new Forms.ToolStripMenuItem("Settings…");
         settingsItem.Click += (_, _) => _openSettingsAction?.Invoke();
 
+        var versionItem = new Forms.ToolStripMenuItem($"Version {GetAppVersion()}")
+        {
+            Enabled = false,
+        };
+
         var exitItem = new Forms.ToolStripMenuItem("Exit");
         exitItem.Click += (_, _) => _exitAction?.Invoke();
 
@@ -63,6 +69,7 @@ public sealed class TrayIconManager : IDisposable
             _reviewsItem,
             new Forms.ToolStripSeparator(),
             settingsItem,
+            versionItem,
             new Forms.ToolStripSeparator(),
             exitItem,
         ]);
@@ -144,6 +151,21 @@ public sealed class TrayIconManager : IDisposable
     private static void OpenInBrowser(string url)
     {
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    private static string GetAppVersion()
+    {
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+
+        if (!string.IsNullOrWhiteSpace(informationalVersion))
+            return informationalVersion;
+
+        return assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version
+            ?? assembly.GetName().Version?.ToString()
+            ?? "unknown";
     }
 
     public void Dispose()
