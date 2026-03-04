@@ -29,7 +29,22 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          [xml]$project = Get-Content -Path "src/PrMonitor.csproj"
+          function Normalize-XmlText([string]$text) {
+            if ([string]::IsNullOrWhiteSpace($text)) {
+              return $text
+            }
+
+            $normalized = $text.Trim()
+            $xmlStart = $normalized.IndexOf('<')
+            if ($xmlStart -gt 0) {
+              $normalized = $normalized.Substring($xmlStart)
+            }
+
+            return $normalized
+          }
+
+          $projectContent = Normalize-XmlText (Get-Content -Path "src/PrMonitor.csproj" -Raw)
+          [xml]$project = $projectContent
           $currentVersion = [string]$project.Project.PropertyGroup.Version
 
           if ([string]::IsNullOrWhiteSpace($currentVersion)) {
@@ -41,7 +56,8 @@ jobs:
           if ("${{ github.event_name }}" -eq "push") {
             $beforeSha = "${{ github.event.before }}"
             if (-not [string]::IsNullOrWhiteSpace($beforeSha) -and $beforeSha -ne "0000000000000000000000000000000000000000") {
-              $previousContent = git show "$beforeSha`:src/PrMonitor.csproj" 2>$null
+              $previousContentLines = git show "$beforeSha`:src/PrMonitor.csproj" 2>$null
+              $previousContent = Normalize-XmlText ($previousContentLines -join "`n")
               if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($previousContent)) {
                 [xml]$previousProject = $previousContent
                 $previousVersion = [string]$previousProject.Project.PropertyGroup.Version
