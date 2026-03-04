@@ -70,11 +70,8 @@ jobs:
 
           git fetch --tags --force
           $tagName = "v$currentVersion"
-          $tagExists = $false
-          git rev-parse "refs/tags/$tagName" *> $null
-          if ($LASTEXITCODE -eq 0) {
-            $tagExists = $true
-          }
+          $tagMatch = git tag -l "$tagName"
+          $tagExists = -not [string]::IsNullOrWhiteSpace(($tagMatch -join ""))
 
           "version=$currentVersion" >> $env:GITHUB_OUTPUT
           "tag=$tagName" >> $env:GITHUB_OUTPUT
