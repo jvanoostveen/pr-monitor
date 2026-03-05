@@ -137,6 +137,14 @@ For diagnostics when polling or GitHub API calls intermittently return no data, 
 
 The file contains timestamped `INFO`, `WARN`, and `ERROR` entries.
 
+If Windows SmartScreen shows "Windows protected your PC" for `PrMonitor.exe`:
+
+1. Right-click `PrMonitor.exe` and choose **Properties**.
+2. In the **General** tab, check **Unblock** (under Security) and click **Apply**.
+3. Start the app again.
+
+You may still need to click **More info** → **Run anyway** the first time because the app is unsigned (`Unknown publisher`).
+
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE).

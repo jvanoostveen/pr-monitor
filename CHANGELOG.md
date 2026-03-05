@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed single-file release startup on downloaded builds by including native libraries for self-extract runtime.
 
+### Changed
+
+- Expanded README troubleshooting with SmartScreen unblock steps via file Properties for `PrMonitor.exe`.
+
 ## [1.1.1]
 
 ### Changed
