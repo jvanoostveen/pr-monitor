@@ -56,6 +56,7 @@ pr-bot/
     └── Views/
         ├── TrayIconManager.cs          # NotifyIcon + context menu
         ├── IconGenerator.cs            # Generates 16×16 icon with colored badge
+      ├── AboutWindow.xaml / .cs      # About dialog (version/repo/update check)
         └── SettingsWindow.xaml / .cs   # Settings dialog
 ```
 
@@ -149,7 +150,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 `PollingService` also writes lightweight diagnostics log entries for poll start/end and poll exceptions.
 
 ### Diagnostics logging
-- `DiagnosticsLogger` writes thread-safe append-only log entries to `%APPDATA%/pr-monitor/logs/pr-monitor.log`.
+- `DiagnosticsLogger` writes thread-safe entries to `%APPDATA%/pr-monitor/logs/pr-monitor.log` with automatic size-based rotation.
 - Log format includes timestamp + level (`INFO`, `WARN`, `ERROR`).
 - `GitHubService` logs GraphQL/`gh` failures (non-zero exit with stderr, GraphQL errors, JSON parse failures).
 - `PollingService` logs poll lifecycle and exceptions for intermittent "no data" investigations.
@@ -158,6 +159,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - Borderless, transparent, `Topmost=True`, `SizeToContent=Height`, `MaxHeight=600`
 - **No auto-hide on deactivate** — stays visible until user clicks X or tray icon
 - **Tray left-click** toggles window visibility
+- Tray context menu order starts with **Open PR Monitor**, then **About…**, then **Settings…**
 - **Draggable** by the title/timestamp area in the header (cursor: SizeAll)
 - **Buttons** (Refresh, Close) use `MouseLeftButtonUp` — NOT inside the drag zone — to avoid `DragMove()` hijacking mouse capture
 - Default position: bottom-right of primary monitor work area (12 px inset)
@@ -197,7 +199,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 - `UpdateService` calls `gh api repos/jvanoostveen/pr-monitor/releases/latest` first (authenticated), with HTTP `GET https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest` as fallback, and parses `tag_name` + `html_url`.
 - Current version is read from assembly metadata; tags like `v1.2.3` are normalized before semantic comparison.
 - App runs a non-blocking startup check and shows an English prompt when an update is available.
-- Tray context menu includes **Check for updates…** for manual checks; selecting update opens the latest release page in the default browser.
+- Tray context menu includes **About…**; manual checks are triggered from the **Check for updates…** button in the About dialog.
 - Update-check failures are logged to diagnostics (`pr-monitor.log`), and manual checks show the concrete error message instead of a generic failure.
 
 ### Release automation

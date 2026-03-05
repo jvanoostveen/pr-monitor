@@ -25,7 +25,7 @@ Empty sections are hidden automatically. The tray icon badge changes colour to r
 - 🟢 Green — everything is fine
 - ⚫ Gray — not yet polled
 
-Click the tray icon to toggle the window. Right-click for a context menu with totals, settings, a **Check for updates…** action, and a non-clickable app version line (for example, `Version 1.0.0`).
+Click the tray icon to toggle the window. Right-click for a context menu with **Open PR Monitor**, **About…**, **Settings…**, totals, and a non-clickable app version line (for example, `Version 1.0.0`).
 
 At startup, the app performs a non-blocking update check against the latest GitHub Release. It uses authenticated `gh` API access first (with HTTP fallback). If a newer version exists, it prompts you and can open the latest release page in your browser (no auto-install).
 
@@ -67,7 +67,7 @@ Right-click the tray icon and choose **Settings** to:
 
 Settings are stored in `%APPDATA%\pr-monitor\settings.json`.
 
-You can also run a manual update check at any time from the tray menu using **Check for updates…**.
+You can also run a manual update check at any time from **About…** in the tray menu.
 
 ## Running from source (development)
 
@@ -137,7 +137,7 @@ For diagnostics when polling or GitHub API calls intermittently return no data, 
 
 The file contains timestamped `INFO`, `WARN`, and `ERROR` entries.
 
-Update-check failures are logged there as well (including HTTP status or exception details), and the manual **Check for updates…** dialog now shows the concrete error reason.
+Update-check failures are logged there as well (including HTTP status or exception details), and the manual **Check for updates…** action in **About…** shows the concrete error reason.
 
 If Windows SmartScreen shows "Windows protected your PC" for `PrMonitor.exe`:
 

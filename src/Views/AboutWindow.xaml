@@ -1,0 +1,50 @@
+<Window x:Class="PrMonitor.Views.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="About PR Monitor"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center">
+            <Image Width="256"
+                   Height="256"
+                   Margin="0,0,0,10"
+                   Stretch="Uniform"
+                   Source="/Assets/logo_256.png"/>
+
+            <TextBlock Text="PR Monitor"
+                       HorizontalAlignment="Center"
+                       FontSize="18"
+                       FontWeight="SemiBold"/>
+
+            <TextBlock Text="{Binding VersionText}"
+                       HorizontalAlignment="Center"
+                       Margin="0,4,0,10"/>
+
+            <TextBlock HorizontalAlignment="Center">
+                <Run Text="GitHub repository: "/>
+                <Hyperlink NavigateUri="https://github.com/jvanoostveen/pr-monitor"
+                           RequestNavigate="RepoLink_RequestNavigate">
+                    <Run Text="github.com/jvanoostveen/pr-monitor"/>
+                </Hyperlink>
+            </TextBlock>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+            <Button Content="Check for updates…"
+                    Width="150"
+                    Margin="0,0,8,0"
+                    Click="CheckForUpdates_Click"/>
+            <Button Content="Close"
+                    Width="90"
+                    Click="Close_Click"
+                    IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

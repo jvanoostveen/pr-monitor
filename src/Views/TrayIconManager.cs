@@ -26,7 +26,7 @@ public sealed class TrayIconManager : IDisposable
 
     private Action? _openWindowAction;
     private Action? _openSettingsAction;
-    private Action? _checkForUpdatesAction;
+    private Action? _openAboutAction;
     private Action? _exitAction;
 
     public TrayIconManager(AppSettings settings)
@@ -53,8 +53,8 @@ public sealed class TrayIconManager : IDisposable
         var settingsItem = new Forms.ToolStripMenuItem("Settings…");
         settingsItem.Click += (_, _) => _openSettingsAction?.Invoke();
 
-        var checkForUpdatesItem = new Forms.ToolStripMenuItem("Check for updates…");
-        checkForUpdatesItem.Click += (_, _) => _checkForUpdatesAction?.Invoke();
+        var aboutItem = new Forms.ToolStripMenuItem("About…");
+        aboutItem.Click += (_, _) => _openAboutAction?.Invoke();
 
         var versionItem = new Forms.ToolStripMenuItem($"Version {GetAppVersion()}")
         {
@@ -67,13 +67,13 @@ public sealed class TrayIconManager : IDisposable
         _contextMenu = new Forms.ContextMenuStrip();
         _contextMenu.Items.AddRange([
             openItem,
+            aboutItem,
+            settingsItem,
             new Forms.ToolStripSeparator(),
             _hotfixesItem,
             _myPrsItem,
             _reviewsItem,
             new Forms.ToolStripSeparator(),
-            settingsItem,
-            checkForUpdatesItem,
             versionItem,
             new Forms.ToolStripSeparator(),
             exitItem,
@@ -100,7 +100,7 @@ public sealed class TrayIconManager : IDisposable
 
     public void OnOpenWindow(Action action) => _openWindowAction = action;
     public void OnOpenSettings(Action action) => _openSettingsAction = action;
-    public void OnCheckForUpdates(Action action) => _checkForUpdatesAction = action;
+    public void OnOpenAbout(Action action) => _openAboutAction = action;
     public void OnExit(Action action) => _exitAction = action;
 
     // ── Subscribe to polling ────────────────────────────────────────
@@ -159,7 +159,7 @@ public sealed class TrayIconManager : IDisposable
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
-    private static string GetAppVersion()
+    public static string GetAppVersion()
     {
         var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
         var informationalVersion = assembly

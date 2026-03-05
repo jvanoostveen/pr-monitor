@@ -84,7 +84,13 @@ public partial class App : System.Windows.Application
             });
             settingsWindow.ShowDialog();
         });
-        _trayIcon.OnCheckForUpdates(() => _ = CheckForUpdatesManuallyAsync());
+        _trayIcon.OnOpenAbout(() =>
+        {
+            var aboutWindow = new AboutWindow(
+                TrayIconManager.GetAppVersion(),
+                () => _ = CheckForUpdatesManuallyAsync());
+            aboutWindow.ShowDialog();
+        });
         _trayIcon.OnExit(() => Shutdown());
 
         // ── Start polling ──────────────────────────────────────────
