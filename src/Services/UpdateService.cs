@@ -1,4 +1,5 @@
 using System.Net.Http;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
 
@@ -23,6 +24,12 @@ public sealed class UpdateService
 
         try
         {
+            var ghJson = await TryGetLatestReleaseViaGhAsync(cancellationToken);
+            if (!string.IsNullOrWhiteSpace(ghJson))
+            {
+                return ParseReleaseResult(ghJson, currentVersion, source: "gh");
+            }
+
             using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleaseUrl);
             request.Headers.Add("Accept", "application/vnd.github+json");
 
@@ -40,46 +47,8 @@ public sealed class UpdateService
                     ErrorMessage: $"GitHub API returned {(int)response.StatusCode} ({response.ReasonPhrase}).");
             }
 
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-
-            var root = json.RootElement;
-            var tag = root.TryGetProperty("tag_name", out var tagNode) ? tagNode.GetString() : null;
-            var htmlUrl = root.TryGetProperty("html_url", out var htmlNode) ? htmlNode.GetString() : null;
-
-            if (string.IsNullOrWhiteSpace(tag) || string.IsNullOrWhiteSpace(htmlUrl))
-            {
-                _logger.Warn("UpdateService response missing tag_name or html_url.");
-                return new UpdateCheckResult(
-                    IsUpdateAvailable: false,
-                    CurrentVersion: currentVersion,
-                    LatestVersionText: null,
-                    ReleaseUrl: null,
-                    ErrorMessage: "Latest release data is missing required fields.");
-            }
-
-            var latestVersionText = NormalizeVersionText(tag);
-            if (!TryParseSemanticVersion(currentVersion, out var currentParsed)
-                || !TryParseSemanticVersion(latestVersionText, out var latestParsed))
-            {
-                _logger.Warn($"UpdateService could not parse version info. Current='{currentVersion}', Latest='{latestVersionText}'");
-                return new UpdateCheckResult(
-                    IsUpdateAvailable: false,
-                    CurrentVersion: currentVersion,
-                    LatestVersionText: latestVersionText,
-                    ReleaseUrl: htmlUrl,
-                    ErrorMessage: "Unable to parse version information.");
-            }
-
-            var isUpdateAvailable = latestParsed > currentParsed;
-            _logger.Info($"UpdateService check finished. Latest={latestVersionText}, IsUpdateAvailable={isUpdateAvailable}");
-
-            return new UpdateCheckResult(
-                IsUpdateAvailable: isUpdateAvailable,
-                CurrentVersion: currentVersion,
-                LatestVersionText: latestVersionText,
-                ReleaseUrl: htmlUrl,
-                ErrorMessage: null);
+            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+            return ParseReleaseResult(responseJson, currentVersion, source: "http");
         }
         catch (OperationCanceledException)
         {
@@ -106,6 +75,116 @@ public sealed class UpdateService
         };
         client.DefaultRequestHeaders.Add("User-Agent", "pr-monitor");
         return client;
+    }
+
+    private async Task<string?> TryGetLatestReleaseViaGhAsync(CancellationToken cancellationToken)
+    {
+        var (output, stderr, exitCode) = await RunGhAsync("api repos/jvanoostveen/pr-monitor/releases/latest", cancellationToken);
+
+        if (exitCode != 0)
+        {
+            _logger.Warn($"UpdateService gh release lookup failed (exit={exitCode}). stderr: {stderr?.Trim()}");
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            _logger.Warn("UpdateService gh release lookup returned empty output.");
+            return null;
+        }
+
+        _logger.Info("UpdateService release lookup succeeded via gh.");
+        return output;
+    }
+
+    private UpdateCheckResult ParseReleaseResult(string jsonText, string currentVersion, string source)
+    {
+        try
+        {
+            using var json = JsonDocument.Parse(jsonText);
+
+            var root = json.RootElement;
+            var tag = root.TryGetProperty("tag_name", out var tagNode) ? tagNode.GetString() : null;
+            var htmlUrl = root.TryGetProperty("html_url", out var htmlNode) ? htmlNode.GetString() : null;
+
+            if (string.IsNullOrWhiteSpace(tag) || string.IsNullOrWhiteSpace(htmlUrl))
+            {
+                _logger.Warn($"UpdateService response missing tag_name or html_url (source={source}).");
+                return new UpdateCheckResult(
+                    IsUpdateAvailable: false,
+                    CurrentVersion: currentVersion,
+                    LatestVersionText: null,
+                    ReleaseUrl: null,
+                    ErrorMessage: "Latest release data is missing required fields.");
+            }
+
+            var latestVersionText = NormalizeVersionText(tag);
+            if (!TryParseSemanticVersion(currentVersion, out var currentParsed)
+                || !TryParseSemanticVersion(latestVersionText, out var latestParsed))
+            {
+                _logger.Warn($"UpdateService could not parse version info. Current='{currentVersion}', Latest='{latestVersionText}', Source={source}");
+                return new UpdateCheckResult(
+                    IsUpdateAvailable: false,
+                    CurrentVersion: currentVersion,
+                    LatestVersionText: latestVersionText,
+                    ReleaseUrl: htmlUrl,
+                    ErrorMessage: "Unable to parse version information.");
+            }
+
+            var isUpdateAvailable = latestParsed > currentParsed;
+            _logger.Info($"UpdateService check finished via {source}. Latest={latestVersionText}, IsUpdateAvailable={isUpdateAvailable}");
+
+            return new UpdateCheckResult(
+                IsUpdateAvailable: isUpdateAvailable,
+                CurrentVersion: currentVersion,
+                LatestVersionText: latestVersionText,
+                ReleaseUrl: htmlUrl,
+                ErrorMessage: null);
+        }
+        catch (JsonException ex)
+        {
+            _logger.Error($"UpdateService JSON parse failed (source={source}).", ex);
+            return new UpdateCheckResult(
+                IsUpdateAvailable: false,
+                CurrentVersion: currentVersion,
+                LatestVersionText: null,
+                ReleaseUrl: null,
+                ErrorMessage: "Unable to parse release information.");
+        }
+    }
+
+    private async Task<(string? Output, string? Stderr, int ExitCode)> RunGhAsync(string arguments, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = "gh",
+                Arguments = arguments,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+
+            process.Start();
+
+            var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+
+            await process.WaitForExitAsync(cancellationToken);
+
+            var output = await outputTask;
+            var stderr = await stderrTask;
+
+            return (output, stderr, process.ExitCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn($"UpdateService failed to execute gh command. {DiagnosticsLogger.SummarizeException(ex)}");
+            return (null, null, -1);
+        }
     }
 
     private static string GetCurrentAppVersion()

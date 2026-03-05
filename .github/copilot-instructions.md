@@ -194,7 +194,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 - Runtime reads the assembly informational/file version and shows it in tray context menu as a disabled item: `Version x.y.z`.
 
 ### Update checks
-- `UpdateService` calls `GET https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest` and parses `tag_name` + `html_url`.
+- `UpdateService` calls `gh api repos/jvanoostveen/pr-monitor/releases/latest` first (authenticated), with HTTP `GET https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest` as fallback, and parses `tag_name` + `html_url`.
 - Current version is read from assembly metadata; tags like `v1.2.3` are normalized before semantic comparison.
 - App runs a non-blocking startup check and shows an English prompt when an update is available.
 - Tray context menu includes **Check for updates…** for manual checks; selecting update opens the latest release page in the default browser.

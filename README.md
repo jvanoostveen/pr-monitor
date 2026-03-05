@@ -27,7 +27,7 @@ Empty sections are hidden automatically. The tray icon badge changes colour to r
 
 Click the tray icon to toggle the window. Right-click for a context menu with totals, settings, a **Check for updates…** action, and a non-clickable app version line (for example, `Version 1.0.0`).
 
-At startup, the app performs a non-blocking update check against the latest GitHub Release. If a newer version exists, it prompts you and can open the latest release page in your browser (no auto-install).
+At startup, the app performs a non-blocking update check against the latest GitHub Release. It uses authenticated `gh` API access first (with HTTP fallback). If a newer version exists, it prompts you and can open the latest release page in your browser (no auto-install).
 
 The window can be **snapped to any corner** of any monitor by dragging it near a corner — the border turns blue to preview the snap, and the window locks into position on release. When a monitor is disconnected the window recovers to the same corner on the primary display.
 
