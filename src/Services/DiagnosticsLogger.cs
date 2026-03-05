@@ -8,6 +8,9 @@ namespace PrMonitor.Services;
 /// </summary>
 public sealed class DiagnosticsLogger
 {
+    private const long MaxLogFileBytes = 1 * 1024 * 1024;
+    private const int MaxArchivedLogFiles = 3;
+
     private readonly object _sync = new();
     private readonly string _logFilePath;
 
@@ -55,12 +58,45 @@ public sealed class DiagnosticsLogger
             var line = $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff zzz} [{level}] {message}{Environment.NewLine}";
             lock (_sync)
             {
+                RotateIfNeeded();
                 System.IO.File.AppendAllText(_logFilePath, line);
             }
         }
         catch
         {
             // Diagnostics must never affect app behavior.
+        }
+    }
+
+    private void RotateIfNeeded()
+    {
+        if (!System.IO.File.Exists(_logFilePath))
+        {
+            return;
+        }
+
+        var fileInfo = new FileInfo(_logFilePath);
+        if (fileInfo.Length < MaxLogFileBytes)
+        {
+            return;
+        }
+
+        for (var index = MaxArchivedLogFiles; index >= 1; index--)
+        {
+            var sourcePath = index == 1 ? _logFilePath : $"{_logFilePath}.{index - 1}";
+            var destinationPath = $"{_logFilePath}.{index}";
+
+            if (!System.IO.File.Exists(sourcePath))
+            {
+                continue;
+            }
+
+            if (System.IO.File.Exists(destinationPath))
+            {
+                System.IO.File.Delete(destinationPath);
+            }
+
+            System.IO.File.Move(sourcePath, destinationPath);
         }
     }
 }
