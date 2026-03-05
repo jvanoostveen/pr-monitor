@@ -216,7 +216,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
   - Reads version from `src/PrMonitor.csproj`
   - For push events, releases only when version changed from previous commit
   - Skips if tag `v<version>` already exists
-  - Publishes a single-file `win-x64` executable and attaches `PrMonitor-<version>-win-x64.zip` (only `PrMonitor.exe`) to GitHub Release
+  - Publishes a single-file `win-x64` executable (including native libraries for self-extract at runtime) and attaches `PrMonitor-<version>-win-x64.zip` (only `PrMonitor.exe`) to GitHub Release
 
 ### README onboarding
 - `README.md` uses a release-first onboarding flow in **Getting started** (download latest release + run executable).

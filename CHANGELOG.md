@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- No unreleased changes yet.
+### Fixed
+
+- Fixed single-file release startup on downloaded builds by including native libraries for self-extract runtime.
 
 ## [1.1.1]
 

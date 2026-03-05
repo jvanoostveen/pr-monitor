@@ -82,7 +82,7 @@ This is the recommended path for contributors and local development.
 ## Building a release executable
 
 ```powershell
-dotnet publish .\src\PrMonitor.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+dotnet publish .\src\PrMonitor.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 ```
 
 The output is placed in `src\bin\Release\net10.0-windows10.0.17763.0\win-x64\publish\` as a single runnable `PrMonitor.exe`.

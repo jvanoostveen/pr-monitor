@@ -88,7 +88,7 @@ jobs:
         if: ${{ steps.version.outputs.should_release == 'true' && steps.version.outputs.tag_exists != 'true' }}
         shell: pwsh
         run: |
-          dotnet publish .\src\PrMonitor.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false
+          dotnet publish .\src\PrMonitor.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false
 
       - name: Create release archive
         if: ${{ steps.version.outputs.should_release == 'true' && steps.version.outputs.tag_exists != 'true' }}
