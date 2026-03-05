@@ -175,6 +175,8 @@
                                                 Tag="{Binding}">
                                             <Border.ContextMenu>
                                                 <ContextMenu>
+                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
+                                                              Click="PrRow_CopyBranch_Click"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -261,6 +263,8 @@
                                                 Tag="{Binding}">
                                             <Border.ContextMenu>
                                                 <ContextMenu>
+                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
+                                                              Click="PrRow_CopyBranch_Click"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -341,6 +345,8 @@
                                                 Tag="{Binding}">
                                             <Border.ContextMenu>
                                                 <ContextMenu>
+                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
+                                                              Click="PrRow_CopyBranch_Click"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -423,6 +429,8 @@
                                                 Tag="{Binding}">
                                             <Border.ContextMenu>
                                                 <ContextMenu>
+                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
+                                                              Click="PrRow_CopyBranch_Click"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -504,6 +512,8 @@
                                             Tag="{Binding}">
                                         <Border.ContextMenu>
                                             <ContextMenu>
+                                                <MenuItem Header="Copy branch name" Tag="{Binding}"
+                                                          Click="PrRow_CopyBranch_Click"/>
                                                 <MenuItem Header="Restore" Tag="{Binding}"
                                                           Click="PrRow_Restore_Click"/>
                                             </ContextMenu>

@@ -359,4 +359,10 @@ public partial class MainWindow : Window
         if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
             ViewModel.RestoreItem(vm.Key);
     }
+
+    private void PrRow_CopyBranch_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
+            System.Windows.Clipboard.SetText(vm.HeadRefName);
+    }
 }

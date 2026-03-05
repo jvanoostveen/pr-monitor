@@ -39,6 +39,9 @@ public sealed class PullRequestInfo
     /// <summary>Base branch name (e.g. "release/1.2").</summary>
     public string BaseRefName { get; init; } = "";
 
+    /// <summary>Head branch name (e.g. "feature/my-feature").</summary>
+    public string HeadRefName { get; init; } = "";
+
     /// <summary>
     /// Unique key used for delta-detection across polls.
     /// </summary>

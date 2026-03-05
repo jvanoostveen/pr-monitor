@@ -30,6 +30,7 @@ public sealed class GitHubService
                 author { login }
                 createdAt
                 isDraft
+                headRefName
                 autoMergeRequest { enabledAt }
                 commits(last: 1) {
                   nodes {
@@ -66,6 +67,7 @@ public sealed class GitHubService
                 author { login }
                 createdAt
                 baseRefName
+                headRefName
                 commits(last: 1) {
                   nodes {
                     commit {
@@ -268,6 +270,9 @@ public sealed class GitHubService
                     : DateTimeOffset.MinValue,
                 HasAutoMerge = hasAutoMerge,
                 IsDraft = isDraft,
+                HeadRefName = node.TryGetProperty("headRefName", out var hrn1)
+                    ? hrn1.GetString() ?? ""
+                    : "",
                 CIState = ciState,
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
             });
@@ -322,6 +327,9 @@ public sealed class GitHubService
                     : DateTimeOffset.MinValue,
                 BaseRefName = node.TryGetProperty("baseRefName", out var brn)
                     ? brn.GetString() ?? ""
+                    : "",
+                HeadRefName = node.TryGetProperty("headRefName", out var hrn2)
+                    ? hrn2.GetString() ?? ""
                     : "",
                 CIState = ciState,
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),

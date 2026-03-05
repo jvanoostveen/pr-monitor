@@ -381,6 +381,7 @@ public sealed class PrItemViewModel
     public bool IsMyPr { get; init; }
     public bool IsHotfixPr { get; init; }
     public bool IsDraft { get; init; }
+    public string HeadRefName { get; init; } = "";
 
     /// <summary>
     /// CI state used for the indicator: always Unknown (grey) for draft PRs.
@@ -404,6 +405,7 @@ public sealed class PrItemViewModel
         IsMyPr = isMyPr,
         IsHotfixPr = isHotfix,
         IsDraft = pr.IsDraft,
+        HeadRefName = pr.HeadRefName,
         CIIcon = pr.CIState switch
         {
             CIState.Success => "✅",
