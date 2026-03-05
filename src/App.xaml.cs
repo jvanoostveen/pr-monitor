@@ -57,7 +57,7 @@ public partial class App : System.Windows.Application
         _notifications = new NotificationService();
         _notifications.Initialize();
         _notifications.Subscribe(_polling);
-        _updates = new UpdateService();
+        _updates = new UpdateService(_logger);
 
         // ── View layer ─────────────────────────────────────────────
         var mainVm = new MainViewModel(settings);
@@ -139,8 +139,9 @@ public partial class App : System.Windows.Application
 
         if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
         {
+            _logger?.Warn($"Manual update check failed: {result.ErrorMessage}");
             System.Windows.MessageBox.Show(
-                "Unable to check for updates right now. Please try again later.",
+                $"Unable to check for updates right now.\n\nDetails: {result.ErrorMessage}",
                 "Check for updates",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);

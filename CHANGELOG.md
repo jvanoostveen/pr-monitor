@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- No unreleased changes yet.
+### Fixed
+
+- Improved update-check diagnostics: failures are now logged and manual checks show specific error details instead of a generic message.
 
 ## [1.1.2]
 

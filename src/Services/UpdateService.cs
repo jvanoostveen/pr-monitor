@@ -9,10 +9,17 @@ public sealed class UpdateService
     private const string LatestReleaseUrl = "https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest";
 
     private static readonly HttpClient HttpClient = CreateHttpClient();
+    private readonly DiagnosticsLogger _logger;
+
+    public UpdateService(DiagnosticsLogger logger)
+    {
+        _logger = logger;
+    }
 
     public async Task<UpdateCheckResult> CheckForUpdatesAsync(CancellationToken cancellationToken = default)
     {
         var currentVersion = GetCurrentAppVersion();
+        _logger.Info($"UpdateService check started. CurrentVersion={currentVersion}");
 
         try
         {
@@ -20,14 +27,17 @@ public sealed class UpdateService
             request.Headers.Add("Accept", "application/vnd.github+json");
 
             using var response = await HttpClient.SendAsync(request, cancellationToken);
+            _logger.Info($"UpdateService GitHub response status={(int)response.StatusCode}");
             if (!response.IsSuccessStatusCode)
             {
+                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.Warn($"UpdateService non-success status {(int)response.StatusCode}. Body: {errorBody}");
                 return new UpdateCheckResult(
                     IsUpdateAvailable: false,
                     CurrentVersion: currentVersion,
                     LatestVersionText: null,
                     ReleaseUrl: null,
-                    ErrorMessage: $"GitHub API returned {(int)response.StatusCode}.");
+                    ErrorMessage: $"GitHub API returned {(int)response.StatusCode} ({response.ReasonPhrase}).");
             }
 
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -39,6 +49,7 @@ public sealed class UpdateService
 
             if (string.IsNullOrWhiteSpace(tag) || string.IsNullOrWhiteSpace(htmlUrl))
             {
+                _logger.Warn("UpdateService response missing tag_name or html_url.");
                 return new UpdateCheckResult(
                     IsUpdateAvailable: false,
                     CurrentVersion: currentVersion,
@@ -51,6 +62,7 @@ public sealed class UpdateService
             if (!TryParseSemanticVersion(currentVersion, out var currentParsed)
                 || !TryParseSemanticVersion(latestVersionText, out var latestParsed))
             {
+                _logger.Warn($"UpdateService could not parse version info. Current='{currentVersion}', Latest='{latestVersionText}'");
                 return new UpdateCheckResult(
                     IsUpdateAvailable: false,
                     CurrentVersion: currentVersion,
@@ -59,8 +71,11 @@ public sealed class UpdateService
                     ErrorMessage: "Unable to parse version information.");
             }
 
+            var isUpdateAvailable = latestParsed > currentParsed;
+            _logger.Info($"UpdateService check finished. Latest={latestVersionText}, IsUpdateAvailable={isUpdateAvailable}");
+
             return new UpdateCheckResult(
-                IsUpdateAvailable: latestParsed > currentParsed,
+                IsUpdateAvailable: isUpdateAvailable,
                 CurrentVersion: currentVersion,
                 LatestVersionText: latestVersionText,
                 ReleaseUrl: htmlUrl,
@@ -68,16 +83,18 @@ public sealed class UpdateService
         }
         catch (OperationCanceledException)
         {
+            _logger.Warn("UpdateService check canceled.");
             throw;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.Error("UpdateService check failed.", ex);
             return new UpdateCheckResult(
                 IsUpdateAvailable: false,
                 CurrentVersion: currentVersion,
                 LatestVersionText: null,
                 ReleaseUrl: null,
-                ErrorMessage: "Unable to reach GitHub releases right now.");
+                ErrorMessage: "Unable to reach GitHub releases right now. See diagnostics log for details.");
         }
     }
 

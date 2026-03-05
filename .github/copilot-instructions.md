@@ -198,6 +198,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 - Current version is read from assembly metadata; tags like `v1.2.3` are normalized before semantic comparison.
 - App runs a non-blocking startup check and shows an English prompt when an update is available.
 - Tray context menu includes **Check for updates…** for manual checks; selecting update opens the latest release page in the default browser.
+- Update-check failures are logged to diagnostics (`pr-monitor.log`), and manual checks show the concrete error message instead of a generic failure.
 
 ### Release automation
 - Build validation workflow: `.github/workflows/ci-build.yml`

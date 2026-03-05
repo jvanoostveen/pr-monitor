@@ -137,6 +137,8 @@ For diagnostics when polling or GitHub API calls intermittently return no data, 
 
 The file contains timestamped `INFO`, `WARN`, and `ERROR` entries.
 
+Update-check failures are logged there as well (including HTTP status or exception details), and the manual **Check for updates…** dialog now shows the concrete error reason.
+
 If Windows SmartScreen shows "Windows protected your PC" for `PrMonitor.exe`:
 
 1. Right-click `PrMonitor.exe` and choose **Properties**.
