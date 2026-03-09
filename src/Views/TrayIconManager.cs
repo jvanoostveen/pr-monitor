@@ -122,25 +122,36 @@ public sealed class TrayIconManager : IDisposable
     {
         // Exclude hidden PRs from counts
         var hidden = _settings.HiddenPrKeys;
-        int visibleAuto = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key));
+        int visibleAuto   = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key));
+        int visibleMyPrs  = snapshot.MyPrs.Count(p => !hidden.Contains(p.Key));
         int visibleReview = snapshot.ReviewRequestedPrs.Count(p => !hidden.Contains(p.Key));
         int visibleHotfix = snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key));
-        int totalVisible = visibleAuto + visibleReview + visibleHotfix;
+        int totalVisible  = visibleAuto + visibleMyPrs + visibleReview + visibleHotfix;
+
+        // Red: CI failures across auto-merge, hotfix and non-draft My PRs
         int failedCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure)
-                     + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure);
+                     + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure)
+                     + snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && !p.IsDraft && p.CIState == CIState.Failure);
+
+        // Amber: reviews requested on me + unresolved comments on My PRs
+        int unresolvedOnMyPrs = snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && p.UnresolvedReviewCommentCount > 0);
+        int amberCount = visibleReview + unresolvedOnMyPrs;
+
         bool hasLaterPrs = snapshot.AutoMergePrs.Any(p => hidden.Contains(p.Key))
+                        || snapshot.MyPrs.Any(p => hidden.Contains(p.Key))
                         || snapshot.ReviewRequestedPrs.Any(p => hidden.Contains(p.Key))
                         || snapshot.HotfixPrs.Any(p => hidden.Contains(p.Key));
 
         // Update icon
         var oldIcon = _notifyIcon.Icon;
-        _notifyIcon.Icon = IconGenerator.CreateTrayIcon(totalVisible, failedCI, visibleReview, hasLaterPrs);
+        _notifyIcon.Icon = IconGenerator.CreateTrayIcon(totalVisible, failedCI, amberCount, hasLaterPrs);
         oldIcon?.Dispose();
 
         // Tooltip
         var tooltipParts = new System.Text.StringBuilder("PR Monitor");
         if (visibleHotfix > 0) tooltipParts.Append($"\nHotfixes: {visibleHotfix}");
         tooltipParts.Append($"\nAuto-merge PRs: {visibleAuto}");
+        if (visibleMyPrs > 0) tooltipParts.Append($"\nMy PRs: {visibleMyPrs}");
         tooltipParts.Append($"\nAwaiting review: {visibleReview}");
         var tooltip = tooltipParts.ToString();
         _notifyIcon.Text = tooltip.Length > 127 ? tooltip[..127] : tooltip;
@@ -148,7 +159,7 @@ public sealed class TrayIconManager : IDisposable
         // Menu item labels
         _hotfixesItem.Text = $"Hotfixes ({visibleHotfix})";
         _hotfixesItem.Visible = visibleHotfix > 0;
-        _myPrsItem.Text = $"My PRs ({visibleAuto})";
+        _myPrsItem.Text = $"My PRs ({visibleAuto + visibleMyPrs})";
         _reviewsItem.Text = $"Awaiting Review ({visibleReview})";
     }
 
