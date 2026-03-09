@@ -70,6 +70,7 @@ public partial class App : System.Windows.Application
 
         _trayIcon = new TrayIconManager(settings);
         _trayIcon.Subscribe(_polling);
+        mainVm.OnHiddenPrsChanged = () => _trayIcon.RefreshFromLatestSnapshot();
         _trayIcon.OnOpenWindow(() =>
         {
             if (_mainWindow.IsVisible)

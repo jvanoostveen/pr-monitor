@@ -167,6 +167,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>Called after a PR is moved to Later or restored from Later.</summary>
+    public Action? OnHiddenPrsChanged { get; set; }
+
     public void ToggleAutoMergeExpanded() => AutoMergeExpanded = !AutoMergeExpanded;
     public void ToggleReviewExpanded() => ReviewExpanded = !ReviewExpanded;
     public void ToggleHotfixExpanded() => HotfixExpanded = !HotfixExpanded;
@@ -200,6 +203,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         ReviewCount = ReviewRequestedPrs.Count;
         HotfixCount = HotfixPrs.Count;
         HiddenCount = HiddenPrs.Count;
+        OnHiddenPrsChanged?.Invoke();
     }
 
     public void RestoreItem(string key)
@@ -233,6 +237,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             }
         }
         HiddenCount = HiddenPrs.Count;
+        OnHiddenPrsChanged?.Invoke();
     }
 
     private static PrItemViewModel? FindAndRemove(ObservableCollection<PrItemViewModel> list, string key)

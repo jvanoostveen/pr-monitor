@@ -105,6 +105,8 @@ public sealed class TrayIconManager : IDisposable
 
     // ── Subscribe to polling ────────────────────────────────────────
 
+    private PollSnapshot? _latestSnapshot;
+
     public void Subscribe(PollingService polling)
     {
         polling.Polled += (_, snapshot) =>
@@ -112,8 +114,21 @@ public sealed class TrayIconManager : IDisposable
             // NotifyIcon must be updated on the thread that created it,
             // but timer callbacks come from a threadpool thread.
             System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-                UpdateFromSnapshot(snapshot));
+            {
+                _latestSnapshot = snapshot;
+                UpdateFromSnapshot(snapshot);
+            });
         };
+    }
+
+    /// <summary>
+    /// Re-evaluate icon/tooltip/counts from the last known snapshot.
+    /// Call this whenever the hidden-PR set changes without a new poll.
+    /// </summary>
+    public void RefreshFromLatestSnapshot()
+    {
+        if (_latestSnapshot is { } snapshot)
+            UpdateFromSnapshot(snapshot);
     }
 
     // ── Update from poll data ───────────────────────────────────────
