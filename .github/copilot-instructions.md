@@ -198,8 +198,9 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 ### Update checks
 - `UpdateService` calls `gh api repos/jvanoostveen/pr-monitor/releases/latest` first (authenticated), with HTTP `GET https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest` as fallback, and parses `tag_name` + `html_url`.
 - Current version is read from assembly metadata; tags like `v1.2.3` are normalized before semantic comparison.
-- App runs a non-blocking startup check and shows an English prompt when an update is available.
-- Tray context menu includes **About…**; manual checks are triggered from the **Check for updates…** button in the About dialog.
+- A `System.Threading.Timer` fires 30 seconds after startup then every 24 hours; it calls `RunAutoUpdateCheckAsync()` which silently calls `MainViewModel.SetUpdateAvailable()` when a newer version is found.
+- When an update is available, the PR window footer shows a green clickable banner ("Update available: vX.Y.Z — click to download"); clicking it opens the release URL. The normal hint text is shown when no update is pending.
+- Manual checks are triggered from the **Check for updates…** button in the About dialog; the manual check still shows a MessageBox for immediate feedback and also updates the banner.
 - Update-check failures are logged to diagnostics (`pr-monitor.log`), and manual checks show the concrete error message instead of a generic failure.
 
 ### Release automation
