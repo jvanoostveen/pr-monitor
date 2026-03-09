@@ -187,8 +187,10 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 
 ### Tray icon colors
 - Red `#F85149` — CI failures present
-- Amber `#D29922` — reviews pending, no CI failures
+- Amber `#D29922` — reviews pending or unresolved comments on My PRs, no CI failures
+- Purple `#8957E5` — pipeline running (Pending CI on visible PRs), no failures or review actions
 - Green `#3FB950` — all clear
+- Blue `#005FAA` — only Later-items, nothing active
 - Gray `#8B949E` — idle / not polled yet
 
 ### Version display

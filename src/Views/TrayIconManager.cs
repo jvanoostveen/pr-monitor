@@ -152,6 +152,11 @@ public sealed class TrayIconManager : IDisposable
         int unresolvedOnMyPrs = snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && p.UnresolvedReviewCommentCount > 0);
         int amberCount = visibleReview + unresolvedOnMyPrs;
 
+        // Purple: pipeline still running (pending CI on non-draft, non-hidden PRs)
+        int pendingCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Pending)
+                      + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Pending)
+                      + snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && !p.IsDraft && p.CIState == CIState.Pending);
+
         bool hasLaterPrs = snapshot.AutoMergePrs.Any(p => hidden.Contains(p.Key))
                         || snapshot.MyPrs.Any(p => hidden.Contains(p.Key))
                         || snapshot.ReviewRequestedPrs.Any(p => hidden.Contains(p.Key))
@@ -159,7 +164,7 @@ public sealed class TrayIconManager : IDisposable
 
         // Update icon
         var oldIcon = _notifyIcon.Icon;
-        _notifyIcon.Icon = IconGenerator.CreateTrayIcon(totalVisible, failedCI, amberCount, hasLaterPrs);
+        _notifyIcon.Icon = IconGenerator.CreateTrayIcon(totalVisible, failedCI, amberCount, pendingCI, hasLaterPrs);
         oldIcon?.Dispose();
 
         // Tooltip

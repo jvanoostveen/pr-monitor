@@ -21,13 +21,19 @@ Each PR row keeps its CI status circle and also shows a message icon when unreso
 Empty sections are hidden automatically. The tray icon badge changes colour to reflect the worst state:
 
 - 🔴 Red — one or more CI failures
-- 🟡 Amber — reviews pending, no CI failures
+- 🟡 Amber — reviews pending or unresolved review comments on your own PRs, no CI failures
+- 🟣 Purple — pipeline still running (pending CI), no failures or review actions needed
 - 🟢 Green — everything is fine
+- 🔵 Blue — only "Later" items, nothing active
 - ⚫ Gray — not yet polled
 
 Click the tray icon to toggle the window. Right-click for a context menu with **Open PR Monitor**, **About…**, **Settings…**, totals, and a non-clickable app version line (for example, `Version 1.0.0`).
 
-At startup, the app performs a non-blocking update check against the latest GitHub Release. It uses authenticated `gh` API access first (with HTTP fallback). If a newer version exists, it prompts you and can open the latest release page in your browser (no auto-install).
+The app automatically checks for a new release ~30 seconds after startup and again every 24 hours. When a newer version is available, a green clickable banner appears at the bottom of the PR window — click it to open the latest release page. A manual check is also available from **About… → Check for updates…**.
+
+Right-clicking a PR row shows a context menu with:
+- **Copy branch name** — copies the head branch name to the clipboard
+- **Move to later** / **Restore** — moves the PR to the Later section and back
 
 The window can be **snapped to any corner** of any monitor by dragging it near a corner — the border turns blue to preview the snap, and the window locks into position on release. When a monitor is disconnected the window recovers to the same corner on the primary display.
 

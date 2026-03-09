@@ -13,15 +13,16 @@ public static class IconGenerator
 {
     private static readonly Color ColorRed    = Color.FromArgb(0xF8, 0x51, 0x49); // #F85149 – CI failure
     private static readonly Color ColorAmber  = Color.FromArgb(0xD2, 0x99, 0x22); // #D29922 – reviews pending
+    private static readonly Color ColorPurple = Color.FromArgb(0x89, 0x57, 0xE5); // #8957E5 – CI pending (pipeline running)
     private static readonly Color ColorGreen  = Color.FromArgb(0x3F, 0xB9, 0x50); // #3FB950 – all clear
     private static readonly Color ColorBlue   = Color.FromArgb(0x00, 0x5F, 0xAA); // #005FAA – later items only
     private static readonly Color ColorGray   = Color.FromArgb(0x8B, 0x94, 0x9E); // #8B949E – idle / not polled
 
     /// <summary>
     /// Create a 16×16 icon with a coloured circle and optional badge count.
-    /// Circle colour reflects worst state: red (CI failure) > amber (review) > green (all OK) > gray (idle).
+    /// Circle colour reflects worst state: red (CI failure) > amber (review) > purple (CI pending) > green (all OK) > gray (idle).
     /// </summary>
-    public static Icon CreateTrayIcon(int totalCount, int failedCICount, int reviewCount, bool hasLaterPrs = false)
+    public static Icon CreateTrayIcon(int totalCount, int failedCICount, int reviewCount, int pendingCICount = 0, bool hasLaterPrs = false)
     {
         // Use the system-recommended small icon size (DPI-aware: 16, 20, 24, 32 …)
         int size = SystemInformation.SmallIconSize.Width;
@@ -33,11 +34,12 @@ public static class IconGenerator
         g.Clear(Color.Transparent);
 
         // Pick circle colour based on worst state
-        Color circleColor = failedCICount > 0 ? ColorRed
-                          : reviewCount   > 0 ? ColorAmber
-                          : totalCount    > 0 ? ColorGreen
-                          : hasLaterPrs        ? ColorBlue
-                                              : ColorGray;
+        Color circleColor = failedCICount  > 0 ? ColorRed
+                          : reviewCount    > 0 ? ColorAmber
+                          : pendingCICount > 0 ? ColorPurple
+                          : totalCount     > 0 ? ColorGreen
+                          : hasLaterPrs         ? ColorBlue
+                                               : ColorGray;
 
         using var brush = new SolidBrush(circleColor);
         g.FillEllipse(brush, 0, 0, size - 1, size - 1);
