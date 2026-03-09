@@ -429,6 +429,10 @@ public sealed class PrItemViewModel
     public bool IsHotfixPr { get; init; }
     public bool IsDraft { get; init; }
     public string HeadRefName { get; init; } = "";
+    public bool IsApproved { get; init; }
+
+    /// <summary>Show the approved checkmark icon: PR is approved but has no unresolved review comments (comments take priority).</summary>
+    public bool ShowApprovedIcon => IsApproved && !HasUnresolvedReviewComments;
 
     /// <summary>
     /// CI state used for the indicator: always Unknown (grey) for draft PRs.
@@ -453,6 +457,7 @@ public sealed class PrItemViewModel
         IsHotfixPr = isHotfix,
         IsDraft = pr.IsDraft,
         HeadRefName = pr.HeadRefName,
+        IsApproved = pr.IsApproved,
         CIIcon = pr.CIState switch
         {
             CIState.Success => "✅",

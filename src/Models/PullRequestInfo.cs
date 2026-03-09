@@ -36,6 +36,9 @@ public sealed class PullRequestInfo
     /// <summary>Number of unresolved review comments across unresolved review threads.</summary>
     public int UnresolvedReviewCommentCount { get; init; }
 
+    /// <summary>Whether this PR has been approved by at least one reviewer (reviewDecision == APPROVED).</summary>
+    public bool IsApproved { get; init; }
+
     /// <summary>Base branch name (e.g. "release/1.2").</summary>
     public string BaseRefName { get; init; } = "";
 

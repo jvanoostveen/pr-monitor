@@ -31,6 +31,7 @@ public sealed class GitHubService
                 createdAt
                 isDraft
                 headRefName
+                reviewDecision
                 autoMergeRequest { enabledAt }
                 commits(last: 1) {
                   nodes {
@@ -68,6 +69,7 @@ public sealed class GitHubService
                 createdAt
                 baseRefName
                 headRefName
+                reviewDecision
                 commits(last: 1) {
                   nodes {
                     commit {
@@ -274,6 +276,8 @@ public sealed class GitHubService
                     ? hrn1.GetString() ?? ""
                     : "",
                 CIState = ciState,
+                IsApproved = node.TryGetProperty("reviewDecision", out var rd1)
+                    && rd1.GetString() == "APPROVED",
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
             });
         }
@@ -332,6 +336,8 @@ public sealed class GitHubService
                     ? hrn2.GetString() ?? ""
                     : "",
                 CIState = ciState,
+                IsApproved = node.TryGetProperty("reviewDecision", out var rd2)
+                    && rd2.GetString() == "APPROVED",
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
             });
         }

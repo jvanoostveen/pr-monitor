@@ -1,4 +1,4 @@
-﻿<Window x:Class="PrMonitor.MainWindow"
+<Window x:Class="PrMonitor.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -200,6 +200,7 @@
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
                                                                ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
+                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}" ToolTip="Approved"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -288,6 +289,7 @@
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
                                                                ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
+                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}" ToolTip="Approved"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -370,6 +372,7 @@
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
                                                                ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
+                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}" ToolTip="Approved"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -455,6 +458,7 @@
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
                                                                ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
+                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}" ToolTip="Approved"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -537,6 +541,7 @@
                                                            Margin="5,0,0,0"
                                                            Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
                                                            ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
+                                                <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}" ToolTip="Approved"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1">
                                                 <TextBlock Style="{StaticResource RepoText}">
