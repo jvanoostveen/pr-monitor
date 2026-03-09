@@ -560,8 +560,26 @@
 
             <!-- Footer -->
             <Border Grid.Row="2" Background="#161B22" CornerRadius="0,0,8,8" Padding="12,6">
-                <TextBlock FontSize="10" Foreground="#484F58" HorizontalAlignment="Center"
-                           Text="Click a PR to open in GitHub · Right-click tray icon for more"/>
+                <Grid>
+                    <!-- Normal hint text, shown when no update is available -->
+                    <TextBlock Visibility="{Binding UpdateNotAvailable, Converter={StaticResource BoolToVisibility}}"
+                               FontSize="10" Foreground="#484F58" HorizontalAlignment="Center"
+                               Text="Click a PR to open in GitHub &#183; Right-click tray icon for more"/>
+                    <!-- Update available banner, shown when update is available -->
+                    <Border Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVisibility}}"
+                            Cursor="Hand" MouseLeftButtonUp="UpdateBanner_Click">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE74B;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="11"
+                                       Foreground="#3FB950"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,6,0"/>
+                            <TextBlock FontSize="10" Foreground="#3FB950"
+                                       Text="{Binding LatestVersion, StringFormat='Update available: v{0}  &#x2014;  click to download'}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </Border>
         </Grid>
     </Border>

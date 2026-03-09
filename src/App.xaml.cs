@@ -21,6 +21,8 @@ public partial class App : System.Windows.Application
     private MainWindow? _mainWindow;
     private UpdateService? _updates;
     private DiagnosticsLogger? _logger;
+    private MainViewModel? _mainVm;
+    private System.Threading.Timer? _updateTimer;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -61,6 +63,7 @@ public partial class App : System.Windows.Application
 
         // ── View layer ─────────────────────────────────────────────
         var mainVm = new MainViewModel(settings);
+        _mainVm = mainVm;
         mainVm.Subscribe(_polling);
 
         _mainWindow = new MainWindow(mainVm);
@@ -96,8 +99,10 @@ public partial class App : System.Windows.Application
         // ── Start polling ──────────────────────────────────────────
         _polling.Start();
 
-        // Non-blocking startup update check
-        _ = CheckForUpdatesOnStartupAsync();
+        // Auto update check: first run after 30 s, then every 24 h
+        _updateTimer = new System.Threading.Timer(_ => _ = RunAutoUpdateCheckAsync(), null,
+            dueTime: TimeSpan.FromSeconds(30),
+            period: TimeSpan.FromHours(24));
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -105,35 +110,25 @@ public partial class App : System.Windows.Application
         _polling?.Dispose();
         _notifications?.Dispose();
         _trayIcon?.Dispose();
+        _updateTimer?.Dispose();
         _singleInstanceMutex?.ReleaseMutex();
         _singleInstanceMutex?.Dispose();
 
         base.OnExit(e);
     }
 
-    private async Task CheckForUpdatesOnStartupAsync()
+    private async Task RunAutoUpdateCheckAsync()
     {
-        if (_updates is null)
+        if (_updates is null || _mainVm is null)
             return;
 
         var result = await _updates.CheckForUpdatesAsync();
-        if (!result.IsUpdateAvailable || string.IsNullOrWhiteSpace(result.ReleaseUrl))
-            return;
-
-        var message =
-            $"A new version of PR Monitor is available.\n\n" +
-            $"Current version: {result.CurrentVersion}\n" +
-            $"Latest version: {result.LatestVersionText}\n\n" +
-            "Do you want to open the latest release page?";
-
-        var answer = System.Windows.MessageBox.Show(
-            message,
-            "Update available",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Information);
-
-        if (answer == MessageBoxResult.Yes)
-            OpenInBrowser(result.ReleaseUrl);
+        if (result.IsUpdateAvailable
+            && !string.IsNullOrWhiteSpace(result.ReleaseUrl)
+            && !string.IsNullOrWhiteSpace(result.LatestVersionText))
+        {
+            Dispatcher.Invoke(() => _mainVm.SetUpdateAvailable(result.LatestVersionText!, result.ReleaseUrl!));
+        }
     }
 
     private async Task CheckForUpdatesManuallyAsync()
@@ -156,6 +151,8 @@ public partial class App : System.Windows.Application
 
         if (result.IsUpdateAvailable && !string.IsNullOrWhiteSpace(result.ReleaseUrl))
         {
+            _mainVm?.SetUpdateAvailable(result.LatestVersionText!, result.ReleaseUrl!);
+
             var message =
                 $"A new version of PR Monitor is available.\n\n" +
                 $"Current version: {result.CurrentVersion}\n" +

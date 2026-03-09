@@ -365,4 +365,9 @@ public partial class MainWindow : Window
         if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
             System.Windows.Clipboard.SetText(vm.HeadRefName);
     }
+
+    private void UpdateBanner_Click(object sender, MouseButtonEventArgs e)
+    {
+        ViewModel.OpenUpdateRelease();
+    }
 }

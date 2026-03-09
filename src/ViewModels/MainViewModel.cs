@@ -78,6 +78,35 @@ public sealed class MainViewModel : INotifyPropertyChanged
         private set => SetField(ref _isRefreshing, value);
     }
 
+    private bool _updateAvailable;
+    public bool UpdateAvailable
+    {
+        get => _updateAvailable;
+        private set
+        {
+            if (_updateAvailable == value) return;
+            _updateAvailable = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(UpdateNotAvailable));
+        }
+    }
+
+    public bool UpdateNotAvailable => !UpdateAvailable;
+
+    private string _latestVersion = "";
+    public string LatestVersion
+    {
+        get => _latestVersion;
+        private set => SetField(ref _latestVersion, value);
+    }
+
+    private string _updateReleaseUrl = "";
+    public string UpdateReleaseUrl
+    {
+        get => _updateReleaseUrl;
+        private set => SetField(ref _updateReleaseUrl, value);
+    }
+
     public bool AutoMergeExpanded
     {
         get => _settings.AutoMergeExpanded;
@@ -242,6 +271,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public void OpenReviewsInBrowser() =>
         OpenUrl("https://github.com/pulls?q=is%3Aopen+is%3Apr+review-requested%3A%40me");
+
+    public void SetUpdateAvailable(string version, string url)
+    {
+        LatestVersion = version;
+        UpdateReleaseUrl = url;
+        UpdateAvailable = true;
+    }
+
+    public void OpenUpdateRelease()
+    {
+        if (!string.IsNullOrWhiteSpace(UpdateReleaseUrl))
+            Process.Start(new ProcessStartInfo(UpdateReleaseUrl) { UseShellExecute = true });
+    }
 
     // ── Internals ───────────────────────────────────────────────────
 
