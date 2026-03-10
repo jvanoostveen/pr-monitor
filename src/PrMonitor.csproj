@@ -11,6 +11,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
     <AssemblyName>PrMonitor</AssemblyName>
+    <Title>PR Monitor</Title>
+    <Product>PR Monitor</Product>
     <RootNamespace>PrMonitor</RootNamespace>
   </PropertyGroup>
 

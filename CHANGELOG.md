@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PR rows now show a green checkmark icon (✓) when the PR has been approved. When the PR also has unresolved review comments, the comments icon takes priority and the checkmark is not shown.
 
+### Changed
+
+- Windows toast notifications now use the app display name `PR Monitor` instead of `PrMonitor`.
+
 ## [1.2.0] - 2026-03-09
 
 ### Fixed

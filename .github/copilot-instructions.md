@@ -155,6 +155,9 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - `GitHubService` logs GraphQL/`gh` failures (non-zero exit with stderr, GraphQL errors, JSON parse failures).
 - `PollingService` logs poll lifecycle and exceptions for intermittent "no data" investigations.
 
+### Notification app name
+- Windows toast notifications should display the app name as **PR Monitor** (configured via project metadata in `src/PrMonitor.csproj`).
+
 ### Main Window behavior
 - Borderless, transparent, `Topmost=True`, `SizeToContent=Height`, `MaxHeight=600`
 - **No auto-hide on deactivate** — stays visible until user clicks X or tray icon
