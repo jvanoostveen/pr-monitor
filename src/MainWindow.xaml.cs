@@ -122,6 +122,9 @@ public partial class MainWindow : Window
         var (left, top) = ClampToBestWorkArea(savedLeft, savedTop, width, height);
         SetWindowPosition(left, top);
         _userMoved = true;
+        if (_settings.MainWindowSnappedCorner is { } cornerStr
+            && Enum.TryParse<SnapCorner>(cornerStr, out var restoredCorner))
+            _snappedCorner = restoredCorner;
         PersistWindowPosition();
     }
 
@@ -228,6 +231,7 @@ public partial class MainWindow : Window
         {
             _settings.MainWindowLeft = Left;
             _settings.MainWindowTop = Top;
+            _settings.MainWindowSnappedCorner = _snappedCorner == SnapCorner.None ? null : _snappedCorner.ToString();
             if (saveToDisk)
                 _settings.Save();
         }

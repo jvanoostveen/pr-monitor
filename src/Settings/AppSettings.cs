@@ -63,6 +63,9 @@ public sealed class AppSettings
     /// <summary>Last known window top position in WPF units.</summary>
     public double? MainWindowTop { get; set; }
 
+    /// <summary>Last known snapped corner (None/TopLeft/TopRight/BottomLeft/BottomRight).</summary>
+    public string? MainWindowSnappedCorner { get; set; }
+
     /// <summary>Keys of PRs the user has hidden to the "Later" section.</summary>
     public HashSet<string> HiddenPrKeys { get; set; } = [];
 

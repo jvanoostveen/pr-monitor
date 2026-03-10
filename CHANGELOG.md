@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PR rows now show a green checkmark icon (✓) when the PR has been approved. When the PR also has unresolved review comments, the comments icon takes priority and the checkmark is not shown.
 - Persisted PR window state: the app now remembers last visibility and position (Left/Top), restores them on startup, and auto-opens the window if it was visible in the previous session.
+- Snapped corner is now persisted alongside the window position. After a restart, the window re-anchors to the same corner on the same monitor, so size changes (expand/collapse sections) keep the window correctly pinned.
 
 ### Changed
 
