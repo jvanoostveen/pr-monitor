@@ -66,7 +66,7 @@ public partial class App : System.Windows.Application
         _mainVm = mainVm;
         mainVm.Subscribe(_polling);
 
-        _mainWindow = new MainWindow(mainVm);
+        _mainWindow = new MainWindow(mainVm, settings);
 
         _trayIcon = new TrayIconManager(settings);
         _trayIcon.Subscribe(_polling);
@@ -74,7 +74,7 @@ public partial class App : System.Windows.Application
         _trayIcon.OnOpenWindow(() =>
         {
             if (_mainWindow.IsVisible)
-                _mainWindow.Hide();
+                _mainWindow.HideToTray();
             else
                 _mainWindow.ShowAtTray();
         });
@@ -100,6 +100,9 @@ public partial class App : System.Windows.Application
         // ── Start polling ──────────────────────────────────────────
         _polling.Start();
 
+        if (settings.MainWindowVisible)
+            _mainWindow.ShowAtTray();
+
         // Auto update check: first run after 30 s, then every 24 h
         _updateTimer = new System.Threading.Timer(_ => _ = RunAutoUpdateCheckAsync(), null,
             dueTime: TimeSpan.FromSeconds(30),
@@ -108,6 +111,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _mainWindow?.PersistCurrentWindowState();
         _polling?.Dispose();
         _notifications?.Dispose();
         _trayIcon?.Dispose();

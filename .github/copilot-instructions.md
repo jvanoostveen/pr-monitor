@@ -168,6 +168,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - Default position: bottom-right of primary monitor work area (12 px inset)
 - `_userMoved` flag: once user drags, window stays put; otherwise re-aligns on resize/expand/collapse
 - **Corner snapping**: while dragging, `DetectNearCorner()` checks the current monitor's work area via `Screen.FromHandle`. When the window is within 80 px of a corner the border turns blue (snap indicator). On mouse-up the window snaps into that corner. The snapped corner is remembered so expand/collapse re-applies it. `EnsureOnScreen()` recovers the window to the primary monitor if its monitor is disconnected.
+- **Window restore persistence**: window visibility and `Left`/`Top` are persisted in settings. On startup, if it was visible last session, it opens automatically and restores the saved position. Restored/shown positions are clamped to monitor work areas with minimal displacement so the full window stays visible after monitor changes.
 - All screen coordinates go through `ScreenRectToWpf()` (device → WPF units via `PresentationSource.TransformFromDevice`) to handle mixed-DPI setups.
 
 ### Collapsible sections
@@ -287,7 +288,10 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "autoMergeExpanded": true,
   "reviewExpanded": true,
   "myPrsExpanded": false,
-  "laterExpanded": false
+  "laterExpanded": false,
+  "mainWindowVisible": false,
+  "mainWindowLeft": 1440.0,
+  "mainWindowTop": 120.0
 }
 ```
 

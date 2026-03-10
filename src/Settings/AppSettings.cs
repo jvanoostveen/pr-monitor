@@ -54,6 +54,15 @@ public sealed class AppSettings
     /// <summary>Whether the "Later" section is expanded in the window.</summary>
     public bool LaterExpanded { get; set; } = false;
 
+    /// <summary>Whether the PR window was visible when last toggled/exited.</summary>
+    public bool MainWindowVisible { get; set; } = false;
+
+    /// <summary>Last known window left position in WPF units.</summary>
+    public double? MainWindowLeft { get; set; }
+
+    /// <summary>Last known window top position in WPF units.</summary>
+    public double? MainWindowTop { get; set; }
+
     /// <summary>Keys of PRs the user has hidden to the "Later" section.</summary>
     public HashSet<string> HiddenPrKeys { get; set; } = [];
 

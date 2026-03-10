@@ -10,10 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - PR rows now show a green checkmark icon (✓) when the PR has been approved. When the PR also has unresolved review comments, the comments icon takes priority and the checkmark is not shown.
+- Persisted PR window state: the app now remembers last visibility and position (Left/Top), restores them on startup, and auto-opens the window if it was visible in the previous session.
 
 ### Changed
 
 - Windows toast notifications now use the app display name `PR Monitor` instead of `PrMonitor`.
+- Window restore now applies monitor-aware clamping with minimal displacement so the PR window is always fully visible after display layout changes.
 
 ## [1.2.0] - 2026-03-09
 

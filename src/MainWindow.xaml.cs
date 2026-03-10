@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using PrMonitor.Settings;
 using PrMonitor.ViewModels;
 using WinForms = System.Windows.Forms;
 
@@ -18,6 +19,7 @@ public partial class MainWindow : Window
     private enum SnapCorner { None, TopLeft, TopRight, BottomLeft, BottomRight }
 
     public MainViewModel ViewModel { get; }
+    private readonly AppSettings _settings;
     private DoubleAnimation? _spinAnimation;
     private bool _userMoved;
     private bool _isProgrammaticMove;
@@ -28,9 +30,10 @@ public partial class MainWindow : Window
     private const double SnapThreshold = 80;
     private const double SnapInset     = 12;
 
-    public MainWindow(MainViewModel viewModel)
+    public MainWindow(MainViewModel viewModel, AppSettings settings)
     {
         ViewModel = viewModel;
+        _settings = settings;
         DataContext = viewModel;
         InitializeComponent();
 
@@ -43,7 +46,7 @@ public partial class MainWindow : Window
 
         Loaded += (_, _) =>
         {
-            AlignToBottomRight();
+            RestoreStartupPlacement();
         };
     }
 
@@ -64,6 +67,26 @@ public partial class MainWindow : Window
         }
         Show();
         Activate();
+        PersistWindowState(isVisible: true);
+    }
+
+    /// <summary>
+    /// Hide the window and persist hidden state.
+    /// </summary>
+    public void HideToTray()
+    {
+        PersistWindowPosition();
+        Hide();
+        PersistWindowState(isVisible: false);
+    }
+
+    /// <summary>
+    /// Persist current window state (used during app shutdown).
+    /// </summary>
+    public void PersistCurrentWindowState()
+    {
+        PersistWindowPosition();
+        PersistWindowState(IsVisible);
     }
 
     private void SetWindowPosition(double left, double top)
@@ -84,6 +107,22 @@ public partial class MainWindow : Window
         double w = width  ?? (ActualWidth  > 0 ? ActualWidth  : Width);
         double h = height ?? (ActualHeight > 0 ? ActualHeight : 0);
         SetWindowPosition(wa.Right - w - SnapInset, wa.Bottom - h - SnapInset);
+    }
+
+    private void RestoreStartupPlacement()
+    {
+        if (_settings.MainWindowLeft is not double savedLeft || _settings.MainWindowTop is not double savedTop)
+        {
+            AlignToBottomRight();
+            return;
+        }
+
+        var width = ActualWidth > 0 ? ActualWidth : Width;
+        var height = ActualHeight > 0 ? ActualHeight : Height;
+        var (left, top) = ClampToBestWorkArea(savedLeft, savedTop, width, height);
+        SetWindowPosition(left, top);
+        _userMoved = true;
+        PersistWindowPosition();
     }
 
     // ── Multi-monitor helpers ────────────────────────────────────────────────
@@ -113,6 +152,91 @@ public partial class MainWindow : Window
             ? WinForms.Screen.FromHandle(handle)
             : WinForms.Screen.PrimaryScreen!;
         return ScreenRectToWpf(screen!.WorkingArea);
+    }
+
+    private static double Clamp(double value, double min, double max)
+    {
+        if (max < min)
+            return min;
+        return Math.Max(min, Math.Min(value, max));
+    }
+
+    private static double ComputeOverlapArea(Rect a, Rect b)
+    {
+        var x1 = Math.Max(a.Left, b.Left);
+        var y1 = Math.Max(a.Top, b.Top);
+        var x2 = Math.Min(a.Right, b.Right);
+        var y2 = Math.Min(a.Bottom, b.Bottom);
+        var w = Math.Max(0, x2 - x1);
+        var h = Math.Max(0, y2 - y1);
+        return w * h;
+    }
+
+    private (double left, double top) ClampToWorkArea(Rect wa, double left, double top, double width, double height)
+    {
+        var clampedLeft = width >= wa.Width ? wa.Left : Clamp(left, wa.Left, wa.Right - width);
+        var clampedTop = height >= wa.Height ? wa.Top : Clamp(top, wa.Top, wa.Bottom - height);
+        return (clampedLeft, clampedTop);
+    }
+
+    private (double left, double top) ClampToBestWorkArea(double left, double top, double width, double height)
+    {
+        var targetRect = new Rect(left, top, width, height);
+        var bestDistance = double.PositiveInfinity;
+        var bestOverlap = double.NegativeInfinity;
+        var bestPosition = (left, top);
+
+        foreach (var screen in WinForms.Screen.AllScreens)
+        {
+            var wa = ScreenRectToWpf(screen.WorkingArea);
+            var candidate = ClampToWorkArea(wa, left, top, width, height);
+            var dx = candidate.left - left;
+            var dy = candidate.top - top;
+            var distance = (dx * dx) + (dy * dy);
+
+            var candidateRect = new Rect(candidate.left, candidate.top, width, height);
+            var overlap = ComputeOverlapArea(candidateRect, wa);
+
+            if (distance < bestDistance - 0.01 || (Math.Abs(distance - bestDistance) <= 0.01 && overlap > bestOverlap))
+            {
+                bestDistance = distance;
+                bestOverlap = overlap;
+                bestPosition = candidate;
+            }
+        }
+
+        if (double.IsPositiveInfinity(bestDistance))
+        {
+            var primary = ScreenRectToWpf(WinForms.Screen.PrimaryScreen!.WorkingArea);
+            return ClampToWorkArea(primary, left, top, width, height);
+        }
+
+        // If already fully visible on at least one work area, preserve exact position.
+        foreach (var screen in WinForms.Screen.AllScreens)
+        {
+            var wa = ScreenRectToWpf(screen.WorkingArea);
+            if (wa.Contains(targetRect.TopLeft) && wa.Contains(targetRect.BottomRight))
+                return (left, top);
+        }
+
+        return bestPosition;
+    }
+
+    private void PersistWindowPosition(bool saveToDisk = true)
+    {
+        if (!double.IsNaN(Left) && !double.IsNaN(Top) && !double.IsInfinity(Left) && !double.IsInfinity(Top))
+        {
+            _settings.MainWindowLeft = Left;
+            _settings.MainWindowTop = Top;
+            if (saveToDisk)
+                _settings.Save();
+        }
+    }
+
+    private void PersistWindowState(bool isVisible)
+    {
+        _settings.MainWindowVisible = isVisible;
+        _settings.Save();
     }
 
     // ── Corner snap helpers ──────────────────────────────────────────────────
@@ -195,41 +319,19 @@ public partial class MainWindow : Window
     /// </summary>
     private void EnsureOnScreen()
     {
-        // Check whether the window center lies inside any screen's working area.
-        double cx = Left + ActualWidth  / 2;
-        double cy = Top  + ActualHeight / 2;
+        var width = ActualWidth > 0 ? ActualWidth : Width;
+        var height = ActualHeight > 0 ? ActualHeight : Height;
+        var (left, top) = ClampToBestWorkArea(Left, Top, width, height);
+        if (Math.Abs(left - Left) > 0.5 || Math.Abs(top - Top) > 0.5)
+            SetWindowPosition(left, top);
 
-        bool onScreen = false;
-        foreach (var screen in WinForms.Screen.AllScreens)
-        {
-            var wa = ScreenRectToWpf(screen.WorkingArea);
-            if (wa.Contains(cx, cy)) { onScreen = true; break; }
-        }
-
-        if (!onScreen)
-        {
-            // Fall back: use the same snap corner (or BottomRight) on the primary.
-            var fallbackCorner = _snappedCorner != SnapCorner.None
-                ? _snappedCorner
-                : SnapCorner.BottomRight;
-
-            var primary = WinForms.Screen.PrimaryScreen!.WorkingArea;
-            var wa = ScreenRectToWpf(primary);
-
-            var (l, t) = GetCornerPositionInArea(wa, fallbackCorner);
-
-            // Clamp so the window never overflows the primary work area.
-            l = Math.Max(wa.Left, Math.Min(l, wa.Right  - ActualWidth));
-            t = Math.Max(wa.Top,  Math.Min(t, wa.Bottom - ActualHeight));
-
-            SetWindowPosition(l, t);
-            _snappedCorner = fallbackCorner;
-        }
+        PersistWindowPosition();
     }
 
     protected override void OnLocationChanged(EventArgs e)
     {
         base.OnLocationChanged(e);
+        PersistWindowPosition(saveToDisk: false);
         if (!_isProgrammaticMove)
         {
             _userMoved = true;
@@ -302,7 +404,7 @@ public partial class MainWindow : Window
 
     private void CloseButton_Click(object sender, MouseButtonEventArgs e)
     {
-        Hide();
+        HideToTray();
     }
 
     private void RefreshButton_Click(object sender, MouseButtonEventArgs e)
