@@ -30,6 +30,7 @@ public sealed class GitHubService
                 author { login }
                 createdAt
                 isDraft
+                mergeable
                 headRefName
                 reviewDecision
                 autoMergeRequest { enabledAt }
@@ -68,6 +69,7 @@ public sealed class GitHubService
                 author { login }
                 createdAt
                 baseRefName
+                mergeable
                 headRefName
                 reviewDecision
                 commits(last: 1) {
@@ -260,6 +262,10 @@ public sealed class GitHubService
                 }
             }
 
+            if (node.TryGetProperty("mergeable", out var mergeableMyPr)
+                && mergeableMyPr.GetString() == "CONFLICTING")
+                ciState = CIState.Failure;
+
             result.Add(new PullRequestInfo
             {
                 Number = node.GetProperty("number").GetInt32(),
@@ -318,6 +324,10 @@ public sealed class GitHubService
                     }
                 }
             }
+
+            if (node.TryGetProperty("mergeable", out var mergeableReview)
+                && mergeableReview.GetString() == "CONFLICTING")
+                ciState = CIState.Failure;
 
             result.Add(new PullRequestInfo
             {
