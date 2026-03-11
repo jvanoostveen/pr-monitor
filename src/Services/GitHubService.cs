@@ -195,7 +195,7 @@ public sealed class GitHubService
         if (exitCode != 0)
         {
             _logger.Error($"GitHubService GraphQL call failed (exit={exitCode}) for query '{searchString}'. stderr: {stderr?.Trim()}");
-            return null;
+            throw new InvalidOperationException($"gh api graphql failed (exit={exitCode}): {stderr?.Trim()}");
         }
 
         if (string.IsNullOrWhiteSpace(output))

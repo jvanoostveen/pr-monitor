@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Snapped corner is no longer lost after restart. Programmatic moves (such as initial positioning before startup placement is restored) no longer overwrite the in-memory corner state, so `RestoreStartupPlacement` always reads the correct saved corner.
+- PR list is now preserved when a poll fails due to a network error. Previously, any failed API call resulted in empty lists being shown; now the last known state is retained until a successful poll.
 
 ## [1.3.1] - 2026-03-11
 
