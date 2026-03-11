@@ -28,6 +28,9 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        // Enable native dark-mode menus on Windows 10 1903+ / Windows 11
+        EnableDarkModeForNativeMenus();
+
         // ── Single-instance guard ──────────────────────────────────
         _singleInstanceMutex = new Mutex(true, "PrMonitor_SingleInstance", out var createdNew);
         if (!createdNew)
@@ -186,6 +189,19 @@ public partial class App : System.Windows.Application
     private static void OpenInBrowser(string url)
     {
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    // Tells Windows to render native Win32 menus (and other controls) in
+    // dark mode when the system is set to dark. Uses the undocumented but
+    // widely-used uxtheme export #135 (SetPreferredAppMode).
+    // Values: 0 = Default, 1 = AllowDark, 2 = ForceDark, 3 = ForceLight.
+    [System.Runtime.InteropServices.DllImport("uxtheme.dll", EntryPoint = "#135")]
+    private static extern int SetPreferredAppMode(int mode);
+
+    private static void EnableDarkModeForNativeMenus()
+    {
+        try { SetPreferredAppMode(1 /* AllowDark */); }
+        catch { /* non-critical: older Windows without uxtheme #135 */ }
     }
 }
 

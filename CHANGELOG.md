@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- About window restyled to match the Settings window: dark background, dark native title bar, custom flat buttons, smaller logo, and a subtle divider between info and actions.
+- Tray icon context menu replaced with a native Win32 popup menu that follows the system dark/light mode and uses correct Windows styling.
+- About window restyled to match the Settings window: dark background, dark native title bar, custom flat buttons, and a subtle divider between info and actions.
 
 ## [1.4.0] - 2026-03-11
 
