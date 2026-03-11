@@ -12,6 +12,7 @@
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
     <AssemblyName>PrMonitor</AssemblyName>
     <Title>PR Monitor</Title>
+    <Description>PR Monitor</Description>
     <Product>PR Monitor</Product>
     <RootNamespace>PrMonitor</RootNamespace>
   </PropertyGroup>

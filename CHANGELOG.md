@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Windows toast notifications now display the app name as **PR Monitor** instead of **PrMonitor**.
+
 ## [1.3.0] - 2026-03-10
 
 ### Fixed

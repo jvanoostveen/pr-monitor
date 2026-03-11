@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO;
 using Microsoft.Toolkit.Uwp.Notifications;
 using PrMonitor.Models;
 
@@ -20,6 +21,13 @@ public sealed class NotificationService : IDisposable
     {
         if (_initialized) return;
         _initialized = true;
+
+        // Remove any stale Start-menu shortcut created under the old exe name
+        // so that the toolkit recreates it with the correct display name.
+        var programsFolder = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+        var stale = Path.Combine(programsFolder, "PrMonitor.lnk");
+        if (File.Exists(stale))
+            try { File.Delete(stale); } catch { }
 
         // Handle notification clicks → open URL in browser
         ToastNotificationManagerCompat.OnActivated += args =>
