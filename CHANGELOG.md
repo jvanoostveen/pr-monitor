@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Multiple PR changes of the same type within a single poll are now grouped into one notification instead of firing one per PR. For groups of more than one PR, the notification shows a count and up to four titles.
+- Scrollbar replaced with a minimal 6 px overlay scrollbar that fades in on hover, matches the window colour scheme, and is only shown when there is actually content to scroll. Window `MaxHeight` increased from 600 to 700 px to reduce unnecessary scrolling for typical list sizes.
 
 ## [1.3.0] - 2026-03-10
 

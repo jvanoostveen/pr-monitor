@@ -94,7 +94,9 @@ After completing any user-facing change, update **both**:
 - `README.md` — reflect new sections, behaviours, or settings in the feature table and prose
 - `.github/copilot-instructions.md` — update architecture notes, settings schema, and section descriptions to match the current state of the code
 
-For user-facing or versioned changes, also update `CHANGELOG.md` using Keep a Changelog style (`[Unreleased]` + version sections).
+For **every commit that touches `src/`**, also update `CHANGELOG.md`:
+- Add an entry under `[Unreleased]` in the appropriate Keep a Changelog category (`Added`, `Changed`, `Fixed`, etc.).
+- This is **mandatory**, not optional — even for small bug fixes or cosmetic changes.
 
 Commit the documentation in the same commit as the code change.
 

@@ -96,6 +96,7 @@
 
         <Style x:Key="OverlayScrollViewer" TargetType="ScrollViewer">
             <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ScrollViewer">
