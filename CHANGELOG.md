@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-03-11
+
 ### Changed
 
 - Tray icon context menu replaced with a native Win32 popup menu that follows the system dark/light mode and uses correct Windows styling.
