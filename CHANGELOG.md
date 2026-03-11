@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- About window restyled to match the Settings window: dark background, dark native title bar, custom flat buttons, smaller logo, and a subtle divider between info and actions.
+
 ## [1.4.0] - 2026-03-11
 
 ### Added
