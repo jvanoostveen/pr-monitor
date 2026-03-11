@@ -56,7 +56,7 @@ public partial class App : System.Windows.Application
         // ── Services ───────────────────────────────────────────────
         _polling = new PollingService(github, settings, _logger);
 
-        _notifications = new NotificationService();
+        _notifications = new NotificationService(settings);
         _notifications.Initialize();
         _notifications.Subscribe(_polling);
         _updates = new UpdateService(_logger);

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Notification settings tab**: Settings window now has a dedicated "Notifications" tab where each notification type (CI Failed, CI Passed, CI Error, Review Requested, PR Merged / Closed) can be individually toggled on or off. All notifications are enabled by default.
+
 ### Fixed
 
 - Snapped corner is no longer lost after restart. Programmatic moves (such as initial positioning before startup placement is restored) no longer overwrite the in-memory corner state, so `RestoreStartupPlacement` always reads the correct saved corner.

@@ -75,6 +75,23 @@ public sealed class AppSettings
     /// </summary>
     public Dictionary<string, DateTimeOffset> HiddenPrLastSeen { get; set; } = [];
 
+    // ── Notification toggles ─────────────────────────────────────────────
+
+    /// <summary>Whether to show a toast when a CI build fails.</summary>
+    public bool NotifyCiFailed { get; set; } = true;
+
+    /// <summary>Whether to show a toast when CI recovers from failure to success.</summary>
+    public bool NotifyCiPassed { get; set; } = true;
+
+    /// <summary>Whether to show a toast when a CI build encounters an error.</summary>
+    public bool NotifyCiError { get; set; } = true;
+
+    /// <summary>Whether to show a toast when a new PR review is requested.</summary>
+    public bool NotifyReviewRequested { get; set; } = true;
+
+    /// <summary>Whether to show a toast when an auto-merge PR is merged or closed.</summary>
+    public bool NotifyPrMergedOrClosed { get; set; } = true;
+
     /// <summary>
     /// Load settings from disk, or return defaults if no file exists.
     /// </summary>

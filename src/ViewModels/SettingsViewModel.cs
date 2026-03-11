@@ -21,6 +21,11 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _organizationsText = string.Join(Environment.NewLine, settings.Organizations);
         _pollingIntervalSeconds = settings.PollingIntervalSeconds;
         _autoStartWithWindows = settings.AutoStartWithWindows;
+        _notifyCiFailed = settings.NotifyCiFailed;
+        _notifyCiPassed = settings.NotifyCiPassed;
+        _notifyCiError = settings.NotifyCiError;
+        _notifyReviewRequested = settings.NotifyReviewRequested;
+        _notifyPrMergedOrClosed = settings.NotifyPrMergedOrClosed;
     }
 
     // ── Bindable properties ─────────────────────────────────────────
@@ -49,6 +54,43 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetField(ref _autoStartWithWindows, value);
     }
 
+    // ── Notification toggles ─────────────────────────────────────────
+
+    private bool _notifyCiFailed;
+    public bool NotifyCiFailed
+    {
+        get => _notifyCiFailed;
+        set => SetField(ref _notifyCiFailed, value);
+    }
+
+    private bool _notifyCiPassed;
+    public bool NotifyCiPassed
+    {
+        get => _notifyCiPassed;
+        set => SetField(ref _notifyCiPassed, value);
+    }
+
+    private bool _notifyCiError;
+    public bool NotifyCiError
+    {
+        get => _notifyCiError;
+        set => SetField(ref _notifyCiError, value);
+    }
+
+    private bool _notifyReviewRequested;
+    public bool NotifyReviewRequested
+    {
+        get => _notifyReviewRequested;
+        set => SetField(ref _notifyReviewRequested, value);
+    }
+
+    private bool _notifyPrMergedOrClosed;
+    public bool NotifyPrMergedOrClosed
+    {
+        get => _notifyPrMergedOrClosed;
+        set => SetField(ref _notifyPrMergedOrClosed, value);
+    }
+
     // ── Save ────────────────────────────────────────────────────────
 
     public void Save()
@@ -62,6 +104,11 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
         _settings.PollingIntervalSeconds = _pollingIntervalSeconds;
         _settings.AutoStartWithWindows = _autoStartWithWindows;
+        _settings.NotifyCiFailed = _notifyCiFailed;
+        _settings.NotifyCiPassed = _notifyCiPassed;
+        _settings.NotifyCiError = _notifyCiError;
+        _settings.NotifyReviewRequested = _notifyReviewRequested;
+        _settings.NotifyPrMergedOrClosed = _notifyPrMergedOrClosed;
         _settings.Save();
 
         ApplyAutoStart(_autoStartWithWindows);

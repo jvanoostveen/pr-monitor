@@ -2,6 +2,7 @@
 using System.IO;
 using Microsoft.Toolkit.Uwp.Notifications;
 using PrMonitor.Models;
+using PrMonitor.Settings;
 
 namespace PrMonitor.Services;
 
@@ -11,11 +12,17 @@ namespace PrMonitor.Services;
 /// </summary>
 public sealed class NotificationService : IDisposable
 {
+    private readonly AppSettings _settings;
     private bool _initialized;
     private bool _suppressInitialBatch = true;
 
     // Buffer of events collected within the current poll cycle.
     private readonly List<PrChangeEventArgs> _pending = [];
+
+    public NotificationService(AppSettings settings)
+    {
+        _settings = settings;
+    }
 
     /// <summary>
     /// Must be called once at startup to register the toast activator.
@@ -84,6 +91,8 @@ public sealed class NotificationService : IDisposable
 
         foreach (var group in groups)
         {
+            if (!IsNotificationEnabled(group.Key)) continue;
+
             var items = group.Select(x => x.e).ToList();
             if (items.Count == 1)
             {
@@ -120,6 +129,16 @@ public sealed class NotificationService : IDisposable
         PrChangeKind.NewReviewRequested                                                                                => "👀 Review Requested",
         PrChangeKind.RemovedAutoMergePr                                                                                => "🔀 PR Merged / Closed",
         _ => null,
+    };
+
+    private bool IsNotificationEnabled(string header) => header switch
+    {
+        "❌ CI Failed"          => _settings.NotifyCiFailed,
+        "✅ CI Passed"          => _settings.NotifyCiPassed,
+        "⚠️ CI Error"          => _settings.NotifyCiError,
+        "👀 Review Requested"  => _settings.NotifyReviewRequested,
+        "🔀 PR Merged / Closed" => _settings.NotifyPrMergedOrClosed,
+        _ => true,
     };
 
     // ── Toast builder ───────────────────────────────────────────────────
