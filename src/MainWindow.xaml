@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="PR Monitor"
         Width="380" SizeToContent="Height"
-        MaxHeight="600"
+        MaxHeight="700"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
