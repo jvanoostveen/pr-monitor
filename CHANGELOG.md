@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Windows toast notifications now display the app name as **PR Monitor** instead of **PrMonitor**.
 
+### Changed
+
+- Multiple PR changes of the same type within a single poll are now grouped into one notification instead of firing one per PR. For groups of more than one PR, the notification shows a count and up to four titles.
+
 ## [1.3.0] - 2026-03-10
 
 ### Fixed
