@@ -335,10 +335,10 @@ public partial class MainWindow : Window
     protected override void OnLocationChanged(EventArgs e)
     {
         base.OnLocationChanged(e);
-        PersistWindowPosition(saveToDisk: false);
         if (!_isProgrammaticMove)
         {
             _userMoved = true;
+            PersistWindowPosition(saveToDisk: false);
             if (_isDragging)
             {
                 _pendingSnapCorner = DetectNearCorner();

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Snapped corner is no longer lost after restart. Programmatic moves (such as initial positioning before startup placement is restored) no longer overwrite the in-memory corner state, so `RestoreStartupPlacement` always reads the correct saved corner.
+
 ## [1.3.1] - 2026-03-11
 
 ### Fixed
