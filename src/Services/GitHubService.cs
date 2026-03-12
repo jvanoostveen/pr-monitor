@@ -167,6 +167,25 @@ public sealed class GitHubService
     }
 
     /// <summary>
+    /// Fetch open PRs that have the current user as assignee.
+    /// Used to surface Copilot-created PRs assigned to the user.
+    /// </summary>
+    public async Task<List<PullRequestInfo>> FetchMyAssignedPRsAsync(IReadOnlyList<string> organizations)
+    {
+        var allPrs = new List<PullRequestInfo>();
+        var queries = BuildSearchQueries("is:pr is:open assignee:@me", organizations);
+
+        foreach (var q in queries)
+        {
+            var json = await RunGraphQlAsync(ReviewRequestedQuery, q);
+            if (json is not { } jsonValue) continue;
+            allPrs.AddRange(ParseReviewPrs(jsonValue));
+        }
+
+        return allPrs.DistinctBy(p => p.Key).ToList();
+    }
+
+    /// <summary>
     /// Detect the authenticated GitHub username via <c>gh api user</c>.
     /// </summary>
     public async Task<string?> GetCurrentUserAsync()

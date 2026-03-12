@@ -110,24 +110,34 @@ public sealed class PollingService : IDisposable
             var autoMergePrs = allMyPrs.Where(p => p.HasAutoMerge).ToList();
             var myPrs        = allMyPrs.Where(p => !p.HasAutoMerge).ToList();
 
-            var reviewPrs = await _github.FetchPRsAwaitingMyReviewAsync(_settings.Organizations);
-            var hotfixPrs = await _github.FetchHotfixPRsAsync(_settings.Organizations);
+            var reviewPrs   = await _github.FetchPRsAwaitingMyReviewAsync(_settings.Organizations);
+            var assignedPrs = await _github.FetchMyAssignedPRsAsync(_settings.Organizations);
+            var hotfixPrs   = await _github.FetchHotfixPRsAsync(_settings.Organizations);
+
+            // Merge assignee PRs into the review list:
+            // exclude PRs already in allMyPrs (author = me) so they stay in My PRs,
+            // then deduplicate by key (review-requested takes precedence over assignee).
+            var myPrKeys = allMyPrs.Select(p => p.Key).ToHashSet();
+            var combinedReviewPrs = reviewPrs
+                .Concat(assignedPrs.Where(p => !myPrKeys.Contains(p.Key)))
+                .DistinctBy(p => p.Key)
+                .ToList();
 
             DetectAutoMergeChanges(autoMergePrs);
-            DetectReviewChanges(reviewPrs);
+            DetectReviewChanges(combinedReviewPrs);
 
             var snapshot = new PollSnapshot
             {
                 AutoMergePrs = autoMergePrs,
                 MyPrs        = myPrs,
-                ReviewRequestedPrs = reviewPrs,
+                ReviewRequestedPrs = combinedReviewPrs,
                 HotfixPrs = hotfixPrs,
             };
 
             LatestSnapshot = snapshot;
             Polled?.Invoke(this, snapshot);
 
-            _logger.Info($"PollingService poll finished. AutoMerge={autoMergePrs.Count}, MyPrs={myPrs.Count}, AwaitingReview={reviewPrs.Count}, Hotfixes={hotfixPrs.Count}.");
+            _logger.Info($"PollingService poll finished. AutoMerge={autoMergePrs.Count}, MyPrs={myPrs.Count}, AwaitingReview={combinedReviewPrs.Count} (reviewRequested={reviewPrs.Count}, assigned={assignedPrs.Count(p => !myPrKeys.Contains(p.Key))}), Hotfixes={hotfixPrs.Count}.");
         }
         catch (Exception ex)
         {
