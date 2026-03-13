@@ -28,7 +28,7 @@ public partial class MainWindow : Window
     private SnapCorner _pendingSnapCorner = SnapCorner.None;
 
     private const double SnapThreshold = 80;
-    private const double SnapInset     = 12;
+    private const double SnapInset     = 6;
 
     public MainWindow(MainViewModel viewModel, AppSettings settings)
     {

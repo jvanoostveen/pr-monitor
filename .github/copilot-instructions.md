@@ -167,7 +167,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - Tray context menu order starts with **Open PR Monitor**, then **About…**, then **Settings…**
 - **Draggable** by the title/timestamp area in the header (cursor: SizeAll)
 - **Buttons** (Refresh, Close) use `MouseLeftButtonUp` — NOT inside the drag zone — to avoid `DragMove()` hijacking mouse capture
-- Default position: bottom-right of primary monitor work area (12 px inset)
+- Default position: bottom-right of primary monitor work area (6 px inset)
 - `_userMoved` flag: once user drags, window stays put; otherwise re-aligns on resize/expand/collapse
 - **Corner snapping**: while dragging, `DetectNearCorner()` checks the current monitor's work area via `Screen.FromHandle`. When the window is within 80 px of a corner the border turns blue (snap indicator). On mouse-up the window snaps into that corner. The snapped corner is remembered so expand/collapse re-applies it. `EnsureOnScreen()` recovers the window to the primary monitor if its monitor is disconnected.
 - **Window restore persistence**: window visibility and `Left`/`Top` are persisted in settings. On startup, if it was visible last session, it opens automatically and restores the saved position. Restored/shown positions are clamped to monitor work areas with minimal displacement so the full window stays visible after monitor changes.
