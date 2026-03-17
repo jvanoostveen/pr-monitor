@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Team review PRs still appeared in "Awaiting My Review" when the Team Review Requests section was disabled, because the `reviewRequests` GraphQL field was not fetched in that case, making classification impossible. The field is now always fetched so team PRs are excluded regardless of the section setting.
+
 ## [1.5.1] - 2026-03-17
 
 ### Fixed
