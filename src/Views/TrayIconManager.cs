@@ -30,6 +30,7 @@ public sealed class TrayIconManager : IDisposable
     private Action? _openSettingsAction;
     private Action? _openAboutAction;
     private Action? _exitAction;
+    private Func<bool>? _isWindowVisible;
 
     // ── Win32 native popup menu ──────────────────────────────────
     [DllImport("user32.dll")] static extern IntPtr CreatePopupMenu();
@@ -90,6 +91,7 @@ public sealed class TrayIconManager : IDisposable
     // ── Configuration ───────────────────────────────────────────────
 
     public void OnOpenWindow(Action action) => _openWindowAction = action;
+    public void OnWindowVisibility(Func<bool> isVisible) => _isWindowVisible = isVisible;
     public void OnOpenSettings(Action action) => _openSettingsAction = action;
     public void OnOpenAbout(Action action) => _openAboutAction = action;
     public void OnExit(Action action) => _exitAction = action;
@@ -102,7 +104,8 @@ public sealed class TrayIconManager : IDisposable
         if (hMenu == IntPtr.Zero) return;
         try
         {
-            AppendMenuW(hMenu, MF_STRING | MF_DEFAULT, (UIntPtr)ID_OPEN,     "Open PR Monitor");
+            var openLabel = _isWindowVisible?.Invoke() == true ? "Close PR Monitor" : "Open PR Monitor";
+            AppendMenuW(hMenu, MF_STRING | MF_DEFAULT, (UIntPtr)ID_OPEN,     openLabel);
             AppendMenuW(hMenu, MF_STRING,               (UIntPtr)ID_ABOUT,    "About…");
             AppendMenuW(hMenu, MF_STRING,               (UIntPtr)ID_SETTINGS, "Settings…");
             AppendMenuW(hMenu, MF_SEPARATOR,             UIntPtr.Zero,         null);

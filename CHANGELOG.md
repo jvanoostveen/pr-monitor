@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Tray context menu first item now reads **Close PR Monitor** when the window is open and **Open PR Monitor** when it is closed, instead of always showing "Open PR Monitor".
 ## [1.5.0] - 2026-03-17
 
 ### Added

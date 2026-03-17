@@ -81,6 +81,7 @@ public partial class App : System.Windows.Application
             else
                 _mainWindow.ShowAtTray();
         });
+        _trayIcon.OnWindowVisibility(() => _mainWindow.IsVisible);
         _trayIcon.OnOpenSettings(() =>
         {
             var settingsVm = new SettingsViewModel(settings);
