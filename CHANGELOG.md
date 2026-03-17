@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-03-17
+
 ### Added
 
 - PRs where the user is the **assignee** (but not the author) now appear in "Awaiting My Review". This surfaces Copilot-created draft PRs that are assigned to the user. PRs authored by the user are excluded from this list to avoid duplication with "My PRs".
-- **Team Review Requests section**: A new collapsible section (collapsed by default) groups PRs where a review was requested from one of your teams, keeping "Awaiting My Review" for direct personal review requests only. The section can be disabled in Settings → General; when disabled, team PRs continue to appear in "Awaiting My Review" and the extra `reviewRequests` GraphQL field is omitted from the query.
+- **Team Review Requests section**: A new collapsible section (collapsed by default) groups PRs where a review was requested from one of your teams, keeping "Awaiting My Review" for direct personal review requests only. The section can be disabled in Settings → Sections; when disabled, team PRs continue to appear in "Awaiting My Review" and the extra `reviewRequests` GraphQL field is omitted from the query.
 
 ### Changed
 
