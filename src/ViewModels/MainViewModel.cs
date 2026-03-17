@@ -26,6 +26,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<PrItemViewModel> AutoMergePrs { get; } = [];
     public ObservableCollection<PrItemViewModel> MyPrs { get; } = [];
     public ObservableCollection<PrItemViewModel> ReviewRequestedPrs { get; } = [];
+    public ObservableCollection<PrItemViewModel> TeamReviewRequestedPrs { get; } = [];
     public ObservableCollection<PrItemViewModel> HotfixPrs { get; } = [];
     public ObservableCollection<PrItemViewModel> HiddenPrs { get; } = [];
 
@@ -41,6 +42,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         get => _reviewCount;
         private set => SetField(ref _reviewCount, value);
+    }
+
+    private int _teamReviewCount;
+    public int TeamReviewCount
+    {
+        get => _teamReviewCount;
+        private set => SetField(ref _teamReviewCount, value);
     }
 
     private int _myPrsCount;
@@ -167,6 +175,30 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool TeamReviewExpanded
+    {
+        get => _settings.TeamReviewExpanded;
+        set
+        {
+            if (_settings.TeamReviewExpanded == value) return;
+            _settings.TeamReviewExpanded = value;
+            _settings.Save();
+            OnPropertyChanged();
+        }
+    }
+
+    public bool ShowTeamReviewSection
+    {
+        get => _settings.ShowTeamReviewSection;
+        set
+        {
+            if (_settings.ShowTeamReviewSection == value) return;
+            _settings.ShowTeamReviewSection = value;
+            _settings.Save();
+            OnPropertyChanged();
+        }
+    }
+
     /// <summary>Called after a PR is moved to Later or restored from Later.</summary>
     public Action? OnHiddenPrsChanged { get; set; }
 
@@ -175,6 +207,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void ToggleHotfixExpanded() => HotfixExpanded = !HotfixExpanded;
     public void ToggleMyPrsExpanded() => MyPrsExpanded = !MyPrsExpanded;
     public void ToggleLaterExpanded() => LaterExpanded = !LaterExpanded;
+    public void ToggleTeamReviewExpanded() => TeamReviewExpanded = !TeamReviewExpanded;
 
     private static readonly TimeSpan StaleCooldown = TimeSpan.FromDays(14);
 
@@ -188,7 +221,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var item = FindAndRemove(HotfixPrs, key)
                 ?? FindAndRemove(AutoMergePrs, key)
                 ?? FindAndRemove(MyPrs, key)
-                ?? FindAndRemove(ReviewRequestedPrs, key);
+                ?? FindAndRemove(ReviewRequestedPrs, key)
+                ?? FindAndRemove(TeamReviewRequestedPrs, key);
         if (item is not null)
         {
             var wasEmpty = HiddenPrs.Count == 0;
@@ -201,6 +235,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         AutoMergeCount = AutoMergePrs.Count;
         MyPrsCount = MyPrs.Count;
         ReviewCount = ReviewRequestedPrs.Count;
+        TeamReviewCount = TeamReviewRequestedPrs.Count;
         HotfixCount = HotfixPrs.Count;
         HiddenCount = HiddenPrs.Count;
         OnHiddenPrsChanged?.Invoke();
@@ -229,6 +264,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
             {
                 MyPrs.Add(item);
                 MyPrsCount = MyPrs.Count;
+            }
+            else if (item.IsTeamReviewPr)
+            {
+                TeamReviewRequestedPrs.Add(item);
+                TeamReviewCount = TeamReviewRequestedPrs.Count;
             }
             else
             {
@@ -298,6 +338,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var allKeys = snapshot.AutoMergePrs.Select(p => p.Key)
             .Concat(snapshot.MyPrs.Select(p => p.Key))
             .Concat(snapshot.ReviewRequestedPrs.Select(p => p.Key))
+            .Concat(snapshot.TeamReviewRequestedPrs.Select(p => p.Key))
             .Concat(snapshot.HotfixPrs.Select(p => p.Key))
             .ToHashSet();
 
@@ -360,6 +401,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 ReviewRequestedPrs.Add(PrItemViewModel.From(pr, isAutoMerge: false));
         }
 
+        TeamReviewRequestedPrs.Clear();
+        foreach (var pr in snapshot.TeamReviewRequestedPrs)
+        {
+            if (!hidden.Contains(pr.Key))
+                TeamReviewRequestedPrs.Add(PrItemViewModel.From(pr, isTeamReview: true));
+        }
+
         HotfixPrs.Clear();
         foreach (var pr in snapshot.HotfixPrs)
         {
@@ -369,19 +417,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         // Rebuild hidden list from all PRs in this snapshot
         HiddenPrs.Clear();
-        foreach (var pr in snapshot.AutoMergePrs.Select(p => (pr: p, isAm: true, isMyPr: false, isHotfix: false))
-                     .Concat(snapshot.MyPrs.Select(p => (pr: p, isAm: false, isMyPr: true, isHotfix: false)))
-                     .Concat(snapshot.ReviewRequestedPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: false)))
-                     .Concat(snapshot.HotfixPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: true)))
+        foreach (var x in snapshot.AutoMergePrs.Select(p => (pr: p, isAm: true, isMyPr: false, isHotfix: false, isTeamReview: false))
+                     .Concat(snapshot.MyPrs.Select(p => (pr: p, isAm: false, isMyPr: true, isHotfix: false, isTeamReview: false)))
+                     .Concat(snapshot.ReviewRequestedPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: false, isTeamReview: false)))
+                     .Concat(snapshot.TeamReviewRequestedPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: false, isTeamReview: true)))
+                     .Concat(snapshot.HotfixPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: true, isTeamReview: false)))
                      .DistinctBy(x => x.pr.Key)
                      .Where(x => hidden.Contains(x.pr.Key)))
         {
-            HiddenPrs.Add(PrItemViewModel.From(pr.pr, isAutoMerge: pr.isAm, isMyPr: pr.isMyPr, isHotfix: pr.isHotfix));
+            HiddenPrs.Add(PrItemViewModel.From(x.pr, isAutoMerge: x.isAm, isMyPr: x.isMyPr, isHotfix: x.isHotfix, isTeamReview: x.isTeamReview));
         }
 
         AutoMergeCount = AutoMergePrs.Count;
         MyPrsCount = MyPrs.Count;
         ReviewCount = ReviewRequestedPrs.Count;
+        TeamReviewCount = TeamReviewRequestedPrs.Count;
         HotfixCount = HotfixPrs.Count;
         HiddenCount = HiddenPrs.Count;
         LastUpdated = DateTime.Now.ToString("HH:mm:ss");
@@ -427,6 +477,7 @@ public sealed class PrItemViewModel
     public bool IsAutoMergePr { get; init; }
     public bool IsMyPr { get; init; }
     public bool IsHotfixPr { get; init; }
+    public bool IsTeamReviewPr { get; init; }
     public bool IsDraft { get; init; }
     public string HeadRefName { get; init; } = "";
     public bool IsApproved { get; init; }
@@ -442,7 +493,7 @@ public sealed class PrItemViewModel
     public void OpenInBrowser() =>
         Process.Start(new ProcessStartInfo(Url) { UseShellExecute = true });
 
-    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false) => new()
+    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false) => new()
     {
         Key = pr.Key,
         Repository = pr.Repository,
@@ -455,6 +506,7 @@ public sealed class PrItemViewModel
         IsAutoMergePr = isAutoMerge,
         IsMyPr = isMyPr,
         IsHotfixPr = isHotfix,
+        IsTeamReviewPr = isTeamReview,
         IsDraft = pr.IsDraft,
         HeadRefName = pr.HeadRefName,
         IsApproved = pr.IsApproved,

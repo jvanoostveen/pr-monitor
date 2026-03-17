@@ -54,6 +54,12 @@ public sealed class AppSettings
     /// <summary>Whether the "Later" section is expanded in the window.</summary>
     public bool LaterExpanded { get; set; } = false;
 
+    /// <summary>Whether the "Team Review Requests" section is expanded in the window.</summary>
+    public bool TeamReviewExpanded { get; set; } = false;
+
+    /// <summary>Whether to show a separate "Team Review Requests" section (versus folding into Awaiting My Review).</summary>
+    public bool ShowTeamReviewSection { get; set; } = true;
+
     /// <summary>Whether the PR window was visible when last toggled/exited.</summary>
     public bool MainWindowVisible { get; set; } = false;
 

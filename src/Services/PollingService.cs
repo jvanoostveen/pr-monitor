@@ -31,6 +31,7 @@ public sealed class PollSnapshot
     public IReadOnlyList<PullRequestInfo> AutoMergePrs { get; init; } = [];
     public IReadOnlyList<PullRequestInfo> MyPrs { get; init; } = [];
     public IReadOnlyList<PullRequestInfo> ReviewRequestedPrs { get; init; } = [];
+    public IReadOnlyList<PullRequestInfo> TeamReviewRequestedPrs { get; init; } = [];
     public IReadOnlyList<PullRequestInfo> HotfixPrs { get; init; } = [];
     public int FailedCICount => AutoMergePrs.Count(p => p.CIState == CIState.Failure);
     public int PendingCICount => AutoMergePrs.Count(p => p.CIState is CIState.Pending or CIState.Unknown);
@@ -110,34 +111,54 @@ public sealed class PollingService : IDisposable
             var autoMergePrs = allMyPrs.Where(p => p.HasAutoMerge).ToList();
             var myPrs        = allMyPrs.Where(p => !p.HasAutoMerge).ToList();
 
-            var reviewPrs   = await _github.FetchPRsAwaitingMyReviewAsync(_settings.Organizations);
+            bool showTeamSection = _settings.ShowTeamReviewSection;
+            var reviewPrs   = await _github.FetchPRsAwaitingMyReviewAsync(_settings.Organizations, classifyTeams: showTeamSection);
             var assignedPrs = await _github.FetchMyAssignedPRsAsync(_settings.Organizations);
             var hotfixPrs   = await _github.FetchHotfixPRsAsync(_settings.Organizations);
 
-            // Merge assignee PRs into the review list:
-            // exclude PRs already in allMyPrs (author = me) so they stay in My PRs,
-            // then deduplicate by key (review-requested takes precedence over assignee).
             var myPrKeys = allMyPrs.Select(p => p.Key).ToHashSet();
-            var combinedReviewPrs = reviewPrs
+
+            // Split review PRs into direct-user requests and team-only requests
+            var directReviewPrs = reviewPrs.Where(p => !p.IsTeamReviewRequested).ToList();
+            var teamOnlyPrs     = reviewPrs.Where(p => p.IsTeamReviewRequested).ToList();
+
+            // Direct review list + assignee-only PRs (not authored by current user)
+            var combinedReviewPrs = directReviewPrs
                 .Concat(assignedPrs.Where(p => !myPrKeys.Contains(p.Key)))
                 .DistinctBy(p => p.Key)
                 .ToList();
+
+            // Team section: only when enabled; otherwise fold team PRs back into Awaiting
+            List<PullRequestInfo> teamReviewPrs;
+            if (showTeamSection)
+            {
+                teamReviewPrs = teamOnlyPrs;
+            }
+            else
+            {
+                combinedReviewPrs = combinedReviewPrs
+                    .Concat(teamOnlyPrs)
+                    .DistinctBy(p => p.Key)
+                    .ToList();
+                teamReviewPrs = [];
+            }
 
             DetectAutoMergeChanges(autoMergePrs);
             DetectReviewChanges(combinedReviewPrs);
 
             var snapshot = new PollSnapshot
             {
-                AutoMergePrs = autoMergePrs,
-                MyPrs        = myPrs,
-                ReviewRequestedPrs = combinedReviewPrs,
-                HotfixPrs = hotfixPrs,
+                AutoMergePrs           = autoMergePrs,
+                MyPrs                  = myPrs,
+                ReviewRequestedPrs     = combinedReviewPrs,
+                TeamReviewRequestedPrs = teamReviewPrs,
+                HotfixPrs              = hotfixPrs,
             };
 
             LatestSnapshot = snapshot;
             Polled?.Invoke(this, snapshot);
 
-            _logger.Info($"PollingService poll finished. AutoMerge={autoMergePrs.Count}, MyPrs={myPrs.Count}, AwaitingReview={combinedReviewPrs.Count} (reviewRequested={reviewPrs.Count}, assigned={assignedPrs.Count(p => !myPrKeys.Contains(p.Key))}), Hotfixes={hotfixPrs.Count}.");
+            _logger.Info($"PollingService poll finished. AutoMerge={autoMergePrs.Count}, MyPrs={myPrs.Count}, AwaitingReview={combinedReviewPrs.Count}, TeamReview={teamReviewPrs.Count} (reviewRequested={reviewPrs.Count}, assigned={assignedPrs.Count(p => !myPrKeys.Contains(p.Key))}), Hotfixes={hotfixPrs.Count}.");
         }
         catch (Exception ex)
         {

@@ -26,6 +26,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _notifyCiError = settings.NotifyCiError;
         _notifyReviewRequested = settings.NotifyReviewRequested;
         _notifyPrMergedOrClosed = settings.NotifyPrMergedOrClosed;
+        _showTeamReviewSection = settings.ShowTeamReviewSection;
     }
 
     // ── Bindable properties ─────────────────────────────────────────
@@ -91,6 +92,13 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetField(ref _notifyPrMergedOrClosed, value);
     }
 
+    private bool _showTeamReviewSection;
+    public bool ShowTeamReviewSection
+    {
+        get => _showTeamReviewSection;
+        set => SetField(ref _showTeamReviewSection, value);
+    }
+
     // ── Save ────────────────────────────────────────────────────────
 
     public void Save()
@@ -109,6 +117,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.NotifyCiError = _notifyCiError;
         _settings.NotifyReviewRequested = _notifyReviewRequested;
         _settings.NotifyPrMergedOrClosed = _notifyPrMergedOrClosed;
+        _settings.ShowTeamReviewSection = _showTeamReviewSection;
         _settings.Save();
 
         ApplyAutoStart(_autoStartWithWindows);

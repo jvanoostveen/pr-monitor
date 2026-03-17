@@ -316,6 +316,19 @@
                     </StackPanel>
                 </TabItem>
 
+                <!-- ══ Sections tab ══════════════════════════════════════════ -->
+                <TabItem Header="Sections">
+                    <StackPanel Margin="0,20,0,0">
+
+                        <TextBlock Text="REVIEW REQUESTS" Style="{StaticResource SectionLabel}"/>
+                        <CheckBox IsChecked="{Binding ShowTeamReviewSection}"
+                                  Content="Show team review requests as a separate section"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,4,0,0" TextWrapping="Wrap"
+                                   Text="When enabled, PRs requested from a team appear in a dedicated &#x2018;Team Review Requests&#x2019; section. When disabled, they are folded into &#x2018;Awaiting My Review&#x2019;."/>
+
+                    </StackPanel>
+                </TabItem>
+
                 <!-- ══ Notifications tab ═════════════════════════════════════ -->
                 <TabItem Header="Notifications">
                     <StackPanel Margin="0,20,0,0">

@@ -95,6 +95,53 @@ public sealed class GitHubService
         }
         """;
 
+    private const string ReviewRequestedFullQuery = """
+        query($q: String!) {
+          search(query: $q, type: ISSUE, first: 50) {
+            nodes {
+              ... on PullRequest {
+                number
+                title
+                url
+                repository { nameWithOwner isArchived }
+                author { login }
+                createdAt
+                baseRefName
+                mergeable
+                headRefName
+                reviewDecision
+                reviewRequests(first: 10) {
+                  nodes {
+                    requestedReviewer {
+                      __typename
+                      ... on User { login }
+                      ... on Team { slug }
+                    }
+                  }
+                }
+                commits(last: 1) {
+                  nodes {
+                    commit {
+                      statusCheckRollup {
+                        state
+                      }
+                    }
+                  }
+                }
+                                reviewThreads(first: 50) {
+                                    nodes {
+                                        isResolved
+                                        comments(first: 1) {
+                                            totalCount
+                                        }
+                                    }
+                                }
+              }
+            }
+          }
+        }
+        """;
+
     // ── Public API ──────────────────────────────────────────────────────
 
     /// <summary>
@@ -150,14 +197,15 @@ public sealed class GitHubService
     /// Fetch open PRs where the current user is a requested reviewer
     /// (i.e. hasn't reviewed yet), optionally filtered by orgs.
     /// </summary>
-    public async Task<List<PullRequestInfo>> FetchPRsAwaitingMyReviewAsync(IReadOnlyList<string> organizations)
+    public async Task<List<PullRequestInfo>> FetchPRsAwaitingMyReviewAsync(IReadOnlyList<string> organizations, bool classifyTeams = false)
     {
         var allPrs = new List<PullRequestInfo>();
         var queries = BuildSearchQueries("is:pr is:open review-requested:@me", organizations);
+        var queryToUse = classifyTeams ? ReviewRequestedFullQuery : ReviewRequestedQuery;
 
         foreach (var q in queries)
         {
-            var json = await RunGraphQlAsync(ReviewRequestedQuery, q);
+            var json = await RunGraphQlAsync(queryToUse, q);
             if (json is not { } jsonValue) continue;
 
             allPrs.AddRange(ParseReviewPrs(jsonValue));
@@ -348,6 +396,24 @@ public sealed class GitHubService
                 && mergeableReview.GetString() == "CONFLICTING")
                 ciState = CIState.Failure;
 
+            // Classify team-only review requests if reviewRequests field is present
+            bool isTeamOnly = false;
+            if (node.TryGetProperty("reviewRequests", out var reviewRequests)
+                && reviewRequests.ValueKind == JsonValueKind.Object
+                && reviewRequests.TryGetProperty("nodes", out var rrNodes)
+                && rrNodes.ValueKind == JsonValueKind.Array)
+            {
+                var rrList = rrNodes.EnumerateArray().ToList();
+                if (rrList.Count > 0)
+                {
+                    bool anyUser = rrList.Any(rr =>
+                        rr.TryGetProperty("requestedReviewer", out var reviewer)
+                        && reviewer.TryGetProperty("__typename", out var tn)
+                        && tn.GetString() == "User");
+                    isTeamOnly = !anyUser;
+                }
+            }
+
             result.Add(new PullRequestInfo
             {
                 Number = node.GetProperty("number").GetInt32(),
@@ -368,6 +434,7 @@ public sealed class GitHubService
                 IsApproved = node.TryGetProperty("reviewDecision", out var rd2)
                     && rd2.GetString() == "APPROVED",
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
+                IsTeamReviewRequested = isTeamOnly,
             });
         }
 

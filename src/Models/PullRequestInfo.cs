@@ -45,6 +45,9 @@ public sealed class PullRequestInfo
     /// <summary>Head branch name (e.g. "feature/my-feature").</summary>
     public string HeadRefName { get; init; } = "";
 
+    /// <summary>True when the review was requested for a team only, not directly from this user.</summary>
+    public bool IsTeamReviewRequested { get; init; }
+
     /// <summary>
     /// Unique key used for delta-detection across polls.
     /// </summary>

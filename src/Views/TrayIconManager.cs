@@ -173,11 +173,12 @@ public sealed class TrayIconManager : IDisposable
     {
         // Exclude hidden PRs from counts
         var hidden = _settings.HiddenPrKeys;
-        int visibleAuto   = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key));
-        int visibleMyPrs  = snapshot.MyPrs.Count(p => !hidden.Contains(p.Key));
-        int visibleReview = snapshot.ReviewRequestedPrs.Count(p => !hidden.Contains(p.Key));
-        int visibleHotfix = snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key));
-        int totalVisible  = visibleAuto + visibleMyPrs + visibleReview + visibleHotfix;
+        int visibleAuto       = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key));
+        int visibleMyPrs      = snapshot.MyPrs.Count(p => !hidden.Contains(p.Key));
+        int visibleReview     = snapshot.ReviewRequestedPrs.Count(p => !hidden.Contains(p.Key));
+        int visibleTeamReview = snapshot.TeamReviewRequestedPrs.Count(p => !hidden.Contains(p.Key));
+        int visibleHotfix     = snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key));
+        int totalVisible      = visibleAuto + visibleMyPrs + visibleReview + visibleTeamReview + visibleHotfix;
 
         // Red: CI failures across auto-merge, hotfix and non-draft My PRs
         int failedCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure)
@@ -186,7 +187,7 @@ public sealed class TrayIconManager : IDisposable
 
         // Amber: reviews requested on me + unresolved comments on My PRs
         int unresolvedOnMyPrs = snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && p.UnresolvedReviewCommentCount > 0);
-        int amberCount = visibleReview + unresolvedOnMyPrs;
+        int amberCount = visibleReview + visibleTeamReview + unresolvedOnMyPrs;
 
         // Purple: pipeline still running (pending CI on non-draft, non-hidden PRs)
         int pendingCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Pending)
@@ -196,6 +197,7 @@ public sealed class TrayIconManager : IDisposable
         bool hasLaterPrs = snapshot.AutoMergePrs.Any(p => hidden.Contains(p.Key))
                         || snapshot.MyPrs.Any(p => hidden.Contains(p.Key))
                         || snapshot.ReviewRequestedPrs.Any(p => hidden.Contains(p.Key))
+                        || snapshot.TeamReviewRequestedPrs.Any(p => hidden.Contains(p.Key))
                         || snapshot.HotfixPrs.Any(p => hidden.Contains(p.Key));
 
         // Update icon
@@ -209,6 +211,7 @@ public sealed class TrayIconManager : IDisposable
         tooltipParts.Append($"\nAuto-merge PRs: {visibleAuto}");
         if (visibleMyPrs > 0) tooltipParts.Append($"\nMy PRs: {visibleMyPrs}");
         tooltipParts.Append($"\nAwaiting review: {visibleReview}");
+        if (visibleTeamReview > 0) tooltipParts.Append($"\nTeam review: {visibleTeamReview}");
         var tooltip = tooltipParts.ToString();
         _notifyIcon.Text = tooltip.Length > 127 ? tooltip[..127] : tooltip;
 

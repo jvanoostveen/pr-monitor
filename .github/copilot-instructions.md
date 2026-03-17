@@ -174,7 +174,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - All screen coordinates go through `ScreenRectToWpf()` (device → WPF units via `PresentationSource.TransformFromDevice`) to handle mixed-DPI setups.
 
 ### Collapsible sections
-Five collapsible sections in order: Hotfixes, My Auto-Merge PRs, Awaiting My Review, My PRs, Later. State persisted in `AppSettings` (`HotfixExpanded`, `AutoMergeExpanded`, `ReviewExpanded`, `MyPrsExpanded`, `LaterExpanded`). `BoolToAngleConverter` rotates chevron (0° = expanded, -90° = collapsed). Hotfixes is only shown when `HotfixCount > 0`; all other sections likewise hide when their count is zero.
+Six collapsible sections in order: Hotfixes, My Auto-Merge PRs, Awaiting My Review, My PRs, Team Review Requests, Later. State persisted in `AppSettings` (`HotfixExpanded`, `AutoMergeExpanded`, `ReviewExpanded`, `MyPrsExpanded`, `TeamReviewExpanded`, `LaterExpanded`). `BoolToAngleConverter` rotates chevron (0° = expanded, -90° = collapsed). Hotfixes is only shown when `HotfixCount > 0`; Team Review Requests only when `TeamReviewCount > 0` (which is 0 when `ShowTeamReviewSection` is false); all other sections likewise hide when their count is zero.
 
 ### CI status display
 Each PR row shows a colored 10×10 `Ellipse`:
@@ -290,6 +290,8 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "autoMergeExpanded": true,
   "reviewExpanded": true,
   "myPrsExpanded": false,
+  "teamReviewExpanded": false,
+  "showTeamReviewSection": true,
   "laterExpanded": false,
   "mainWindowVisible": false,
   "mainWindowLeft": 1440.0,

@@ -448,6 +448,12 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void TeamReviewHeader_Click(object sender, MouseButtonEventArgs e)
+    {
+        ViewModel.ToggleTeamReviewExpanded();
+        e.Handled = true;
+    }
+
     private void LaterHeader_Click(object sender, MouseButtonEventArgs e)
     {
         ViewModel.ToggleLaterExpanded();
