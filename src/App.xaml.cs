@@ -87,8 +87,9 @@ public partial class App : System.Windows.Application
             var settingsVm = new SettingsViewModel(settings);
             var settingsWindow = new SettingsWindow(settingsVm, onSaved: () =>
             {
-                // Apply new polling interval live
+                // Apply new polling interval live and refresh data immediately
                 _polling.UpdateInterval(settings.PollingIntervalSeconds);
+                _ = _polling.RefreshAsync();
             });
             settingsWindow.ShowDialog();
         });

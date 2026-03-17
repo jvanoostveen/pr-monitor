@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Tray context menu first item now reads **Close PR Monitor** when the window is open and **Open PR Monitor** when it is closed, instead of always showing "Open PR Monitor".
+- Team review classification now correctly identifies whether the **current user** was directly requested as a reviewer. Previously, any `User`-type reviewer on the PR (even a different person) would cause it to be classified as a direct request; now only a `User` entry matching the authenticated username counts as direct.
+- When the Team Review Requests section is disabled in Settings, team PRs are now hidden entirely instead of being moved to "Awaiting My Review".
+- Saving settings now immediately triggers a data refresh so changes (such as toggling the team section) take effect without waiting for the next poll.
+
 ## [1.5.0] - 2026-03-17
 
 ### Added

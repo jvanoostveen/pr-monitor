@@ -112,7 +112,7 @@ public sealed class PollingService : IDisposable
             var myPrs        = allMyPrs.Where(p => !p.HasAutoMerge).ToList();
 
             bool showTeamSection = _settings.ShowTeamReviewSection;
-            var reviewPrs   = await _github.FetchPRsAwaitingMyReviewAsync(_settings.Organizations, classifyTeams: showTeamSection);
+            var reviewPrs   = await _github.FetchPRsAwaitingMyReviewAsync(_settings.Organizations, classifyTeams: showTeamSection, currentUsername: _settings.GitHubUsername);
             var assignedPrs = await _github.FetchMyAssignedPRsAsync(_settings.Organizations);
             var hotfixPrs   = await _github.FetchHotfixPRsAsync(_settings.Organizations);
 
@@ -128,7 +128,7 @@ public sealed class PollingService : IDisposable
                 .DistinctBy(p => p.Key)
                 .ToList();
 
-            // Team section: only when enabled; otherwise fold team PRs back into Awaiting
+            // Team section: only when enabled; otherwise drop team PRs entirely (not shown anywhere)
             List<PullRequestInfo> teamReviewPrs;
             if (showTeamSection)
             {
@@ -136,10 +136,7 @@ public sealed class PollingService : IDisposable
             }
             else
             {
-                combinedReviewPrs = combinedReviewPrs
-                    .Concat(teamOnlyPrs)
-                    .DistinctBy(p => p.Key)
-                    .ToList();
+                // Team PRs are hidden completely when the section is disabled
                 teamReviewPrs = [];
             }
 

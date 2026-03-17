@@ -197,7 +197,7 @@ public sealed class GitHubService
     /// Fetch open PRs where the current user is a requested reviewer
     /// (i.e. hasn't reviewed yet), optionally filtered by orgs.
     /// </summary>
-    public async Task<List<PullRequestInfo>> FetchPRsAwaitingMyReviewAsync(IReadOnlyList<string> organizations, bool classifyTeams = false)
+    public async Task<List<PullRequestInfo>> FetchPRsAwaitingMyReviewAsync(IReadOnlyList<string> organizations, bool classifyTeams = false, string? currentUsername = null)
     {
         var allPrs = new List<PullRequestInfo>();
         var queries = BuildSearchQueries("is:pr is:open review-requested:@me", organizations);
@@ -208,7 +208,7 @@ public sealed class GitHubService
             var json = await RunGraphQlAsync(queryToUse, q);
             if (json is not { } jsonValue) continue;
 
-            allPrs.AddRange(ParseReviewPrs(jsonValue));
+            allPrs.AddRange(ParseReviewPrs(jsonValue, currentUsername));
         }
 
         return allPrs;
@@ -358,7 +358,7 @@ public sealed class GitHubService
         return result;
     }
 
-    private static List<PullRequestInfo> ParseReviewPrs(JsonElement root)
+    private static List<PullRequestInfo> ParseReviewPrs(JsonElement root, string? currentUsername = null)
     {
         var result = new List<PullRequestInfo>();
 
@@ -396,7 +396,8 @@ public sealed class GitHubService
                 && mergeableReview.GetString() == "CONFLICTING")
                 ciState = CIState.Failure;
 
-            // Classify team-only review requests if reviewRequests field is present
+            // Classify as team-only when the current user has no direct User-type review request.
+            // Other User-type reviewers (different people) do NOT make this a direct request for us.
             bool isTeamOnly = false;
             if (node.TryGetProperty("reviewRequests", out var reviewRequests)
                 && reviewRequests.ValueKind == JsonValueKind.Object
@@ -406,11 +407,14 @@ public sealed class GitHubService
                 var rrList = rrNodes.EnumerateArray().ToList();
                 if (rrList.Count > 0)
                 {
-                    bool anyUser = rrList.Any(rr =>
+                    // Direct request = a User reviewer whose login matches the current user
+                    bool directForMe = !string.IsNullOrEmpty(currentUsername) && rrList.Any(rr =>
                         rr.TryGetProperty("requestedReviewer", out var reviewer)
                         && reviewer.TryGetProperty("__typename", out var tn)
-                        && tn.GetString() == "User");
-                    isTeamOnly = !anyUser;
+                        && tn.GetString() == "User"
+                        && reviewer.TryGetProperty("login", out var login)
+                        && string.Equals(login.GetString(), currentUsername, StringComparison.OrdinalIgnoreCase));
+                    isTeamOnly = !directForMe;
                 }
             }
 
