@@ -109,7 +109,6 @@ public sealed class PollingService : IDisposable
             // Fetch all my PRs in a single API call, then split by auto-merge flag
             var allMyPrs  = await _github.FetchAllMyPRsAsync(_settings.Organizations);
             var autoMergePrs = allMyPrs.Where(p => p.HasAutoMerge).ToList();
-            var myPrs        = allMyPrs.Where(p => !p.HasAutoMerge).ToList();
 
             bool showTeamSection = _settings.ShowTeamReviewSection;
             // Always classify team PRs (classifyTeams always true) so they can be
@@ -117,6 +116,10 @@ public sealed class PollingService : IDisposable
             var reviewPrs   = await _github.FetchPRsAwaitingMyReviewAsync(_settings.Organizations, classifyTeams: true, currentUsername: _settings.GitHubUsername);
             var assignedPrs = await _github.FetchMyAssignedPRsAsync(_settings.Organizations);
             var hotfixPrs   = await _github.FetchHotfixPRsAsync(_settings.Organizations);
+
+            // Exclude hotfix PRs (release/* targets) from My PRs to avoid duplication
+            var hotfixKeys = hotfixPrs.Select(p => p.Key).ToHashSet();
+            var myPrs      = allMyPrs.Where(p => !p.HasAutoMerge && !hotfixKeys.Contains(p.Key)).ToList();
 
             var myPrKeys = allMyPrs.Select(p => p.Key).ToHashSet();
 

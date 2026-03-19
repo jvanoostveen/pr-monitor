@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- PRs authored by the current user targeting a `release/*` branch now appear **only in Hotfixes**, no longer duplicated in "My PRs".
+
 ## [1.5.2] - 2026-03-17
 
 ### Fixed
