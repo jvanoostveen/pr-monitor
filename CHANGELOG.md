@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - PRs authored by the current user targeting a `release/*` branch now appear **only in Hotfixes**, no longer duplicated in "My PRs".
+- Window no longer drifts when a monitor is disconnected while it is already on the laptop screen. If the window was on the disconnected monitor it is now repositioned to the same corner on the best remaining screen instead of wherever Windows placed it.
 
 ## [1.5.2] - 2026-03-17
 

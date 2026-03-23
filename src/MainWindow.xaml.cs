@@ -30,6 +30,14 @@ public partial class MainWindow : Window
     private const double SnapThreshold = 80;
     private const double SnapInset     = 6;
 
+    // Track display configuration changes so window-moves caused by Windows
+    // (not the user) don't corrupt the saved position or _userMoved state.
+    private bool _displayChangePending;
+    private double _preChangeLeft;
+    private double _preChangeTop;
+    private SnapCorner _preChangeSnappedCorner;
+    private bool _preChangeUserMoved;
+
     public MainWindow(MainViewModel viewModel, AppSettings settings)
     {
         ViewModel = viewModel;
@@ -47,6 +55,8 @@ public partial class MainWindow : Window
         Loaded += (_, _) =>
         {
             RestoreStartupPlacement();
+            Microsoft.Win32.SystemEvents.DisplaySettingsChanging += OnDisplaySettingsChanging;
+            Microsoft.Win32.SystemEvents.DisplaySettingsChanged  += OnDisplaySettingsChanged;
         };
     }
 
@@ -87,6 +97,13 @@ public partial class MainWindow : Window
     {
         PersistWindowPosition();
         PersistWindowState(IsVisible);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanging -= OnDisplaySettingsChanging;
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged  -= OnDisplaySettingsChanged;
+        base.OnClosed(e);
     }
 
     private void SetWindowPosition(double left, double top)
@@ -332,10 +349,109 @@ public partial class MainWindow : Window
         PersistWindowPosition();
     }
 
+    // ── Display change handling ──────────────────────────────────────────────
+
+    private void OnDisplaySettingsChanging(object? sender, EventArgs e)
+    {
+        // Fires BEFORE Windows repositions windows — save the intended position now.
+        // May fire on a background thread; use Invoke to read WPF properties safely.
+        Dispatcher.Invoke(() =>
+        {
+            _displayChangePending   = true;
+            _preChangeLeft          = Left;
+            _preChangeTop           = Top;
+            _preChangeSnappedCorner = _snappedCorner;
+            _preChangeUserMoved     = _userMoved;
+        });
+    }
+
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e)
+    {
+        // Fires AFTER display settings change is complete. May be on background thread.
+        Dispatcher.BeginInvoke(() =>
+        {
+            _displayChangePending = false;
+            ReapplyPositionAfterDisplayChange();
+            PersistWindowPosition();
+        });
+    }
+
+    /// <summary>
+    /// After a display configuration change, reposition the window based on WHERE
+    /// it was BEFORE the change, not where Windows randomly dumped it.
+    /// </summary>
+    private void ReapplyPositionAfterDisplayChange()
+    {
+        var width  = ActualWidth  > 0 ? ActualWidth  : Width;
+        var height = ActualHeight > 0 ? ActualHeight : Height;
+
+        if (!_preChangeUserMoved)
+        {
+            AlignToBottomRight(width, height);
+            return;
+        }
+
+        if (_preChangeSnappedCorner != SnapCorner.None)
+        {
+            // Find the screen that best matches the pre-change position, then re-snap
+            // to the same corner on that screen (which may now be a different screen
+            // if the original monitor was disconnected).
+            var screen = FindBestScreenForRect(_preChangeLeft, _preChangeTop, width, height);
+            var wa = ScreenRectToWpf(screen.WorkingArea);
+            var (l, t) = GetCornerPositionInArea(wa, _preChangeSnappedCorner, width, height);
+            _snappedCorner = _preChangeSnappedCorner;
+            SetWindowPosition(l, t);
+        }
+        else
+        {
+            // No snap: clamp the pre-change position to the best available work area.
+            var (l, t) = ClampToBestWorkArea(_preChangeLeft, _preChangeTop, width, height);
+            SetWindowPosition(l, t);
+        }
+    }
+
+    /// <summary>
+    /// Returns the screen whose work area overlaps most with the given rect.
+    /// Falls back to the closest screen (by center distance) when there is no overlap,
+    /// then to the primary screen.
+    /// </summary>
+    private WinForms.Screen FindBestScreenForRect(double left, double top, double width, double height)
+    {
+        var windowRect   = new Rect(left, top, width, height);
+        var windowCenter = new System.Windows.Point(left + width / 2, top + height / 2);
+
+        WinForms.Screen? bestOverlap  = null;
+        double maxOverlap = 0;
+        WinForms.Screen? closest      = null;
+        double minDist    = double.MaxValue;
+
+        foreach (var screen in WinForms.Screen.AllScreens)
+        {
+            var wa      = ScreenRectToWpf(screen.WorkingArea);
+            var overlap = ComputeOverlapArea(windowRect, wa);
+            if (overlap > maxOverlap)
+            {
+                maxOverlap = overlap;
+                bestOverlap = screen;
+            }
+            var cx   = (wa.Left + wa.Right)  / 2;
+            var cy   = (wa.Top  + wa.Bottom) / 2;
+            var dist = (windowCenter.X - cx) * (windowCenter.X - cx)
+                     + (windowCenter.Y - cy) * (windowCenter.Y - cy);
+            if (dist < minDist)
+            {
+                minDist = dist;
+                closest = screen;
+            }
+        }
+
+        return bestOverlap ?? closest ?? WinForms.Screen.PrimaryScreen!;
+    }
+
     protected override void OnLocationChanged(EventArgs e)
     {
         base.OnLocationChanged(e);
-        if (!_isProgrammaticMove)
+        if (!_isProgrammaticMove && !_displayChangePending)
         {
             _userMoved = true;
             PersistWindowPosition(saveToDisk: false);
