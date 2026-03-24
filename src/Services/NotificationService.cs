@@ -76,7 +76,14 @@ public sealed class NotificationService : IDisposable
     {
         try { ToastNotificationManagerCompat.History.Clear(); } catch { }
     }
-
+    /// <summary>
+    /// Show an ad-hoc toast notification directly (not tied to the polling event cycle).
+    /// </summary>
+    public void Notify(string title, string body)
+    {
+        if (!_initialized) return;
+        ShowToast(title, body, "", "");
+    }
     // ── Flush & grouping ────────────────────────────────────────────────
 
     private void FlushNotifications()

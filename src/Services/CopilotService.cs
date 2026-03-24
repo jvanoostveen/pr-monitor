@@ -1,0 +1,174 @@
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using PrMonitor.Models;
+
+namespace PrMonitor.Services;
+
+/// <summary>
+/// Analyzes CI failure logs for flakiness using the GitHub Models API (gpt-4o-mini).
+/// Uses the current user's GitHub token via 'gh auth token'.
+/// </summary>
+public sealed class CopilotService
+{
+    private readonly DiagnosticsLogger _logger;
+    private static readonly HttpClient _http = new();
+
+    private const string ModelsEndpoint = "https://models.inference.ai.azure.com/chat/completions";
+    private const string Model = "gpt-4o-mini";
+
+    public CopilotService(DiagnosticsLogger logger)
+    {
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Analyzes the failure context and returns whether the failure is likely flaky,
+    /// a short rationale, and any suggested regex rules to detect the same flakiness in future.
+    /// </summary>
+    public async Task<FlakinessAnalysisResult> AnalyzeFlakiness(FailureContext context)
+    {
+        try
+        {
+            var token = await GetBearerTokenAsync();
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                _logger.Warn("CopilotService: could not retrieve GitHub token via 'gh auth token'.");
+                return Fallback("Could not retrieve GitHub token.");
+            }
+
+            var systemPrompt = """
+                You are an expert CI/CD engineer. Analyze the following GitHub Actions failure and determine whether it is a flaky (transient/non-deterministic) failure or a real code failure.
+
+                Flaky failures are typically caused by: network timeouts, race conditions, random port conflicts, external service unavailability, resource exhaustion (memory/disk), timing issues, random seed differences, or known flaky test infrastructure.
+
+                Real failures are: compilation errors, test assertion failures that reflect deterministic logic, missing dependencies, configuration errors.
+
+                Respond with ONLY a JSON object in this exact shape (no markdown, no explanation):
+                {
+                  "isFlaky": true or false,
+                  "rationale": "One sentence explaining why.",
+                  "suggestedRules": [
+                    { "pattern": "regex pattern to detect this in future logs", "description": "Human-readable label" }
+                  ]
+                }
+
+                Keep suggestedRules empty if the failure is not flaky. Each pattern must be a valid .NET regex.
+                """;
+
+            var userMessage = $"""
+                Repository: {context.Repository}
+                PR #{context.PrNumber}: {context.PrTitle}
+                Branch: {context.HeadBranch}
+                Failed checks: {string.Join(", ", context.FailedCheckNames)}
+
+                Log excerpt:
+                {context.LogExcerpt}
+                """;
+
+            var requestBody = new
+            {
+                model = Model,
+                messages = new[]
+                {
+                    new { role = "system", content = systemPrompt },
+                    new { role = "user", content = userMessage }
+                },
+                temperature = 0.1,
+                max_tokens = 512
+            };
+
+            var json = JsonSerializer.Serialize(requestBody);
+            using var request = new HttpRequestMessage(HttpMethod.Post, ModelsEndpoint);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var response = await _http.SendAsync(request);
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.Warn($"CopilotService: GitHub Models API returned {(int)response.StatusCode}: {responseBody.Trim()}");
+                return Fallback($"API returned {(int)response.StatusCode}.");
+            }
+
+            return ParseResponse(responseBody);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("CopilotService.AnalyzeFlakiness failed.", ex);
+            return Fallback("Analysis failed due to an exception.");
+        }
+    }
+
+    private FlakinessAnalysisResult ParseResponse(string responseBody)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            var content = doc.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString() ?? "";
+
+            // Strip possible markdown fences
+            var trimmed = content.Trim();
+            if (trimmed.StartsWith("```")) trimmed = trimmed.Split('\n', 2)[1];
+            if (trimmed.EndsWith("```")) trimmed = trimmed[..trimmed.LastIndexOf("```")];
+
+            using var inner = JsonDocument.Parse(trimmed.Trim());
+            var root = inner.RootElement;
+
+            var isFlaky = root.GetProperty("isFlaky").GetBoolean();
+            var rationale = root.TryGetProperty("rationale", out var r) ? r.GetString() ?? "" : "";
+            var rules = new List<FlakinessRuleSuggestion>();
+
+            if (root.TryGetProperty("suggestedRules", out var rulesEl))
+            {
+                foreach (var rule in rulesEl.EnumerateArray())
+                {
+                    var pattern = rule.TryGetProperty("pattern", out var p) ? p.GetString() ?? "" : "";
+                    var description = rule.TryGetProperty("description", out var d) ? d.GetString() ?? "" : "";
+                    if (!string.IsNullOrWhiteSpace(pattern))
+                        rules.Add(new FlakinessRuleSuggestion { Pattern = pattern, Description = description });
+                }
+            }
+
+            return new FlakinessAnalysisResult { IsFlaky = isFlaky, Rationale = rationale, SuggestedRules = rules };
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("CopilotService: failed to parse model response.", ex);
+            return Fallback("Failed to parse model response.");
+        }
+    }
+
+    private async Task<string?> GetBearerTokenAsync()
+    {
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo("gh", "auth token")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var proc = System.Diagnostics.Process.Start(psi);
+            if (proc is null) return null;
+            var output = await proc.StandardOutput.ReadToEndAsync();
+            await proc.WaitForExitAsync();
+            return string.IsNullOrWhiteSpace(output) ? null : output.Trim();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("CopilotService.GetBearerTokenAsync failed.", ex);
+            return null;
+        }
+    }
+
+    private static FlakinessAnalysisResult Fallback(string reason) =>
+        new() { IsFlaky = false, Rationale = reason, SuggestedRules = [] };
+}

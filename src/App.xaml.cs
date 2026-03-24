@@ -23,6 +23,8 @@ public partial class App : System.Windows.Application
     private DiagnosticsLogger? _logger;
     private MainViewModel? _mainVm;
     private System.Threading.Timer? _updateTimer;
+    private GitHubService? _github;
+    private FlakinessService? _flakinessService;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -46,10 +48,10 @@ public partial class App : System.Windows.Application
         _logger = new DiagnosticsLogger();
 
         // Auto-detect username if not cached
-        var github = new GitHubService(_logger);
+        _github = new GitHubService(_logger);
         if (string.IsNullOrEmpty(settings.GitHubUsername))
         {
-            settings.GitHubUsername = await github.GetCurrentUserAsync();
+            settings.GitHubUsername = await _github.GetCurrentUserAsync();
             settings.Save();
         }
 
@@ -57,11 +59,16 @@ public partial class App : System.Windows.Application
         SettingsViewModel.ApplyAutoStart(settings.AutoStartWithWindows);
 
         // ── Services ───────────────────────────────────────────────
-        _polling = new PollingService(github, settings, _logger);
+        _polling = new PollingService(_github, settings, _logger);
 
         _notifications = new NotificationService(settings);
         _notifications.Initialize();
         _notifications.Subscribe(_polling);
+
+        var copilot = new CopilotService(_logger);
+        _flakinessService = new FlakinessService(_github, copilot, settings, _notifications, _logger);
+        _flakinessService.Subscribe(_polling);
+
         _updates = new UpdateService(_logger);
 
         // ── View layer ─────────────────────────────────────────────

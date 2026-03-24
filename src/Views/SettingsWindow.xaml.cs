@@ -43,4 +43,10 @@ public partial class SettingsWindow : Window
     {
         Close();
     }
+
+    private void DeleteFlakinessRule_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button btn && btn.Tag is string id)
+            _viewModel.DeleteRule(id);
+    }
 }
