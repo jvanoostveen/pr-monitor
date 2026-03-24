@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-03-24
+
 ### Added
 
 - **Flakiness detection and auto-rerun feature**: CI failures on your own non-draft PRs can be analyzed via GitHub Models (`gpt-4o-mini`) using `gh auth token`, with local `.NET` regex rules checked first, suggested rules persisted for reuse, configurable scope to only auto-merge PRs, configurable maximum automatic reruns (1-10, default 3), dynamic retry counters in logs/toasts, and ad-hoc notifications via `NotificationService.Notify(title, body)`. Supporting plumbing includes `PullRequestInfo.HeadCommitSha` (from GraphQL `oid`) and `DetectMyPrsChanges` so both auto-merge and regular My PRs can trigger the flow.
