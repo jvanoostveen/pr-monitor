@@ -599,6 +599,12 @@ public partial class MainWindow : Window
             System.Windows.Clipboard.SetText(vm.HeadRefName);
     }
 
+    private void PrRow_CopyUrl_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
+            System.Windows.Clipboard.SetText(vm.Url);
+    }
+
     private async void PrRow_RerunFailedJobs_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })

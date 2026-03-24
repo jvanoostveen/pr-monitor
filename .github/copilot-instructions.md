@@ -174,6 +174,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - Optional scope filter: `flakinessAutoMergeOnly` limits AI flakiness analysis to PRs in **My Auto-Merge PRs**; non-auto-merge PR failures are skipped when this is enabled.
 - `NotificationService.Notify(title, body)` is a public helper for ad-hoc toasts outside the poll cycle.
 - **Manual rerun action**: PR row context menus include **Rerun failed jobs** (enabled only for failed, non-draft PRs with known head SHA). It resolves failed workflow runs for that commit and triggers `gh run rerun --failed`.
+- **Copy actions**: PR row context menus include **Copy PR URL** and **Copy branch name** for quick clipboard actions from any PR section.
 - `PollingService` also tracks CI changes on "My PRs" (non-auto-merge) via `DetectMyPrsChanges`, so flakiness analysis covers both auto-merge and regular own PRs.
 - `PullRequestInfo.HeadCommitSha` is populated from the GraphQL `oid` field and used to resolve the correct workflow run ID.
 
