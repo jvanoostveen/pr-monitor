@@ -9,23 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Flakiness analysis and auto-rerun**: when enabled in Settings → Flakiness, CI failures on your own non-draft PRs are analyzed using the GitHub Models API (`gpt-4o-mini`) authenticated via `gh auth token`. Flaky failures are automatically retried up to 3 times per PR with a toast notification each time. Real failures show a separate "Real failure" toast.
-- **Learned flakiness rules**: after each Copilot analysis, suggested `.NET` regex patterns are persisted as reusable rules. Subsequent failures matching a rule skip the API call and rerun immediately.
-- **Flakiness settings tab**: new "Flakiness" tab in the Settings window shows an enable/disable toggle and a list of learned rules (with per-rule enable/disable toggles and delete buttons).
-- `HeadCommitSha` property on `PullRequestInfo` (populated from the `oid` GraphQL field) used to resolve the correct workflow run for a PR.
-- `DetectMyPrsChanges` in `PollingService` — tracks CI state changes on "My PRs" (non-auto-merge) so flakiness analysis is also triggered for those PRs.
-- `NotificationService.Notify(title, body)` helper for ad-hoc toasts outside the poll cycle.
-- **Manual rerun action on PR rows**: failed PR rows now include a context-menu action **Rerun failed jobs**. Selecting it triggers `gh run rerun --failed` for failed workflow runs resolved from that PR's head commit SHA.
-- **Copy PR URL action on PR rows**: PR row context menus now include **Copy PR URL** above **Copy branch name** to quickly copy the pull request link to the clipboard.
-
-### Changed
-
-- **Flakiness scope option**: added a new Settings → Flakiness toggle to run AI flakiness detection only for **My Auto-Merge PRs**. When enabled, regular "My PRs" are skipped by the AI flakiness flow.
-- **Configurable flakiness retry limit**: Settings → Flakiness now includes a **Maximum automatic reruns** control (1-10, default 3), and runtime/log/toast retry counters now show the configured max attempt value.
-
-### Fixed
-
-- **GitHub Models model selection**: flakiness analysis now uses `gpt-4o-mini` as its only configured model, removing the retry path for `gpt-5-mini` unavailability.
+- **Flakiness detection and auto-rerun feature**: CI failures on your own non-draft PRs can be analyzed via GitHub Models (`gpt-4o-mini`) using `gh auth token`, with local `.NET` regex rules checked first, suggested rules persisted for reuse, configurable scope to only auto-merge PRs, configurable maximum automatic reruns (1-10, default 3), dynamic retry counters in logs/toasts, and ad-hoc notifications via `NotificationService.Notify(title, body)`. Supporting plumbing includes `PullRequestInfo.HeadCommitSha` (from GraphQL `oid`) and `DetectMyPrsChanges` so both auto-merge and regular My PRs can trigger the flow.
+- **PR context menu actions**: failed PR rows now include **Rerun failed jobs** (reruns failed workflow runs resolved from head commit SHA), and PR rows also include **Copy PR URL** above **Copy branch name** for quick link copying.
 
 ## [1.5.3] - 2026-03-24
 
