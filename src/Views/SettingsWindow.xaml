@@ -373,86 +373,22 @@
                                    Text="{Binding FlakinessMaxReruns, StringFormat={}{0} attempt(s)}"/>
                         </StackPanel>
 
-                        <Separator Background="#30363D" Margin="0,4,0,12"/>
+                        <Separator Background="#30363D" Margin="0,4,0,16"/>
 
-                        <!-- Rules heading -->
-                        <DockPanel Margin="0,0,0,8">
-                            <TextBlock Text="LEARNED FLAKINESS RULES" Style="{StaticResource SectionLabel}"
-                                       DockPanel.Dock="Left" Margin="0,0,0,0" VerticalAlignment="Center"/>
-                            <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center"
-                                       Foreground="#6E7681" FontSize="11"
-                                       Text="{Binding FlakinessRules.Count, StringFormat={}{0} rule(s)}"/>
+                        <!-- Rules heading + manage button -->
+                        <TextBlock Text="LEARNED FLAKINESS RULES" Style="{StaticResource SectionLabel}"
+                                   Margin="0,0,0,6"/>
+                        <DockPanel Margin="0,0,0,0">
+                            <TextBlock DockPanel.Dock="Left"
+                                       VerticalAlignment="Center"
+                                       Foreground="#6E7681" FontSize="12"
+                                       Text="{Binding FlakinessRules.Count, StringFormat={}{0} rule(s) learned}"/>
+                            <Button DockPanel.Dock="Right"
+                                    Content="Manage rules…"
+                                    Width="120"
+                                    Style="{StaticResource SecondaryButton}"
+                                    Click="ManageFlakinessRules_Click"/>
                         </DockPanel>
-
-                        <!-- Empty state -->
-                        <TextBlock Foreground="#6E7681" FontSize="12" FontStyle="Italic"
-                                   Margin="0,4,0,0"
-                                   Text="No rules yet. Rules are suggested by the AI after analyzing flaky failures."
-                                   TextWrapping="Wrap">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding FlakinessRules.Count}" Value="0">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-
-                        <!-- Rules list -->
-                        <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto"
-                                      Margin="0,4,0,0"
-                                      Visibility="{Binding FlakinessRules.Count, Converter={StaticResource NonZeroToVisibleConverter}}">
-                            <ItemsControl ItemsSource="{Binding FlakinessRules}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border BorderBrush="#21262D" BorderThickness="0,0,0,1"
-                                                Padding="0,6">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-
-                                                <!-- Enabled toggle -->
-                                                <CheckBox Grid.Column="0"
-                                                          IsChecked="{Binding IsEnabled}"
-                                                          VerticalAlignment="Center"
-                                                          Margin="0,0,8,0"/>
-
-                                                <!-- Pattern + description -->
-                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Pattern}"
-                                                               Foreground="#79C0FF"
-                                                               FontFamily="Consolas"
-                                                               FontSize="11"
-                                                               TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="{Binding Description}"
-                                                               Foreground="#8B949E"
-                                                               FontSize="11"
-                                                               TextTrimming="CharacterEllipsis"/>
-                                                </StackPanel>
-
-                                                <!-- Delete button -->
-                                                <Button Grid.Column="2"
-                                                        Content="&#x2715;"
-                                                        Width="24" Height="24"
-                                                        Margin="8,0,0,0"
-                                                        Padding="0"
-                                                        VerticalAlignment="Center"
-                                                        Style="{StaticResource SecondaryButton}"
-                                                        FontSize="11"
-                                                        Tag="{Binding Id}"
-                                                        Click="DeleteFlakinessRule_Click"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
 
                     </StackPanel>
                 </TabItem>

@@ -63,6 +63,7 @@ pr-bot/
         ├── TrayIconManager.cs          # NotifyIcon + context menu
         ├── IconGenerator.cs            # Generates 16×16 icon with colored badge
       ├── AboutWindow.xaml / .cs      # About dialog (version/repo/update check)
+        ├── FlakinessRulesWindow.xaml / .cs  # Resizable/scrollable window for managing flakiness rules
         └── SettingsWindow.xaml / .cs   # Settings dialog
 ```
 
@@ -173,6 +174,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - The feature is disabled by default (`flakinessAnalysisEnabled: false`) and can be enabled in Settings → Flakiness tab.
 - Optional scope filter: `flakinessAutoMergeOnly` limits AI flakiness analysis to PRs in **My Auto-Merge PRs**; non-auto-merge PR failures are skipped when this is enabled.
 - `NotificationService.Notify(title, body)` is a public helper for ad-hoc toasts outside the poll cycle.
+- **Manage rules window**: the Flakiness tab in Settings shows a rule count and a **Manage rules…** button that opens `FlakinessRulesWindow` — a resizable, scrollable window (`CanResizeWithGrip`) owned by SettingsWindow. Rules can be enabled/disabled and deleted there; changes persist when Settings is saved.
 - **Manual rerun action**: PR row context menus include **Rerun failed jobs** (enabled only for failed, non-draft PRs with known head SHA). It resolves failed workflow runs for that commit and triggers `gh run rerun --failed`.
 - **Copy actions**: PR row context menus include **Copy PR URL** and **Copy branch name** for quick clipboard actions from any PR section.
 - `PollingService` also tracks CI changes on "My PRs" (non-auto-merge) via `DetectMyPrsChanges`, so flakiness analysis covers both auto-merge and regular own PRs.
