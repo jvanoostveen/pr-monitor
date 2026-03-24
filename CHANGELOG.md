@@ -10,11 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Flakiness detection and auto-rerun feature**: CI failures on your own non-draft PRs can be analyzed via GitHub Models (`gpt-4o-mini`) using `gh auth token`, with local `.NET` regex rules checked first, suggested rules persisted for reuse, configurable scope to only auto-merge PRs, configurable maximum automatic reruns (1-10, default 3), dynamic retry counters in logs/toasts, and ad-hoc notifications via `NotificationService.Notify(title, body)`. Supporting plumbing includes `PullRequestInfo.HeadCommitSha` (from GraphQL `oid`) and `DetectMyPrsChanges` so both auto-merge and regular My PRs can trigger the flow.
-- **PR context menu actions**: failed PR rows now include **Rerun failed jobs** (reruns failed workflow runs resolved from head commit SHA), and PR rows also include **Copy PR URL** above **Copy branch name** for quick link copying.
-
-### Changed
-
 - **Flakiness rules** are now managed in a dedicated resizable, scrollable **Manage rules…** window instead of an inline list inside the Settings dialog. The Flakiness tab shows a rule count and a button to open the window.
+- **PR context menu actions**: failed PR rows now include **Rerun failed jobs** (reruns failed workflow runs resolved from head commit SHA), and PR rows also include **Copy PR URL** above **Copy branch name** for quick link copying.
 
 ## [1.5.3] - 2026-03-24
 
