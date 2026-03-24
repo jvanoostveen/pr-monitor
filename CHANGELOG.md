@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Flakiness scope option**: added a new Settings → Flakiness toggle to run AI flakiness detection only for **My Auto-Merge PRs**. When enabled, regular "My PRs" are skipped by the AI flakiness flow.
 
+### Fixed
+
+- **GitHub Models fallback retry**: when `gpt-5-mini` is unavailable (`unavailable_model`), flakiness analysis now automatically retries with `gpt-4o-mini` instead of immediately treating the failure as a real CI failure.
+
 ## [1.5.3] - 2026-03-24
 
 ### Fixed

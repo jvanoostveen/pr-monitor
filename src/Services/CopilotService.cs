@@ -16,7 +16,8 @@ public sealed class CopilotService
     private static readonly HttpClient _http = new();
 
     private const string ModelsEndpoint = "https://models.inference.ai.azure.com/chat/completions";
-    private const string Model = "gpt-5-mini";
+    private const string PrimaryModel = "gpt-5-mini";
+    private const string FallbackModel = "gpt-4o-mini";
 
     public CopilotService(DiagnosticsLogger logger)
     {
@@ -69,7 +70,7 @@ public sealed class CopilotService
 
             var requestBody = new
             {
-                model = Model,
+                model = PrimaryModel,
                 messages = new[]
                 {
                     new { role = "system", content = systemPrompt },
@@ -79,13 +80,22 @@ public sealed class CopilotService
                 max_tokens = 512
             };
 
-            var json = JsonSerializer.Serialize(requestBody);
-            using var request = new HttpRequestMessage(HttpMethod.Post, ModelsEndpoint);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+            var (response, responseBody) = await SendChatCompletionAsync(token, requestBody);
 
-            using var response = await _http.SendAsync(request);
-            var responseBody = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode && (int)response.StatusCode == 400 && IsUnavailableModelError(responseBody))
+            {
+                _logger.Warn($"CopilotService: primary model unavailable ({PrimaryModel}); retrying with fallback model ({FallbackModel}).");
+
+                var fallbackBody = new
+                {
+                    model = FallbackModel,
+                    messages = requestBody.messages,
+                    temperature = requestBody.temperature,
+                    max_tokens = requestBody.max_tokens
+                };
+
+                (response, responseBody) = await SendChatCompletionAsync(token, fallbackBody);
+            }
 
             if (!response.IsSuccessStatusCode)
             {
@@ -100,6 +110,29 @@ public sealed class CopilotService
             _logger.Error("CopilotService.AnalyzeFlakiness failed.", ex);
             return Fallback("Analysis failed due to an exception.");
         }
+    }
+
+    private static bool IsUnavailableModelError(string responseBody)
+    {
+        if (string.IsNullOrWhiteSpace(responseBody))
+            return false;
+
+        return responseBody.Contains("unavailable_model", StringComparison.OrdinalIgnoreCase)
+            || responseBody.Contains("Unavailable model", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static async Task<(HttpResponseMessage Response, string Body)> SendChatCompletionAsync(string token, object requestBody)
+    {
+        var json = JsonSerializer.Serialize(requestBody);
+        using var request = new HttpRequestMessage(HttpMethod.Post, ModelsEndpoint)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        };
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await _http.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+        return (response, body);
     }
 
     private FlakinessAnalysisResult ParseResponse(string responseBody)
@@ -156,6 +189,7 @@ public sealed class CopilotService
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
+
             using var proc = System.Diagnostics.Process.Start(psi);
             if (proc is null) return null;
             var output = await proc.StandardOutput.ReadToEndAsync();

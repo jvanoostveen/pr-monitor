@@ -151,6 +151,8 @@ The file contains timestamped `INFO`, `WARN`, and `ERROR` entries.
 
 Update-check failures are logged there as well (including HTTP status or exception details), and the manual **Check for updates…** action in **About…** shows the concrete error reason.
 
+For flakiness analysis, if the configured GitHub model is temporarily unavailable, PR Monitor automatically retries with a compatible fallback model.
+
 If Windows SmartScreen shows "Windows protected your PC" for `PrMonitor.exe`:
 
 1. Right-click `PrMonitor.exe` and choose **Properties**.

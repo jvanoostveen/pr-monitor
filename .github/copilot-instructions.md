@@ -166,7 +166,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 ### Flakiness analysis and auto-rerun
 - `FlakinessService` subscribes to `PollingService.PrChanged` and handles `CIStatusChanged` events for the current user's own non-draft PRs with `CIState.Failure`.
 - **Local rule check first**: enabled `FlakinessRules` (regex patterns) are matched against the log excerpt. If a rule matches, the CI run is immediately retried without calling the AI.
-- **Copilot fallback**: if no rule matches, `CopilotService` calls the GitHub Models API (`gpt-5-mini`, endpoint `https://models.inference.ai.azure.com`) with a compact `FailureContext` object (PR metadata + failed check names + ≤4000 char log excerpt). The Bearer token is obtained via `gh auth token`.
+- **Copilot fallback**: if no rule matches, `CopilotService` calls the GitHub Models API (`gpt-5-mini`, endpoint `https://models.inference.ai.azure.com`) with a compact `FailureContext` object (PR metadata + failed check names + ≤4000 char log excerpt). If the API returns `unavailable_model`, it retries once with `gpt-4o-mini`. The Bearer token is obtained via `gh auth token`.
 - **Auto-rerun**: `gh run rerun {runId} --failed --repo {owner}/{repo}` is invoked. Max 3 reruns per PR, counter persisted in `settings.json` and pruned after 30 days.
 - **Suggested rules**: after each Copilot analysis, any suggested `.NET regex` patterns are persisted to `FlakinessRules` (auto-enabled) and reused in future without calling the AI.
 - **Real failure toast**: when Copilot concludes the failure is not flaky, a toast is shown with the one-sentence rationale.
