@@ -37,6 +37,7 @@ public sealed class GitHubService
                 commits(last: 1) {
                   nodes {
                     commit {
+                      oid
                       statusCheckRollup {
                         state
                       }
@@ -75,6 +76,7 @@ public sealed class GitHubService
                 commits(last: 1) {
                   nodes {
                     commit {
+                      oid
                       statusCheckRollup {
                         state
                       }
@@ -122,6 +124,7 @@ public sealed class GitHubService
                 commits(last: 1) {
                   nodes {
                     commit {
+                      oid
                       statusCheckRollup {
                         state
                       }
@@ -242,6 +245,52 @@ public sealed class GitHubService
         return string.IsNullOrWhiteSpace(output) ? null : output.Trim();
     }
 
+    /// <summary>
+    /// Returns the IDs of failed GitHub Actions workflow runs for the given commit SHA.
+    /// </summary>
+    public async Task<IReadOnlyList<long>> FetchFailedRunIdsAsync(string owner, string repo, string headSha)
+    {
+        var (output, stderr, exitCode) = await RunGhAsync($"api repos/{owner}/{repo}/actions/runs?head_sha={headSha} --jq \".workflow_runs[] | select(.conclusion==\\\"failure\\\") | .id\"");
+        if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
+        {
+            if (exitCode != 0)
+                _logger.Warn($"FetchFailedRunIdsAsync failed (exit={exitCode}) for {owner}/{repo}@{headSha}: {stderr?.Trim()}");
+            return [];
+        }
+
+        var ids = new List<long>();
+        foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (long.TryParse(line, out var id))
+                ids.Add(id);
+        }
+        return ids;
+    }
+
+    /// <summary>
+    /// Fetches the failed job log output for a workflow run (truncated to 4000 chars).
+    /// </summary>
+    public async Task<string> FetchFailedLogAsync(string owner, string repo, long runId)
+    {
+        var (output, _, exitCode) = await RunGhAsync($"run view {runId} --log-failed --repo {owner}/{repo}");
+        if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
+            return "";
+
+        const int MaxLength = 4000;
+        return output.Length <= MaxLength ? output : output[..MaxLength] + "\n[truncated]";
+    }
+
+    /// <summary>
+    /// Reruns failed jobs for a workflow run. Returns true on success.
+    /// </summary>
+    public async Task<bool> RerunFailedJobsAsync(string owner, string repo, long runId)
+    {
+        var (_, stderr, exitCode) = await RunGhAsync($"run rerun {runId} --failed --repo {owner}/{repo}");
+        if (exitCode != 0)
+            _logger.Warn($"RerunFailedJobsAsync failed (exit={exitCode}) for run {runId} in {owner}/{repo}: {stderr?.Trim()}");
+        return exitCode == 0;
+    }
+
     // ── Internal helpers ────────────────────────────────────────────────
 
     private static List<string> BuildSearchQueries(string baseQuery, IReadOnlyList<string> orgs)
@@ -348,6 +397,7 @@ public sealed class GitHubService
                 HeadRefName = node.TryGetProperty("headRefName", out var hrn1)
                     ? hrn1.GetString() ?? ""
                     : "",
+                HeadCommitSha = GetCommitOid(node),
                 CIState = ciState,
                 IsApproved = node.TryGetProperty("reviewDecision", out var rd1)
                     && rd1.GetString() == "APPROVED",
@@ -434,6 +484,7 @@ public sealed class GitHubService
                 HeadRefName = node.TryGetProperty("headRefName", out var hrn2)
                     ? hrn2.GetString() ?? ""
                     : "",
+                HeadCommitSha = GetCommitOid(node),
                 CIState = ciState,
                 IsApproved = node.TryGetProperty("reviewDecision", out var rd2)
                     && rd2.GetString() == "APPROVED",
@@ -488,6 +539,21 @@ public sealed class GitHubService
             return "";
 
         return login.GetString() ?? "";
+    }
+
+    private static string GetCommitOid(JsonElement node)
+    {
+        if (node.TryGetProperty("commits", out var commits)
+            && commits.TryGetProperty("nodes", out var nodes))
+        {
+            foreach (var cn in nodes.EnumerateArray())
+            {
+                if (cn.TryGetProperty("commit", out var commit)
+                    && commit.TryGetProperty("oid", out var oid))
+                    return oid.GetString() ?? "";
+            }
+        }
+        return "";
     }
 
     private static CIState ParseCIState(string? state) => state?.ToUpperInvariant() switch

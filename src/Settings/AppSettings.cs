@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using PrMonitor.Models;
 
 namespace PrMonitor.Settings;
 
@@ -98,6 +99,23 @@ public sealed class AppSettings
     /// <summary>Whether to show a toast when an auto-merge PR is merged or closed.</summary>
     public bool NotifyPrMergedOrClosed { get; set; } = true;
 
+    // ── Flakiness analysis ───────────────────────────────────────────────
+
+    /// <summary>Whether to automatically analyze CI failures for flakiness and retry.</summary>
+    public bool FlakinessAnalysisEnabled { get; set; } = false;
+
+    /// <summary>Whether flakiness analysis should only run for auto-merge PRs.</summary>
+    public bool FlakinessAutoMergeOnly { get; set; } = false;
+
+    /// <summary>Maximum automatic reruns for flaky failures per PR.</summary>
+    public int FlakinessMaxReruns { get; set; } = 3;
+
+    /// <summary>Learned and user-managed flakiness patterns.</summary>
+    public List<FlakinessRule> FlakinessRules { get; set; } = [];
+
+    /// <summary>Per-PR rerun counts. Key = "owner/repo#number".</summary>
+    public Dictionary<string, RerunRecord> FlakinessRerunCounts { get; set; } = [];
+
     /// <summary>
     /// Load settings from disk, or return defaults if no file exists.
     /// </summary>
@@ -106,15 +124,27 @@ public sealed class AppSettings
         if (!File.Exists(SettingsPath))
             return new AppSettings();
 
+        AppSettings? settings = null;
         try
         {
             var json = File.ReadAllText(SettingsPath);
-            return JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+            settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
         }
         catch
         {
             return new AppSettings();
         }
+
+        // Clean up rerun records older than 30 days
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-30);
+        foreach (var key in settings.FlakinessRerunCounts.Keys
+            .Where(k => settings.FlakinessRerunCounts[k].LastAttempt < cutoff)
+            .ToList())
+        {
+            settings.FlakinessRerunCounts.Remove(key);
+        }
+
+        return settings;
     }
 
     /// <summary>

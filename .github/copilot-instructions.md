@@ -42,12 +42,18 @@ pr-bot/
     │   └── CIStateToBrushConverter.cs  # CIState → hex color brush
     ├── Models/
     │   ├── CIState.cs                  # Enum: Unknown/Pending/Success/Failure/Error
-    │   └── PullRequestInfo.cs          # PR data model
+    │   ├── PullRequestInfo.cs          # PR data model (includes HeadCommitSha)
+    │   ├── FailureContext.cs           # Context passed to flakiness AI analysis
+    │   ├── FlakinessAnalysisResult.cs  # AI analysis result + suggested rules
+    │   ├── FlakinessRule.cs            # Persisted flakiness regex rule
+    │   └── RerunRecord.cs              # Per-PR rerun count + timestamp
     ├── Services/
-    │   ├── GitHubService.cs            # GraphQL via `gh api graphql`
-    │   ├── PollingService.cs           # Timer polling + delta events
-    │   ├── NotificationService.cs      # Windows toast on PR changes
-    │   └── UpdateService.cs            # GitHub latest release check + version compare
+    │   ├── GitHubService.cs            # GraphQL via `gh api graphql` + workflow run helpers
+    │   ├── PollingService.cs           # Timer polling + delta events (incl. MyPrs CI changes)
+    │   ├── NotificationService.cs      # Windows toast on PR changes + Notify() helper
+    │   ├── UpdateService.cs            # GitHub latest release check + version compare
+    │   ├── CopilotService.cs           # GitHub Models API (gpt-4o-mini) flakiness analysis
+    │   └── FlakinessService.cs         # CI failure analysis orchestrator + auto-rerun
     ├── Settings/
     │   └── AppSettings.cs              # JSON-backed settings
     ├── ViewModels/
@@ -57,6 +63,7 @@ pr-bot/
         ├── TrayIconManager.cs          # NotifyIcon + context menu
         ├── IconGenerator.cs            # Generates 16×16 icon with colored badge
       ├── AboutWindow.xaml / .cs      # About dialog (version/repo/update check)
+        ├── FlakinessRulesWindow.xaml / .cs  # Resizable/scrollable window for managing flakiness rules
         └── SettingsWindow.xaml / .cs   # Settings dialog
 ```
 
@@ -156,6 +163,22 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - Log format includes timestamp + level (`INFO`, `WARN`, `ERROR`).
 - `GitHubService` logs GraphQL/`gh` failures (non-zero exit with stderr, GraphQL errors, JSON parse failures).
 - `PollingService` logs poll lifecycle and exceptions for intermittent "no data" investigations.
+
+### Flakiness analysis and auto-rerun
+- `FlakinessService` subscribes to `PollingService.PrChanged` and handles `CIStatusChanged` events for the current user's own non-draft PRs with `CIState.Failure`.
+- **Local rule check first**: enabled `FlakinessRules` (regex patterns) are matched against the log excerpt. If a rule matches, the CI run is immediately retried without calling the AI.
+- **Copilot analysis**: if no rule matches, `CopilotService` calls the GitHub Models API (`gpt-4o-mini`, endpoint `https://models.inference.ai.azure.com`) with a compact `FailureContext` object (PR metadata + failed check names + ≤4000 char log excerpt). The Bearer token is obtained via `gh auth token`.
+- **Auto-rerun**: `gh run rerun {runId} --failed --repo {owner}/{repo}` is invoked. Max reruns per PR is configurable in Settings (default 3), counter persisted in `settings.json` and pruned after 30 days.
+- **Suggested rules**: after each Copilot analysis, any suggested `.NET regex` patterns are persisted to `FlakinessRules` (auto-enabled) and reused in future without calling the AI.
+- **Real failure toast**: when Copilot concludes the failure is not flaky, a toast is shown with the one-sentence rationale.
+- The feature is disabled by default (`flakinessAnalysisEnabled: false`) and can be enabled in Settings → Flakiness tab.
+- Optional scope filter: `flakinessAutoMergeOnly` limits AI flakiness analysis to PRs in **My Auto-Merge PRs**; non-auto-merge PR failures are skipped when this is enabled.
+- `NotificationService.Notify(title, body)` is a public helper for ad-hoc toasts outside the poll cycle.
+- **Manage rules window**: the Flakiness tab in Settings shows a rule count and a **Manage rules…** button that opens `FlakinessRulesWindow` — a resizable, scrollable window (`CanResizeWithGrip`) owned by SettingsWindow. Rules can be enabled/disabled and deleted there; changes persist when Settings is saved.
+- **Manual rerun action**: PR row context menus include **Rerun failed jobs** (enabled only for failed, non-draft PRs with known head SHA). It resolves failed workflow runs for that commit and triggers `gh run rerun --failed`.
+- **Copy actions**: PR row context menus include **Copy PR URL** and **Copy branch name** for quick clipboard actions from any PR section.
+- `PollingService` also tracks CI changes on "My PRs" (non-auto-merge) via `DetectMyPrsChanges`, so flakiness analysis covers both auto-merge and regular own PRs.
+- `PullRequestInfo.HeadCommitSha` is populated from the GraphQL `oid` field and used to resolve the correct workflow run ID.
 
 ### Notification app name
 - Windows toast notifications should display the app name as **PR Monitor** (configured via project metadata in `src/PrMonitor.csproj`).
@@ -295,11 +318,28 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "laterExpanded": false,
   "mainWindowVisible": false,
   "mainWindowLeft": 1440.0,
-  "mainWindowTop": 120.0
+  "mainWindowTop": 120.0,
+  "flakinessAnalysisEnabled": false,
+  "flakinessAutoMergeOnly": false,
+  "flakinessMaxReruns": 3,
+  "flakinessRules": [
+    {
+      "id": "guid",
+      "pattern": ".NET regex pattern",
+      "description": "Human-readable label",
+      "isEnabled": true,
+      "createdAt": "2026-03-24T00:00:00Z",
+      "matchCount": 0
+    }
+  ],
+  "flakinessRerunCounts": {
+    "owner/repo#123": { "count": 1, "lastAttempt": "2026-03-24T00:00:00Z" }
+  }
 }
 ```
 
 Serialized as camelCase. `AppSettings.Load()` / `settings.Save()` handle file I/O.
+On `Load()`, rerun records older than 30 days are automatically pruned.
 
 ---
 

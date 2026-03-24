@@ -75,6 +75,7 @@ Right-click the tray icon and choose **Settings** to:
 - Add the GitHub **organisations** to include in search results (leave empty for personal repos only)
 - Adjust the **polling interval** (default: 120 seconds)
 - Enable **auto-start with Windows**
+- Configure **Flakiness** options, including limiting AI flakiness analysis to **My Auto-Merge PRs** only and setting **Maximum automatic reruns** (1-10, default 3)
 
 Settings are stored in `%APPDATA%\pr-monitor\settings.json`.
 
@@ -149,6 +150,8 @@ For diagnostics when polling or GitHub API calls intermittently return no data, 
 The file contains timestamped `INFO`, `WARN`, and `ERROR` entries.
 
 Update-check failures are logged there as well (including HTTP status or exception details), and the manual **Check for updates…** action in **About…** shows the concrete error reason.
+
+For flakiness analysis, PR Monitor uses `gpt-4o-mini` through GitHub Models.
 
 If Windows SmartScreen shows "Windows protected your PC" for `PrMonitor.exe`:
 

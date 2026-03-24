@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using PrMonitor.Services;
 using PrMonitor.Settings;
 using PrMonitor.ViewModels;
 using WinForms = System.Windows.Forms;
@@ -20,6 +21,8 @@ public partial class MainWindow : Window
 
     public MainViewModel ViewModel { get; }
     private readonly AppSettings _settings;
+    private readonly GitHubService _github;
+    private readonly NotificationService _notifications;
     private DoubleAnimation? _spinAnimation;
     private bool _userMoved;
     private bool _isProgrammaticMove;
@@ -38,10 +41,12 @@ public partial class MainWindow : Window
     private SnapCorner _preChangeSnappedCorner;
     private bool _preChangeUserMoved;
 
-    public MainWindow(MainViewModel viewModel, AppSettings settings)
+    public MainWindow(MainViewModel viewModel, AppSettings settings, GitHubService github, NotificationService notifications)
     {
         ViewModel = viewModel;
         _settings = settings;
+        _github = github;
+        _notifications = notifications;
         DataContext = viewModel;
         InitializeComponent();
 
@@ -592,6 +597,89 @@ public partial class MainWindow : Window
     {
         if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
             System.Windows.Clipboard.SetText(vm.HeadRefName);
+    }
+
+    private void PrRow_CopyUrl_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
+            System.Windows.Clipboard.SetText(vm.Url);
+    }
+
+    private async void PrRow_RerunFailedJobs_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
+            return;
+
+        if (!vm.CanRerunFailedJobs)
+            return;
+
+        if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
+        {
+            System.Windows.MessageBox.Show("Could not determine owner/repository for this PR.", "Rerun failed jobs",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(vm.HeadCommitSha))
+        {
+            System.Windows.MessageBox.Show("No head commit SHA found for this PR.", "Rerun failed jobs",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            var failedRunIds = await _github.FetchFailedRunIdsAsync(owner, repo, vm.HeadCommitSha);
+            if (failedRunIds.Count == 0)
+            {
+                System.Windows.MessageBox.Show("No failed workflow runs were found for this PR commit.", "Rerun failed jobs",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var successfulReruns = 0;
+            foreach (var runId in failedRunIds)
+            {
+                if (await _github.RerunFailedJobsAsync(owner, repo, runId))
+                    successfulReruns++;
+            }
+
+            if (successfulReruns > 0)
+            {
+                _notifications.Notify(
+                    $"Rerun started for PR #{vm.Number}",
+                    $"Triggered rerun for {successfulReruns} failed workflow run(s) in {vm.Repository}.");
+            }
+            else
+            {
+                System.Windows.MessageBox.Show(
+                    "Failed to trigger rerun for the failed workflow runs.",
+                    "Rerun failed jobs",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Could not rerun failed jobs.\n\nDetails: {ex.Message}",
+                "Rerun failed jobs",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private static bool TrySplitRepository(string repository, out string owner, out string repo)
+    {
+        owner = "";
+        repo = "";
+        var parts = repository.Split('/', 2, StringSplitOptions.TrimEntries);
+        if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[0]) || string.IsNullOrWhiteSpace(parts[1]))
+            return false;
+
+        owner = parts[0];
+        repo = parts[1];
+        return true;
     }
 
     private void UpdateBanner_Click(object sender, MouseButtonEventArgs e)

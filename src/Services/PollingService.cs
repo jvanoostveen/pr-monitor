@@ -50,6 +50,7 @@ public sealed class PollingService : IDisposable
 
     private Dictionary<string, PullRequestInfo> _previousAutoMerge = new();
     private Dictionary<string, PullRequestInfo> _previousReviews = new();
+    private Dictionary<string, PullRequestInfo> _previousMyPrs = new();
 
     public PollingService(GitHubService github, AppSettings settings, DiagnosticsLogger logger)
     {
@@ -147,6 +148,7 @@ public sealed class PollingService : IDisposable
 
             DetectAutoMergeChanges(autoMergePrs);
             DetectReviewChanges(combinedReviewPrs);
+            DetectMyPrsChanges(myPrs);
 
             var snapshot = new PollSnapshot
             {
@@ -222,6 +224,22 @@ public sealed class PollingService : IDisposable
         }
 
         _previousReviews = currentDict;
+    }
+
+    private void DetectMyPrsChanges(List<PullRequestInfo> current)
+    {
+        var currentDict = current.ToDictionary(p => p.Key);
+
+        foreach (var pr in current)
+        {
+            if (_previousMyPrs.TryGetValue(pr.Key, out var prev))
+            {
+                if (prev.CIState != pr.CIState)
+                    RaiseChange(pr, PrChangeKind.CIStatusChanged, prev.CIState);
+            }
+        }
+
+        _previousMyPrs = currentDict;
     }
 
     private void RaiseChange(PullRequestInfo pr, PrChangeKind kind, CIState previousCI = CIState.Unknown)

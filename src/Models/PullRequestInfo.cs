@@ -45,6 +45,9 @@ public sealed class PullRequestInfo
     /// <summary>Head branch name (e.g. "feature/my-feature").</summary>
     public string HeadRefName { get; init; } = "";
 
+    /// <summary>SHA of the latest commit on the head branch.</summary>
+    public string HeadCommitSha { get; set; } = "";
+
     /// <summary>True when the review was requested for a team only, not directly from this user.</summary>
     public bool IsTeamReviewRequested { get; init; }
 

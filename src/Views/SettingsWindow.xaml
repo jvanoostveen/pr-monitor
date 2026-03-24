@@ -347,6 +347,52 @@
                     </StackPanel>
                 </TabItem>
 
+                <!-- ══ Flakiness tab ═════════════════════════════════════════ -->
+                <TabItem Header="Flakiness">
+                    <StackPanel Margin="0,20,0,0">
+
+                        <!-- Enable toggle -->
+                        <CheckBox IsChecked="{Binding FlakinessAnalysisEnabled}"
+                                  Content="Enable flakiness analysis and auto-rerun"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,4,0,12" TextWrapping="Wrap"
+                                   Text="When enabled, CI failures on your own PRs are analyzed using the GitHub Models API (gpt-4o-mini) via your existing GitHub account. Flaky failures are automatically retried up to your configured maximum."/>
+
+                        <CheckBox IsChecked="{Binding FlakinessAutoMergeOnly}"
+                                  Content="Only analyze auto-merge PRs"
+                                  Margin="0,0,0,6"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,0,0,12" TextWrapping="Wrap"
+                                   Text="When enabled, the AI flakiness analysis is only used for PRs in My Auto-Merge PRs."/>
+
+                        <StackPanel Margin="24,0,0,12">
+                            <TextBlock Foreground="#C9D1D9" FontSize="12" Margin="0,0,0,6"
+                                   Text="Maximum automatic reruns"/>
+                            <Slider Minimum="1" Maximum="10"
+                                TickFrequency="1" IsSnapToTickEnabled="True"
+                                Value="{Binding FlakinessMaxReruns}"/>
+                            <TextBlock Foreground="#8B949E" FontSize="11" Margin="0,4,0,0"
+                                   Text="{Binding FlakinessMaxReruns, StringFormat={}{0} attempt(s)}"/>
+                        </StackPanel>
+
+                        <Separator Background="#30363D" Margin="0,4,0,16"/>
+
+                        <!-- Rules heading + manage button -->
+                        <TextBlock Text="LEARNED FLAKINESS RULES" Style="{StaticResource SectionLabel}"
+                                   Margin="0,0,0,6"/>
+                        <DockPanel Margin="0,0,0,0">
+                            <TextBlock DockPanel.Dock="Left"
+                                       VerticalAlignment="Center"
+                                       Foreground="#6E7681" FontSize="12"
+                                       Text="{Binding FlakinessRules.Count, StringFormat={}{0} rule(s) learned}"/>
+                            <Button DockPanel.Dock="Right"
+                                    Content="Manage rules…"
+                                    Width="120"
+                                    Style="{StaticResource SecondaryButton}"
+                                    Click="ManageFlakinessRules_Click"/>
+                        </DockPanel>
+
+                    </StackPanel>
+                </TabItem>
+
             </TabControl>
 
             <!-- Buttons -->

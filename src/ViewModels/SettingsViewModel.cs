@@ -1,6 +1,8 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.Win32;
+using PrMonitor.Models;
 using PrMonitor.Settings;
 
 namespace PrMonitor.ViewModels;
@@ -27,6 +29,11 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _notifyReviewRequested = settings.NotifyReviewRequested;
         _notifyPrMergedOrClosed = settings.NotifyPrMergedOrClosed;
         _showTeamReviewSection = settings.ShowTeamReviewSection;
+        _flakinessAnalysisEnabled = settings.FlakinessAnalysisEnabled;
+        _flakinessAutoMergeOnly = settings.FlakinessAutoMergeOnly;
+        _flakinessMaxReruns = Math.Clamp(settings.FlakinessMaxReruns, 1, 10);
+        foreach (var rule in settings.FlakinessRules)
+            FlakinessRules.Add(new FlakinessRuleViewModel(rule));
     }
 
     // ── Bindable properties ─────────────────────────────────────────
@@ -99,6 +106,38 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetField(ref _showTeamReviewSection, value);
     }
 
+    // ── Flakiness analysis ───────────────────────────────────────────────
+
+    private bool _flakinessAnalysisEnabled;
+    public bool FlakinessAnalysisEnabled
+    {
+        get => _flakinessAnalysisEnabled;
+        set => SetField(ref _flakinessAnalysisEnabled, value);
+    }
+
+    private bool _flakinessAutoMergeOnly;
+    public bool FlakinessAutoMergeOnly
+    {
+        get => _flakinessAutoMergeOnly;
+        set => SetField(ref _flakinessAutoMergeOnly, value);
+    }
+
+    private int _flakinessMaxReruns;
+    public int FlakinessMaxReruns
+    {
+        get => _flakinessMaxReruns;
+        set => SetField(ref _flakinessMaxReruns, Math.Clamp(value, 1, 10));
+    }
+
+    public ObservableCollection<FlakinessRuleViewModel> FlakinessRules { get; } = [];
+
+    public void DeleteRule(string id)
+    {
+        var vm = FlakinessRules.FirstOrDefault(r => r.Id == id);
+        if (vm is null) return;
+        FlakinessRules.Remove(vm);
+    }
+
     // ── Save ────────────────────────────────────────────────────────
 
     public void Save()
@@ -118,6 +157,16 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.NotifyReviewRequested = _notifyReviewRequested;
         _settings.NotifyPrMergedOrClosed = _notifyPrMergedOrClosed;
         _settings.ShowTeamReviewSection = _showTeamReviewSection;
+        _settings.FlakinessAnalysisEnabled = _flakinessAnalysisEnabled;
+        _settings.FlakinessAutoMergeOnly = _flakinessAutoMergeOnly;
+        _settings.FlakinessMaxReruns = _flakinessMaxReruns;
+        _settings.FlakinessRules = FlakinessRules.Select(vm => new FlakinessRule
+        {
+            Id = vm.Id,
+            Pattern = vm.Pattern,
+            Description = vm.Description,
+            IsEnabled = vm.IsEnabled,
+        }).ToList();
         _settings.Save();
 
         ApplyAutoStart(_autoStartWithWindows);
@@ -159,4 +208,36 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         field = value;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
-}
+    // ── Flakiness rule view model ──────────────────────────────────────────────
+
+    public sealed class FlakinessRuleViewModel : INotifyPropertyChanged
+    {
+        public string Id { get; }
+        public string Pattern { get; }
+        public string Description { get; }
+
+        private bool _isEnabled;
+        public bool IsEnabled
+        {
+            get => _isEnabled;
+            set
+            {
+                if (_isEnabled == value) return;
+                _isEnabled = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
+            }
+        }
+
+        public int MatchCount { get; }
+
+        public FlakinessRuleViewModel(FlakinessRule rule)
+        {
+            Id = rule.Id;
+            Pattern = rule.Pattern;
+            Description = rule.Description;
+            _isEnabled = rule.IsEnabled;
+            MatchCount = rule.MatchCount;
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+    }}
