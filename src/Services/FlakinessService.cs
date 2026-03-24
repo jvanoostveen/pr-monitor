@@ -7,7 +7,7 @@ namespace PrMonitor.Services;
 /// <summary>
 /// Listens for CI failures on the current user's PRs, checks local flakiness rules,
 /// and — when no local rule matches — calls the Copilot API to determine flakiness.
-/// Automatically reruns failed GitHub Actions (max 3 times per PR).
+/// Automatically reruns failed GitHub Actions (max attempts configurable per PR).
 /// </summary>
 public sealed class FlakinessService
 {
@@ -57,10 +57,11 @@ public sealed class FlakinessService
         }
 
         var prKey = pr.Key;
+        var maxAttempts = Math.Max(1, _settings.FlakinessMaxReruns);
         var rerunCount = GetRerunCount(prKey);
-        if (rerunCount >= 3)
+        if (rerunCount >= maxAttempts)
         {
-            _logger.Info($"FlakinessService: max reruns (3) reached for {prKey}, skipping.");
+            _logger.Info($"FlakinessService: max reruns ({maxAttempts}) reached for {prKey}, skipping.");
             return;
         }
 
@@ -109,7 +110,7 @@ public sealed class FlakinessService
             matchedRule.MatchCount++;
             _settings.Save();
             _logger.Info($"FlakinessService: local rule '{matchedRule.Description}' matched {prKey}. Rerunning.");
-            await RerunAndNotify(pr, owner, repo, primaryRunId, prKey, $"Matched rule: {matchedRule.Description}");
+            await RerunAndNotify(pr, owner, repo, primaryRunId, prKey, maxAttempts, $"Matched rule: {matchedRule.Description}");
             return;
         }
 
@@ -137,7 +138,7 @@ public sealed class FlakinessService
         if (result.IsFlaky)
         {
             _logger.Info($"FlakinessService: Copilot says FLAKY for {prKey}: {result.Rationale}");
-            await RerunAndNotify(pr, owner, repo, primaryRunId, prKey, result.Rationale);
+            await RerunAndNotify(pr, owner, repo, primaryRunId, prKey, maxAttempts, result.Rationale);
         }
         else
         {
@@ -148,7 +149,7 @@ public sealed class FlakinessService
         }
     }
 
-    private async Task RerunAndNotify(PullRequestInfo pr, string owner, string repo, long runId, string prKey, string rationale)
+    private async Task RerunAndNotify(PullRequestInfo pr, string owner, string repo, long runId, string prKey, int maxAttempts, string rationale)
     {
         var success = await _github.RerunFailedJobsAsync(owner, repo, runId);
         if (!success)
@@ -160,9 +161,9 @@ public sealed class FlakinessService
         var newCount = IncrementRerunCount(prKey);
         _settings.Save();
 
-        _logger.Info($"FlakinessService: triggered rerun {newCount}/3 for {prKey}.");
+        _logger.Info($"FlakinessService: triggered rerun {newCount}/{maxAttempts} for {prKey}.");
         _notifications.Notify(
-            $"\ud83d\udd04 Flaky CI on #{pr.Number} \u2014 retrying ({newCount}/3)",
+            $"\ud83d\udd04 Flaky CI on #{pr.Number} \u2014 retrying ({newCount}/{maxAttempts})",
             rationale);
     }
 

@@ -75,7 +75,7 @@ Right-click the tray icon and choose **Settings** to:
 - Add the GitHub **organisations** to include in search results (leave empty for personal repos only)
 - Adjust the **polling interval** (default: 120 seconds)
 - Enable **auto-start with Windows**
-- Configure **Flakiness** options, including limiting AI flakiness analysis to **My Auto-Merge PRs** only
+- Configure **Flakiness** options, including limiting AI flakiness analysis to **My Auto-Merge PRs** only and setting **Maximum automatic reruns** (1-10, default 3)
 
 Settings are stored in `%APPDATA%\pr-monitor\settings.json`.
 

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Flakiness scope option**: added a new Settings → Flakiness toggle to run AI flakiness detection only for **My Auto-Merge PRs**. When enabled, regular "My PRs" are skipped by the AI flakiness flow.
+- **Configurable flakiness retry limit**: Settings → Flakiness now includes a **Maximum automatic reruns** control (1-10, default 3), and runtime/log/toast retry counters now show the configured max attempt value.
 
 ### Fixed
 

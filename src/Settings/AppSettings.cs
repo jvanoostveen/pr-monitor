@@ -107,6 +107,9 @@ public sealed class AppSettings
     /// <summary>Whether flakiness analysis should only run for auto-merge PRs.</summary>
     public bool FlakinessAutoMergeOnly { get; set; } = false;
 
+    /// <summary>Maximum automatic reruns for flaky failures per PR.</summary>
+    public int FlakinessMaxReruns { get; set; } = 3;
+
     /// <summary>Learned and user-managed flakiness patterns.</summary>
     public List<FlakinessRule> FlakinessRules { get; set; } = [];
 
