@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `NotificationService.Notify(title, body)` helper for ad-hoc toasts outside the poll cycle.
 - **Manual rerun action on PR rows**: failed PR rows now include a context-menu action **Rerun failed jobs**. Selecting it triggers `gh run rerun --failed` for failed workflow runs resolved from that PR's head commit SHA.
 
+### Changed
+
+- **Flakiness scope option**: added a new Settings → Flakiness toggle to run AI flakiness detection only for **My Auto-Merge PRs**. When enabled, regular "My PRs" are skipped by the AI flakiness flow.
+
 ## [1.5.3] - 2026-03-24
 
 ### Fixed

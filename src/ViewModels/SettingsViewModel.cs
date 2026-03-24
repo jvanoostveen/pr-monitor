@@ -30,6 +30,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _notifyPrMergedOrClosed = settings.NotifyPrMergedOrClosed;
         _showTeamReviewSection = settings.ShowTeamReviewSection;
         _flakinessAnalysisEnabled = settings.FlakinessAnalysisEnabled;
+        _flakinessAutoMergeOnly = settings.FlakinessAutoMergeOnly;
         foreach (var rule in settings.FlakinessRules)
             FlakinessRules.Add(new FlakinessRuleViewModel(rule));
     }
@@ -113,6 +114,13 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetField(ref _flakinessAnalysisEnabled, value);
     }
 
+    private bool _flakinessAutoMergeOnly;
+    public bool FlakinessAutoMergeOnly
+    {
+        get => _flakinessAutoMergeOnly;
+        set => SetField(ref _flakinessAutoMergeOnly, value);
+    }
+
     public ObservableCollection<FlakinessRuleViewModel> FlakinessRules { get; } = [];
 
     public void DeleteRule(string id)
@@ -142,6 +150,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.NotifyPrMergedOrClosed = _notifyPrMergedOrClosed;
         _settings.ShowTeamReviewSection = _showTeamReviewSection;
         _settings.FlakinessAnalysisEnabled = _flakinessAnalysisEnabled;
+        _settings.FlakinessAutoMergeOnly = _flakinessAutoMergeOnly;
         _settings.FlakinessRules = FlakinessRules.Select(vm => new FlakinessRule
         {
             Id = vm.Id,

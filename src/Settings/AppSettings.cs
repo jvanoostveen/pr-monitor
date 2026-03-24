@@ -104,6 +104,9 @@ public sealed class AppSettings
     /// <summary>Whether to automatically analyze CI failures for flakiness and retry.</summary>
     public bool FlakinessAnalysisEnabled { get; set; } = false;
 
+    /// <summary>Whether flakiness analysis should only run for auto-merge PRs.</summary>
+    public bool FlakinessAutoMergeOnly { get; set; } = false;
+
     /// <summary>Learned and user-managed flakiness patterns.</summary>
     public List<FlakinessRule> FlakinessRules { get; set; } = [];
 

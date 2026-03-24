@@ -171,6 +171,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - **Suggested rules**: after each Copilot analysis, any suggested `.NET regex` patterns are persisted to `FlakinessRules` (auto-enabled) and reused in future without calling the AI.
 - **Real failure toast**: when Copilot concludes the failure is not flaky, a toast is shown with the one-sentence rationale.
 - The feature is disabled by default (`flakinessAnalysisEnabled: false`) and can be enabled in Settings → Flakiness tab.
+- Optional scope filter: `flakinessAutoMergeOnly` limits AI flakiness analysis to PRs in **My Auto-Merge PRs**; non-auto-merge PR failures are skipped when this is enabled.
 - `NotificationService.Notify(title, body)` is a public helper for ad-hoc toasts outside the poll cycle.
 - **Manual rerun action**: PR row context menus include **Rerun failed jobs** (enabled only for failed, non-draft PRs with known head SHA). It resolves failed workflow runs for that commit and triggers `gh run rerun --failed`.
 - `PollingService` also tracks CI changes on "My PRs" (non-auto-merge) via `DetectMyPrsChanges`, so flakiness analysis covers both auto-merge and regular own PRs.
@@ -316,6 +317,7 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "mainWindowLeft": 1440.0,
   "mainWindowTop": 120.0,
   "flakinessAnalysisEnabled": false,
+  "flakinessAutoMergeOnly": false,
   "flakinessRules": [
     {
       "id": "guid",

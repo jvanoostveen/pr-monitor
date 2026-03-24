@@ -50,6 +50,12 @@ public sealed class FlakinessService
         if (!_settings.FlakinessAnalysisEnabled)
             return;
 
+        if (_settings.FlakinessAutoMergeOnly && !pr.HasAutoMerge)
+        {
+            _logger.Info($"FlakinessService: skipping {pr.Key} because auto-merge-only mode is enabled.");
+            return;
+        }
+
         var prKey = pr.Key;
         var rerunCount = GetRerunCount(prKey);
         if (rerunCount >= 3)
