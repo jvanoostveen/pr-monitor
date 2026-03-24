@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `HeadCommitSha` property on `PullRequestInfo` (populated from the `oid` GraphQL field) used to resolve the correct workflow run for a PR.
 - `DetectMyPrsChanges` in `PollingService` — tracks CI state changes on "My PRs" (non-auto-merge) so flakiness analysis is also triggered for those PRs.
 - `NotificationService.Notify(title, body)` helper for ad-hoc toasts outside the poll cycle.
+- **Manual rerun action on PR rows**: failed PR rows now include a context-menu action **Rerun failed jobs**. Selecting it triggers `gh run rerun --failed` for failed workflow runs resolved from that PR's head commit SHA.
 
 ## [1.5.3] - 2026-03-24
 

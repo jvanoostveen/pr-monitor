@@ -76,7 +76,7 @@ public partial class App : System.Windows.Application
         _mainVm = mainVm;
         mainVm.Subscribe(_polling);
 
-        _mainWindow = new MainWindow(mainVm, settings);
+        _mainWindow = new MainWindow(mainVm, settings, _github!, _notifications!);
 
         _trayIcon = new TrayIconManager(settings);
         _trayIcon.Subscribe(_polling);

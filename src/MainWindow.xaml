@@ -264,6 +264,9 @@
                                                 <ContextMenu>
                                                     <MenuItem Header="Copy branch name" Tag="{Binding}"
                                                               Click="PrRow_CopyBranch_Click"/>
+                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
+                                                              Click="PrRow_RerunFailedJobs_Click"
+                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -353,6 +356,9 @@
                                                 <ContextMenu>
                                                     <MenuItem Header="Copy branch name" Tag="{Binding}"
                                                               Click="PrRow_CopyBranch_Click"/>
+                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
+                                                              Click="PrRow_RerunFailedJobs_Click"
+                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -436,6 +442,9 @@
                                                 <ContextMenu>
                                                     <MenuItem Header="Copy branch name" Tag="{Binding}"
                                                               Click="PrRow_CopyBranch_Click"/>
+                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
+                                                              Click="PrRow_RerunFailedJobs_Click"
+                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -521,6 +530,9 @@
                                                 <ContextMenu>
                                                     <MenuItem Header="Copy branch name" Tag="{Binding}"
                                                               Click="PrRow_CopyBranch_Click"/>
+                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
+                                                              Click="PrRow_RerunFailedJobs_Click"
+                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -605,6 +617,9 @@
                                                 <ContextMenu>
                                                     <MenuItem Header="Copy branch name" Tag="{Binding}"
                                                               Click="PrRow_CopyBranch_Click"/>
+                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
+                                                              Click="PrRow_RerunFailedJobs_Click"
+                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -690,6 +705,9 @@
                                             <ContextMenu>
                                                 <MenuItem Header="Copy branch name" Tag="{Binding}"
                                                           Click="PrRow_CopyBranch_Click"/>
+                                                <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
+                                                          Click="PrRow_RerunFailedJobs_Click"
+                                                          IsEnabled="{Binding CanRerunFailedJobs}"/>
                                                 <MenuItem Header="Restore" Tag="{Binding}"
                                                           Click="PrRow_Restore_Click"/>
                                             </ContextMenu>

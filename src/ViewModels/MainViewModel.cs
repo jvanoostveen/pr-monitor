@@ -480,7 +480,9 @@ public sealed class PrItemViewModel
     public bool IsTeamReviewPr { get; init; }
     public bool IsDraft { get; init; }
     public string HeadRefName { get; init; } = "";
+    public string HeadCommitSha { get; init; } = "";
     public bool IsApproved { get; init; }
+    public bool CanRerunFailedJobs => !IsDraft && CIState == CIState.Failure && !string.IsNullOrWhiteSpace(HeadCommitSha);
 
     /// <summary>Show the approved checkmark icon: PR is approved but has no unresolved review comments (comments take priority).</summary>
     public bool ShowApprovedIcon => IsApproved && !HasUnresolvedReviewComments;
@@ -509,6 +511,7 @@ public sealed class PrItemViewModel
         IsTeamReviewPr = isTeamReview,
         IsDraft = pr.IsDraft,
         HeadRefName = pr.HeadRefName,
+        HeadCommitSha = pr.HeadCommitSha,
         IsApproved = pr.IsApproved,
         CIIcon = pr.CIState switch
         {

@@ -172,6 +172,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - **Real failure toast**: when Copilot concludes the failure is not flaky, a toast is shown with the one-sentence rationale.
 - The feature is disabled by default (`flakinessAnalysisEnabled: false`) and can be enabled in Settings → Flakiness tab.
 - `NotificationService.Notify(title, body)` is a public helper for ad-hoc toasts outside the poll cycle.
+- **Manual rerun action**: PR row context menus include **Rerun failed jobs** (enabled only for failed, non-draft PRs with known head SHA). It resolves failed workflow runs for that commit and triggers `gh run rerun --failed`.
 - `PollingService` also tracks CI changes on "My PRs" (non-auto-merge) via `DetectMyPrsChanges`, so flakiness analysis covers both auto-merge and regular own PRs.
 - `PullRequestInfo.HeadCommitSha` is populated from the GraphQL `oid` field and used to resolve the correct workflow run ID.
 
