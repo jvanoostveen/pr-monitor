@@ -7,7 +7,7 @@ using PrMonitor.Models;
 namespace PrMonitor.Services;
 
 /// <summary>
-/// Analyzes CI failure logs for flakiness using the GitHub Models API (gpt-4o-mini).
+/// Analyzes CI failure logs for flakiness using the GitHub Models API (gpt-5-mini).
 /// Uses the current user's GitHub token via 'gh auth token'.
 /// </summary>
 public sealed class CopilotService
@@ -16,7 +16,7 @@ public sealed class CopilotService
     private static readonly HttpClient _http = new();
 
     private const string ModelsEndpoint = "https://models.inference.ai.azure.com/chat/completions";
-    private const string Model = "gpt-4o-mini";
+    private const string Model = "gpt-5-mini";
 
     public CopilotService(DiagnosticsLogger logger)
     {
