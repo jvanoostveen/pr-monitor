@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Flakiness analysis and auto-rerun**: when enabled in Settings → Flakiness, CI failures on your own non-draft PRs are analyzed using the GitHub Models API (`gpt-5-mini`) authenticated via `gh auth token`. Flaky failures are automatically retried up to 3 times per PR with a toast notification each time. Real failures show a separate "Real failure" toast.
+- **Flakiness analysis and auto-rerun**: when enabled in Settings → Flakiness, CI failures on your own non-draft PRs are analyzed using the GitHub Models API (`gpt-4o-mini`) authenticated via `gh auth token`. Flaky failures are automatically retried up to 3 times per PR with a toast notification each time. Real failures show a separate "Real failure" toast.
 - **Learned flakiness rules**: after each Copilot analysis, suggested `.NET` regex patterns are persisted as reusable rules. Subsequent failures matching a rule skip the API call and rerun immediately.
 - **Flakiness settings tab**: new "Flakiness" tab in the Settings window shows an enable/disable toggle and a list of learned rules (with per-rule enable/disable toggles and delete buttons).
 - `HeadCommitSha` property on `PullRequestInfo` (populated from the `oid` GraphQL field) used to resolve the correct workflow run for a PR.
@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **GitHub Models fallback retry**: when `gpt-5-mini` is unavailable (`unavailable_model`), flakiness analysis now automatically retries with `gpt-4o-mini` instead of immediately treating the failure as a real CI failure.
+- **GitHub Models model selection**: flakiness analysis now uses `gpt-4o-mini` as its only configured model, removing the retry path for `gpt-5-mini` unavailability.
 
 ## [1.5.3] - 2026-03-24
 

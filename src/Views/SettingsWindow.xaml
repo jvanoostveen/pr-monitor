@@ -355,7 +355,7 @@
                         <CheckBox IsChecked="{Binding FlakinessAnalysisEnabled}"
                                   Content="Enable flakiness analysis and auto-rerun"/>
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,4,0,12" TextWrapping="Wrap"
-                                   Text="When enabled, CI failures on your own PRs are analyzed using the GitHub Models API (gpt-5-mini) via your existing GitHub account. Flaky failures are automatically retried up to 3 times."/>
+                                   Text="When enabled, CI failures on your own PRs are analyzed using the GitHub Models API (gpt-4o-mini) via your existing GitHub account. Flaky failures are automatically retried up to 3 times."/>
 
                         <CheckBox IsChecked="{Binding FlakinessAutoMergeOnly}"
                                   Content="Only analyze auto-merge PRs"

@@ -7,7 +7,7 @@ using PrMonitor.Models;
 namespace PrMonitor.Services;
 
 /// <summary>
-/// Analyzes CI failure logs for flakiness using the GitHub Models API (gpt-5-mini).
+/// Analyzes CI failure logs for flakiness using the GitHub Models API (gpt-4o-mini).
 /// Uses the current user's GitHub token via 'gh auth token'.
 /// </summary>
 public sealed class CopilotService
@@ -16,8 +16,7 @@ public sealed class CopilotService
     private static readonly HttpClient _http = new();
 
     private const string ModelsEndpoint = "https://models.inference.ai.azure.com/chat/completions";
-    private const string PrimaryModel = "gpt-5-mini";
-    private const string FallbackModel = "gpt-4o-mini";
+    private const string Model = "gpt-4o-mini";
 
     public CopilotService(DiagnosticsLogger logger)
     {
@@ -70,7 +69,7 @@ public sealed class CopilotService
 
             var requestBody = new
             {
-                model = PrimaryModel,
+                model = Model,
                 messages = new[]
                 {
                     new { role = "system", content = systemPrompt },
@@ -81,21 +80,6 @@ public sealed class CopilotService
             };
 
             var (response, responseBody) = await SendChatCompletionAsync(token, requestBody);
-
-            if (!response.IsSuccessStatusCode && (int)response.StatusCode == 400 && IsUnavailableModelError(responseBody))
-            {
-                _logger.Warn($"CopilotService: primary model unavailable ({PrimaryModel}); retrying with fallback model ({FallbackModel}).");
-
-                var fallbackBody = new
-                {
-                    model = FallbackModel,
-                    messages = requestBody.messages,
-                    temperature = requestBody.temperature,
-                    max_tokens = requestBody.max_tokens
-                };
-
-                (response, responseBody) = await SendChatCompletionAsync(token, fallbackBody);
-            }
 
             if (!response.IsSuccessStatusCode)
             {
@@ -110,15 +94,6 @@ public sealed class CopilotService
             _logger.Error("CopilotService.AnalyzeFlakiness failed.", ex);
             return Fallback("Analysis failed due to an exception.");
         }
-    }
-
-    private static bool IsUnavailableModelError(string responseBody)
-    {
-        if (string.IsNullOrWhiteSpace(responseBody))
-            return false;
-
-        return responseBody.Contains("unavailable_model", StringComparison.OrdinalIgnoreCase)
-            || responseBody.Contains("Unavailable model", StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task<(HttpResponseMessage Response, string Body)> SendChatCompletionAsync(string token, object requestBody)
