@@ -15,6 +15,7 @@ namespace PrMonitor;
 public partial class App : System.Windows.Application
 {
     private Mutex? _singleInstanceMutex;
+    private bool _ownsSingleInstanceMutex;
     private TrayIconManager? _trayIcon;
     private PollingService? _polling;
     private NotificationService? _notifications;
@@ -35,6 +36,7 @@ public partial class App : System.Windows.Application
 
         // ── Single-instance guard ──────────────────────────────────
         _singleInstanceMutex = new Mutex(true, "PrMonitor_SingleInstance", out var createdNew);
+        _ownsSingleInstanceMutex = createdNew;
         if (!createdNew)
         {
             System.Windows.MessageBox.Show("PR Monitor is already running.", "PR Monitor",
@@ -128,8 +130,29 @@ public partial class App : System.Windows.Application
         _notifications?.Dispose();
         _trayIcon?.Dispose();
         _updateTimer?.Dispose();
-        _singleInstanceMutex?.ReleaseMutex();
-        _singleInstanceMutex?.Dispose();
+        if (_singleInstanceMutex is not null)
+        {
+            // A second instance may never own the mutex; guard release to avoid shutdown-time crash.
+            if (_ownsSingleInstanceMutex)
+            {
+                try
+                {
+                    _singleInstanceMutex.ReleaseMutex();
+                }
+                catch (ApplicationException ex)
+                {
+                    _logger?.Warn($"Mutex release skipped during shutdown because current thread did not own it. {DiagnosticsLogger.SummarizeException(ex)}");
+                }
+                catch (ObjectDisposedException ex)
+                {
+                    _logger?.Warn($"Mutex release skipped during shutdown because mutex was already disposed. {DiagnosticsLogger.SummarizeException(ex)}");
+                }
+            }
+
+            _singleInstanceMutex.Dispose();
+            _singleInstanceMutex = null;
+            _ownsSingleInstanceMutex = false;
+        }
 
         base.OnExit(e);
     }

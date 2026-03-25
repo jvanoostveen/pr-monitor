@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- PR row context menus in the main WPF window are now explicitly dark-themed (including hover, disabled, and separator visuals) for consistent in-app appearance, while tray context menu behavior remains native.
+- PR row right-click menus were reworked to use a native Win32 popup menu (matching the tray icon menu rendering path), consolidating visual behavior with Windows, removing mixed WPF light/dark artifacts, and eliminating WPF context-menu style container crashes.
 
 ## [1.6.0] - 2026-03-24
 

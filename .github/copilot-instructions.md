@@ -140,6 +140,8 @@ Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue; dotnet build 
 
 The app is **single-instance** (Mutex `PrMonitor_SingleInstance`). Launching a second instance shows a message box and exits immediately.
 
+`App.OnExit` now guards `ReleaseMutex()` and always disposes the mutex, logging a warning if release is attempted without ownership (or after disposal), to avoid shutdown-time crashes on exit paths.
+
 ---
 
 ## Key Architecture Notes
@@ -189,7 +191,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - **No auto-hide on deactivate** — stays visible until user clicks X or tray icon
 - **Tray left-click** toggles window visibility
 - Tray context menu order starts with **Open PR Monitor**, then **About…**, then **Settings…**
-- PR row context menus inside `MainWindow` use explicit WPF dark-theme styling (background, hover, disabled, separator) for visual consistency; tray menu remains native Win32 dark/light aware behavior.
+- PR row right-click actions use a native Win32 popup menu from `MainWindow` (not WPF `ContextMenu`) to match tray-menu rendering and Windows dark/light behavior.
 - **Draggable** by the title/timestamp area in the header (cursor: SizeAll)
 - **Buttons** (Refresh, Close) use `MouseLeftButtonUp` — NOT inside the drag zone — to avoid `DragMove()` hijacking mouse capture
 - Default position: bottom-right of primary monitor work area (6 px inset)

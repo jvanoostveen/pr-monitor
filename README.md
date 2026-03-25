@@ -39,7 +39,7 @@ Right-clicking a PR row shows a context menu with:
 - **Copy branch name** — copies the head branch name to the clipboard
 - **Move to later** / **Restore** — moves the PR to the Later section and back
 
-The PR row context menu is explicitly dark-themed in the WPF window so it stays visually consistent with the app UI, while the tray context menu keeps its native Win32 styling behavior.
+PR row right-click actions now use a native Win32 popup menu (same rendering path as the tray icon menu), so visuals and dark/light behavior stay aligned with Windows.
 
 The window can be **snapped to any corner** of any monitor by dragging it near a corner — the border turns blue to preview the snap, and the window locks into position on release. Snapped placement uses a compact 6 px edge inset. When a monitor is disconnected the window recovers to the same corner on the primary display.
 
@@ -153,6 +153,8 @@ For diagnostics when polling or GitHub API calls intermittently return no data, 
 The file contains timestamped `INFO`, `WARN`, and `ERROR` entries.
 
 Update-check failures are logged there as well (including HTTP status or exception details), and the manual **Check for updates…** action in **About…** shows the concrete error reason.
+
+Shutdown reliability note: app exit now guards single-instance mutex release, so a tray-menu exit/right-click shutdown path will not crash if the current thread does not own the mutex.
 
 For flakiness analysis, PR Monitor uses `gpt-4o-mini` through GitHub Models.
 

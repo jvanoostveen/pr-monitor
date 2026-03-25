@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Runtime.InteropServices;
 using PrMonitor.Services;
 using PrMonitor.Settings;
 using PrMonitor.ViewModels;
@@ -40,6 +41,25 @@ public partial class MainWindow : Window
     private double _preChangeTop;
     private SnapCorner _preChangeSnappedCorner;
     private bool _preChangeUserMoved;
+
+    [DllImport("user32.dll")] private static extern IntPtr CreatePopupMenu();
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool AppendMenuW(IntPtr hMenu, uint uFlags, UIntPtr uIDNewItem, string? lpNewItem);
+    [DllImport("user32.dll")] private static extern uint TrackPopupMenuEx(IntPtr hmenu, uint fuFlags, int x, int y, IntPtr hwnd, IntPtr lptpm);
+    [DllImport("user32.dll")] private static extern bool DestroyMenu(IntPtr hMenu);
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    private const uint MF_STRING       = 0x0000;
+    private const uint MF_SEPARATOR    = 0x0800;
+    private const uint MF_GRAYED       = 0x0001;
+    private const uint TPM_BOTTOMALIGN = 0x0020;
+    private const uint TPM_RETURNCMD   = 0x0100;
+    private const uint TPM_RIGHTBUTTON = 0x0002;
+
+    private const uint ID_PR_COPY_URL      = 1001;
+    private const uint ID_PR_COPY_BRANCH   = 1002;
+    private const uint ID_PR_RERUN_FAILED  = 1003;
+    private const uint ID_PR_COPILOT       = 1004;
+    private const uint ID_PR_MOVE_RESTORE  = 1005;
 
     public MainWindow(MainViewModel viewModel, AppSettings settings, GitHubService github, NotificationService notifications)
     {
@@ -545,6 +565,78 @@ public partial class MainWindow : Window
         }
     }
 
+    private void PrRow_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: PrItemViewModel vm })
+            return;
+
+        e.Handled = true;
+        ShowNativePrContextMenu(vm);
+    }
+
+    private void ShowNativePrContextMenu(PrItemViewModel vm)
+    {
+        var hMenu = CreatePopupMenu();
+        if (hMenu == IntPtr.Zero)
+            return;
+
+        try
+        {
+            var isHidden = _settings.HiddenPrKeys.Contains(vm.Key);
+            var moveLabel = isHidden ? "Restore" : "Move to later";
+            var rerunFlags = vm.CanRerunFailedJobs ? MF_STRING : MF_STRING | MF_GRAYED;
+            var copilotFlags = vm.CanRequestCopilotReview ? MF_STRING : MF_STRING | MF_GRAYED;
+
+            AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_COPY_URL, "Copy PR URL");
+            AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_COPY_BRANCH, "Copy branch name");
+            AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
+            AppendMenuW(hMenu, rerunFlags, (UIntPtr)ID_PR_RERUN_FAILED, "Rerun failed jobs");
+            AppendMenuW(hMenu, copilotFlags, (UIntPtr)ID_PR_COPILOT, "Request Copilot review");
+            AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_MOVE_RESTORE, moveLabel);
+
+            var cursor = WinForms.Cursor.Position;
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd != IntPtr.Zero)
+                SetForegroundWindow(hwnd);
+
+            var cmd = TrackPopupMenuEx(
+                hMenu,
+                TPM_BOTTOMALIGN | TPM_RETURNCMD | TPM_RIGHTBUTTON,
+                cursor.X,
+                cursor.Y,
+                hwnd,
+                IntPtr.Zero);
+
+            switch (cmd)
+            {
+                case ID_PR_COPY_URL:
+                    System.Windows.Clipboard.SetText(vm.Url);
+                    break;
+                case ID_PR_COPY_BRANCH:
+                    System.Windows.Clipboard.SetText(vm.HeadRefName);
+                    break;
+                case ID_PR_RERUN_FAILED:
+                    if (vm.CanRerunFailedJobs)
+                        _ = RerunFailedJobsAsync(vm);
+                    break;
+                case ID_PR_COPILOT:
+                    if (vm.CanRequestCopilotReview)
+                        _ = RequestCopilotReviewAsync(vm);
+                    break;
+                case ID_PR_MOVE_RESTORE:
+                    if (isHidden)
+                        ViewModel.RestoreItem(vm.Key);
+                    else
+                        ViewModel.HideItem(vm.Key);
+                    break;
+            }
+        }
+        finally
+        {
+            DestroyMenu(hMenu);
+        }
+    }
+
     private void AutoMergeHeader_Click(object sender, MouseButtonEventArgs e)
     {
         ViewModel.ToggleAutoMergeExpanded();
@@ -610,6 +702,11 @@ public partial class MainWindow : Window
         if (sender is not System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
             return;
 
+        await RerunFailedJobsAsync(vm);
+    }
+
+    private async Task RerunFailedJobsAsync(PrItemViewModel vm)
+    {
         if (!vm.CanRerunFailedJobs)
             return;
 
@@ -674,6 +771,11 @@ public partial class MainWindow : Window
         if (sender is not System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
             return;
 
+        await RequestCopilotReviewAsync(vm);
+    }
+
+    private async Task RequestCopilotReviewAsync(PrItemViewModel vm)
+    {
         if (!vm.CanRequestCopilotReview)
             return;
 
