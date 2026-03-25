@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-03-25
+
 ### Added
 
 - PR row context menus now include **Request Copilot review** to (re)request a Copilot review via `gh pr edit --add-reviewer copilot` (enabled for non-draft PRs).
