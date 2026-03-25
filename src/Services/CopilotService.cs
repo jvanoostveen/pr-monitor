@@ -27,7 +27,7 @@ public sealed class CopilotService
     /// Analyzes the failure context and returns whether the failure is likely flaky,
     /// a short rationale, and any suggested regex rules to detect the same flakiness in future.
     /// </summary>
-    public async Task<FlakinessAnalysisResult> AnalyzeFlakiness(FailureContext context)
+    public async Task<FlakinessAnalysisResult> AnalyzeFlakiness(FailureContext context, string? customHints = null)
     {
         try
         {
@@ -44,6 +44,18 @@ public sealed class CopilotService
                 Flaky failures are typically caused by: network timeouts, race conditions, random port conflicts, external service unavailability, resource exhaustion (memory/disk), timing issues, random seed differences, or known flaky test infrastructure.
 
                 Real failures are: compilation errors, test assertion failures that reflect deterministic logic, missing dependencies, configuration errors.
+                """;
+
+            if (!string.IsNullOrWhiteSpace(customHints))
+                systemPrompt += $"""
+
+
+                Additional context about this project's CI:
+                {customHints}
+                """;
+
+            systemPrompt += """
+
 
                 Respond with ONLY a JSON object in this exact shape (no markdown, no explanation):
                 {

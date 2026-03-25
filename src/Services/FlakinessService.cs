@@ -116,7 +116,7 @@ public sealed class FlakinessService
 
         // ── Call Copilot ─────────────────────────────────────────────
         _logger.Info($"FlakinessService: no local rule matched {prKey}, calling Copilot for analysis.");
-        var result = await _copilot.AnalyzeFlakiness(context);
+        var result = await _copilot.AnalyzeFlakiness(context, _settings.FlakinessCustomHints);
 
         // Persist any suggested rules (deduplicate by pattern)
         foreach (var suggestion in result.SuggestedRules)

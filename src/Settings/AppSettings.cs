@@ -120,6 +120,9 @@ public sealed class AppSettings
     /// <summary>Maximum automatic reruns for flaky failures per PR.</summary>
     public int FlakinessMaxReruns { get; set; } = 3;
 
+    /// <summary>Free-text project context injected into the AI system prompt to guide flakiness classification.</summary>
+    public string FlakinessCustomHints { get; set; } = "";
+
     /// <summary>Learned and user-managed flakiness patterns.</summary>
     public List<FlakinessRule> FlakinessRules { get; set; } = [];
 

@@ -432,6 +432,20 @@
                                    Text="{Binding FlakinessMaxReruns, StringFormat={}{0} attempt(s)}"/>
                         </StackPanel>
 
+                        <!-- Custom AI hints -->
+                        <TextBlock Text="CUSTOM AI HINTS" Style="{StaticResource SectionLabel}"
+                                   Margin="0,8,0,6"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="0,0,0,6" TextWrapping="Wrap"
+                                   Text="Free-text context injected into the AI system prompt. Use this to describe project-specific CI characteristics — for example which test suites are inherently flaky, or known infrastructure instabilities."/>
+                        <TextBox AcceptsReturn="True" TextWrapping="Wrap"
+                                 Height="72"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Text="{Binding FlakinessCustomHints, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="#0D1117" Foreground="#C9D1D9"
+                                 BorderBrush="#30363D" BorderThickness="1"
+                                 Padding="6" FontSize="12"
+                                 Margin="0,0,0,12"/>
+
                         <Separator Background="#30363D" Margin="0,4,0,16"/>
 
                         <!-- Rules heading + manage button -->

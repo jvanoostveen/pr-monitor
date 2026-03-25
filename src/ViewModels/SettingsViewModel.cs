@@ -36,6 +36,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _flakinessAnalysisEnabled = settings.FlakinessAnalysisEnabled;
         _flakinessAutoMergeOnly = settings.FlakinessAutoMergeOnly;
         _flakinessMaxReruns = Math.Clamp(settings.FlakinessMaxReruns, 1, 10);
+        _flakinessCustomHints = settings.FlakinessCustomHints;
         foreach (var rule in settings.FlakinessRules)
             FlakinessRules.Add(new FlakinessRuleViewModel(rule));
     }
@@ -180,6 +181,13 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetField(ref _flakinessMaxReruns, Math.Clamp(value, 1, 10));
     }
 
+    private string _flakinessCustomHints = "";
+    public string FlakinessCustomHints
+    {
+        get => _flakinessCustomHints;
+        set => SetField(ref _flakinessCustomHints, value ?? "");
+    }
+
     public ObservableCollection<FlakinessRuleViewModel> FlakinessRules { get; } = [];
 
     public void DeleteRule(string id)
@@ -214,6 +222,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.FlakinessAnalysisEnabled = _flakinessAnalysisEnabled;
         _settings.FlakinessAutoMergeOnly = _flakinessAutoMergeOnly;
         _settings.FlakinessMaxReruns = _flakinessMaxReruns;
+        _settings.FlakinessCustomHints = _flakinessCustomHints;
         _settings.FlakinessRules = FlakinessRules.Select(vm => new FlakinessRule
         {
             Id = vm.Id,
