@@ -41,7 +41,7 @@ public sealed class CopilotService
             var systemPrompt = """
                 You are an expert CI/CD engineer. Analyze the following GitHub Actions failure and determine whether it is a flaky (transient/non-deterministic) failure or a real code failure.
 
-                Flaky failures are typically caused by: network timeouts, race conditions, random port conflicts, external service unavailability, resource exhaustion (memory/disk), timing issues, random seed differences, or known flaky test infrastructure.
+                Flaky failures are typically caused by: network timeouts, race conditions, random port conflicts, external service unavailability, resource exhaustion (memory/disk), timing issues, random seed differences, or known flaky test infrastructure. E2E and browser-based tests (Playwright, Cypress, Selenium) are especially prone to flakiness due to browser timing, rendering delays, and environment instability — when a failed check name suggests an E2E or browser test, assume flaky unless the log contains a clear, deterministic assertion failure.
 
                 Real failures are: compilation errors, test assertion failures that reflect deterministic logic, missing dependencies, configuration errors.
                 """;
