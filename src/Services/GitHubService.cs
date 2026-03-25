@@ -291,6 +291,18 @@ public sealed class GitHubService
         return exitCode == 0;
     }
 
+    /// <summary>
+    /// Requests a Copilot review for the given pull request.
+    /// Returns true on success.
+    /// </summary>
+    public async Task<bool> RequestCopilotReviewAsync(string owner, string repo, int prNumber)
+    {
+        var (_, stderr, exitCode) = await RunGhAsync($"pr edit {prNumber} --add-reviewer copilot --repo {owner}/{repo}");
+        if (exitCode != 0)
+            _logger.Warn($"RequestCopilotReviewAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
+        return exitCode == 0;
+    }
+
     // ── Internal helpers ────────────────────────────────────────────────
 
     private static List<string> BuildSearchQueries(string baseQuery, IReadOnlyList<string> orgs)

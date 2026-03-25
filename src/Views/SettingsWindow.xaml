@@ -344,6 +344,11 @@
                         <CheckBox Margin="0,0,0,10" IsChecked="{Binding NotifyReviewRequested}"  Content="Review Requested"/>
                         <CheckBox Margin="0,0,0,0"  IsChecked="{Binding NotifyPrMergedOrClosed}" Content="PR Merged / Closed"/>
 
+                        <!-- Flakiness group -->
+                        <TextBlock Text="FLAKINESS" Style="{StaticResource SectionLabel}" Margin="0,16,0,10"/>
+                        <CheckBox Margin="0,0,0,10" IsChecked="{Binding NotifyFlakinessRerun}"        Content="Flaky CI — auto-rerun triggered"/>
+                        <CheckBox Margin="0,0,0,0"  IsChecked="{Binding NotifyFlakinessRealFailure}"  Content="Real failure detected (not flaky)"/>
+
                     </StackPanel>
                 </TabItem>
 

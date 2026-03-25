@@ -35,6 +35,7 @@ Windows toast notifications are shown under the app name **PR Monitor**.
 The app automatically checks for a new release ~30 seconds after startup and again every 24 hours. When a newer version is available, a green clickable banner appears at the bottom of the PR window — click it to open the latest release page. A manual check is also available from **About… → Check for updates…**.
 
 Right-clicking a PR row shows a context menu with:
+- **Request Copilot review** — requests (or re-requests) a Copilot review for the PR
 - **Copy branch name** — copies the head branch name to the clipboard
 - **Move to later** / **Restore** — moves the PR to the Later section and back
 

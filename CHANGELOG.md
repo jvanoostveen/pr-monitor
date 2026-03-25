@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- PR row context menus now include **Request Copilot review** to (re)request a Copilot review via `gh pr edit --add-reviewer copilot` (enabled for non-draft PRs).
+- Settings → Notifications tab now includes a **Flakiness** group with toggles for **Flaky CI — auto-rerun triggered** and **Real failure detected (not flaky)**. These two flakiness toasts were previously always shown; they can now be individually disabled.
+
 ## [1.6.0] - 2026-03-24
 
 ### Added

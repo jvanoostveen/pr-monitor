@@ -99,6 +99,12 @@ public sealed class AppSettings
     /// <summary>Whether to show a toast when an auto-merge PR is merged or closed.</summary>
     public bool NotifyPrMergedOrClosed { get; set; } = true;
 
+    /// <summary>Whether to show a toast when flakiness analysis triggers an automatic rerun.</summary>
+    public bool NotifyFlakinessRerun { get; set; } = true;
+
+    /// <summary>Whether to show a toast when Copilot determines a CI failure is a real (non-flaky) failure.</summary>
+    public bool NotifyFlakinessRealFailure { get; set; } = true;
+
     // ── Flakiness analysis ───────────────────────────────────────────────
 
     /// <summary>Whether to automatically analyze CI failures for flakiness and retry.</summary>

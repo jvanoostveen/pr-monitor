@@ -28,6 +28,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _notifyCiError = settings.NotifyCiError;
         _notifyReviewRequested = settings.NotifyReviewRequested;
         _notifyPrMergedOrClosed = settings.NotifyPrMergedOrClosed;
+        _notifyFlakinessRerun = settings.NotifyFlakinessRerun;
+        _notifyFlakinessRealFailure = settings.NotifyFlakinessRealFailure;
         _showTeamReviewSection = settings.ShowTeamReviewSection;
         _flakinessAnalysisEnabled = settings.FlakinessAnalysisEnabled;
         _flakinessAutoMergeOnly = settings.FlakinessAutoMergeOnly;
@@ -99,6 +101,20 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetField(ref _notifyPrMergedOrClosed, value);
     }
 
+    private bool _notifyFlakinessRerun;
+    public bool NotifyFlakinessRerun
+    {
+        get => _notifyFlakinessRerun;
+        set => SetField(ref _notifyFlakinessRerun, value);
+    }
+
+    private bool _notifyFlakinessRealFailure;
+    public bool NotifyFlakinessRealFailure
+    {
+        get => _notifyFlakinessRealFailure;
+        set => SetField(ref _notifyFlakinessRealFailure, value);
+    }
+
     private bool _showTeamReviewSection;
     public bool ShowTeamReviewSection
     {
@@ -156,6 +172,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.NotifyCiError = _notifyCiError;
         _settings.NotifyReviewRequested = _notifyReviewRequested;
         _settings.NotifyPrMergedOrClosed = _notifyPrMergedOrClosed;
+        _settings.NotifyFlakinessRerun = _notifyFlakinessRerun;
+        _settings.NotifyFlakinessRealFailure = _notifyFlakinessRealFailure;
         _settings.ShowTeamReviewSection = _showTeamReviewSection;
         _settings.FlakinessAnalysisEnabled = _flakinessAnalysisEnabled;
         _settings.FlakinessAutoMergeOnly = _flakinessAutoMergeOnly;

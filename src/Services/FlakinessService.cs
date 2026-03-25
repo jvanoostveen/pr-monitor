@@ -143,9 +143,10 @@ public sealed class FlakinessService
         else
         {
             _logger.Info($"FlakinessService: Copilot says REAL FAILURE for {prKey}: {result.Rationale}");
-            _notifications.Notify(
-                $"\u274c Real failure on #{pr.Number} ({pr.Repository})",
-                result.Rationale);
+            if (_settings.NotifyFlakinessRealFailure)
+                _notifications.Notify(
+                    $"\u274c Real failure on #{pr.Number} ({pr.Repository})",
+                    result.Rationale);
         }
     }
 
@@ -162,9 +163,10 @@ public sealed class FlakinessService
         _settings.Save();
 
         _logger.Info($"FlakinessService: triggered rerun {newCount}/{maxAttempts} for {prKey}.");
-        _notifications.Notify(
-            $"\ud83d\udd04 Flaky CI on #{pr.Number} \u2014 retrying ({newCount}/{maxAttempts})",
-            rationale);
+        if (_settings.NotifyFlakinessRerun)
+            _notifications.Notify(
+                $"\ud83d\udd04 Flaky CI on #{pr.Number} \u2014 retrying ({newCount}/{maxAttempts})",
+                rationale);
     }
 
     private int GetRerunCount(string prKey)

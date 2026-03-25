@@ -669,6 +669,50 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void PrRow_RequestCopilotReview_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
+            return;
+
+        if (!vm.CanRequestCopilotReview)
+            return;
+
+        if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
+        {
+            System.Windows.MessageBox.Show(
+                "Could not determine owner/repository for this PR.",
+                "Request Copilot review",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            var success = await _github.RequestCopilotReviewAsync(owner, repo, vm.Number);
+            if (success)
+            {
+                _notifications.Notify("Copilot review requested", $"{vm.Repository} #{vm.Number}");
+            }
+            else
+            {
+                System.Windows.MessageBox.Show(
+                    "Could not request a Copilot review for this pull request.",
+                    "Request Copilot review",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Could not request Copilot review.\n\nDetails: {ex.Message}",
+                "Request Copilot review",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
     private static bool TrySplitRepository(string repository, out string owner, out string repo)
     {
         owner = "";

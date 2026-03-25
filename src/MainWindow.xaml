@@ -269,6 +269,9 @@
                                                     <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
                                                               Click="PrRow_RerunFailedJobs_Click"
                                                               IsEnabled="{Binding CanRerunFailedJobs}"/>
+                                                    <MenuItem Header="Request Copilot review" Tag="{Binding}"
+                                                              Click="PrRow_RequestCopilotReview_Click"
+                                                              IsEnabled="{Binding CanRequestCopilotReview}"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -363,6 +366,9 @@
                                                     <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
                                                               Click="PrRow_RerunFailedJobs_Click"
                                                               IsEnabled="{Binding CanRerunFailedJobs}"/>
+                                                    <MenuItem Header="Request Copilot review" Tag="{Binding}"
+                                                              Click="PrRow_RequestCopilotReview_Click"
+                                                              IsEnabled="{Binding CanRequestCopilotReview}"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -451,6 +457,9 @@
                                                     <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
                                                               Click="PrRow_RerunFailedJobs_Click"
                                                               IsEnabled="{Binding CanRerunFailedJobs}"/>
+                                                    <MenuItem Header="Request Copilot review" Tag="{Binding}"
+                                                              Click="PrRow_RequestCopilotReview_Click"
+                                                              IsEnabled="{Binding CanRequestCopilotReview}"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -541,6 +550,9 @@
                                                     <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
                                                               Click="PrRow_RerunFailedJobs_Click"
                                                               IsEnabled="{Binding CanRerunFailedJobs}"/>
+                                                    <MenuItem Header="Request Copilot review" Tag="{Binding}"
+                                                              Click="PrRow_RequestCopilotReview_Click"
+                                                              IsEnabled="{Binding CanRequestCopilotReview}"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -630,6 +642,9 @@
                                                     <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
                                                               Click="PrRow_RerunFailedJobs_Click"
                                                               IsEnabled="{Binding CanRerunFailedJobs}"/>
+                                                    <MenuItem Header="Request Copilot review" Tag="{Binding}"
+                                                              Click="PrRow_RequestCopilotReview_Click"
+                                                              IsEnabled="{Binding CanRequestCopilotReview}"/>
                                                     <MenuItem Header="Move to later" Tag="{Binding}"
                                                               Click="PrRow_Hide_Click"/>
                                                 </ContextMenu>
@@ -720,6 +735,9 @@
                                                 <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
                                                           Click="PrRow_RerunFailedJobs_Click"
                                                           IsEnabled="{Binding CanRerunFailedJobs}"/>
+                                                <MenuItem Header="Request Copilot review" Tag="{Binding}"
+                                                          Click="PrRow_RequestCopilotReview_Click"
+                                                          IsEnabled="{Binding CanRequestCopilotReview}"/>
                                                 <MenuItem Header="Restore" Tag="{Binding}"
                                                           Click="PrRow_Restore_Click"/>
                                             </ContextMenu>
