@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PR row right-click menus were reworked to use a native Win32 popup menu (matching the tray icon menu rendering path), consolidating visual behavior with Windows, removing mixed WPF light/dark artifacts, and eliminating WPF context-menu style container crashes.
 
+### Fixed
+
+- Fixed a startup placement regression where the window could be pre-aligned to the primary screen before restored coordinates were applied, causing saved positions (for example on a secondary monitor) to be lost after restart.
+
 ## [1.6.0] - 2026-03-24
 
 ### Added

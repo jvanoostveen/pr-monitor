@@ -44,6 +44,7 @@ PR row right-click actions now use a native Win32 popup menu (same rendering pat
 The window can be **snapped to any corner** of any monitor by dragging it near a corner — the border turns blue to preview the snap, and the window locks into position on release. Snapped placement uses a compact 6 px edge inset. When a monitor is disconnected the window recovers to the same corner on the primary display.
 
 PR Monitor now also remembers whether the window was open, plus its last position. If it was visible when you last used the app, it opens automatically on startup and restores the previous location. If monitor layout changed, the window is moved by the smallest possible amount so it is fully visible.
+On first show after startup, the saved position is applied before any fallback corner alignment, so secondary-monitor placement is retained across restarts.
 
 ## Requirements
 

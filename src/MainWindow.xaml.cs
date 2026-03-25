@@ -41,6 +41,7 @@ public partial class MainWindow : Window
     private double _preChangeTop;
     private SnapCorner _preChangeSnappedCorner;
     private bool _preChangeUserMoved;
+    private bool _startupPlacementRestored;
 
     [DllImport("user32.dll")] private static extern IntPtr CreatePopupMenu();
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool AppendMenuW(IntPtr hMenu, uint uFlags, UIntPtr uIDNewItem, string? lpNewItem);
@@ -91,16 +92,23 @@ public partial class MainWindow : Window
     /// </summary>
     public void ShowAtTray()
     {
-        if (!_userMoved)
-        {
-            AlignToBottomRight();
-        }
-        else
+        Show();
+
+        // On first show, Loaded restores placement from settings.
+        // Do not run fallback alignment before this, or it can overwrite in-memory settings.
+        if (!_startupPlacementRestored)
+            return;
+
+        if (_userMoved)
         {
             // If the remembered position is off all screens, recover gracefully.
             EnsureOnScreen();
         }
-        Show();
+        else
+        {
+            AlignToBottomRight();
+        }
+
         Activate();
         PersistWindowState(isVisible: true);
     }
@@ -156,6 +164,7 @@ public partial class MainWindow : Window
         if (_settings.MainWindowLeft is not double savedLeft || _settings.MainWindowTop is not double savedTop)
         {
             AlignToBottomRight();
+            _startupPlacementRestored = true;
             return;
         }
 
@@ -168,6 +177,7 @@ public partial class MainWindow : Window
             && Enum.TryParse<SnapCorner>(cornerStr, out var restoredCorner))
             _snappedCorner = restoredCorner;
         PersistWindowPosition();
+        _startupPlacementRestored = true;
     }
 
     // ── Multi-monitor helpers ────────────────────────────────────────────────
