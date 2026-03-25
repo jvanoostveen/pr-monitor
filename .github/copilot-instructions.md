@@ -170,7 +170,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 ### Flakiness analysis and auto-rerun
 - `FlakinessService` subscribes to `PollingService.PrChanged` and handles `CIStatusChanged` events for the current user's own non-draft PRs with `CIState.Failure`.
 - **Local rule check first**: enabled `FlakinessRules` (regex patterns) are matched against the log excerpt. If a rule matches, the CI run is immediately retried without calling the AI.
-- **Copilot analysis**: if no rule matches, `CopilotService` calls the GitHub Models API (`gpt-4o-mini`, endpoint `https://models.inference.ai.azure.com`) with a compact `FailureContext` object (PR metadata + failed check names + ≤4000 char log excerpt). The Bearer token is obtained via `gh auth token`.
+- **Copilot analysis**: if no rule matches, `CopilotService` calls the GitHub Models API (`gpt-4o-mini`, endpoint `https://models.inference.ai.azure.com`) with a compact `FailureContext` object (PR metadata + failed check names + ≤4000 char log excerpt). The Bearer token is obtained via `gh auth token`. If `FlakinessCustomHints` is non-empty, it is appended to the system prompt as project-specific context to guide the AI classification.
 - **Auto-rerun**: `gh run rerun {runId} --failed --repo {owner}/{repo}` is invoked. Max reruns per PR is configurable in Settings (default 3), counter persisted in `settings.json` and pruned after 30 days.
 - **Suggested rules**: after each Copilot analysis, any suggested `.NET regex` patterns are persisted to `FlakinessRules` (auto-enabled) and reused in future without calling the AI.
 - **Real failure toast**: when Copilot concludes the failure is not flaky, a toast is shown with the one-sentence rationale.
@@ -331,6 +331,7 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "notificationMode": "Always",
   "flakinessAnalysisEnabled": false,
   "flakinessAutoMergeOnly": false,
+  "flakinessCustomHints": "",
   "flakinessMaxReruns": 3,
   "flakinessRules": [
     {
