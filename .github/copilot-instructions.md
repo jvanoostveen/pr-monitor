@@ -328,6 +328,7 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "mainWindowVisible": false,
   "mainWindowLeft": 1440.0,
   "mainWindowTop": 120.0,
+  "notificationMode": "Always",
   "flakinessAnalysisEnabled": false,
   "flakinessAutoMergeOnly": false,
   "flakinessMaxReruns": 3,

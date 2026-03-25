@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Settings → Notifications tab now includes a **When to show** section with three options: **Always** (default), **Only when window is closed**, and **Never**. Per-type notification checkboxes are unchanged but are grayed out when "Never" is selected.
+
 ## [1.6.1] - 2026-03-25
 
 ### Added

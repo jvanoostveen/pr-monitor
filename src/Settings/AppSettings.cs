@@ -105,6 +105,10 @@ public sealed class AppSettings
     /// <summary>Whether to show a toast when Copilot determines a CI failure is a real (non-flaky) failure.</summary>
     public bool NotifyFlakinessRealFailure { get; set; } = true;
 
+    /// <summary>Controls when toast notifications are shown: always, only when the window is closed, or never.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public NotificationMode NotificationMode { get; set; } = NotificationMode.Always;
+
     // ── Flakiness analysis ───────────────────────────────────────────────
 
     /// <summary>Whether to automatically analyze CI failures for flakiness and retry.</summary>

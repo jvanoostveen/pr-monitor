@@ -146,7 +146,50 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
+        <!-- ── RadioButton ─────────────────────────────────────── -->
+        <Style TargetType="RadioButton">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Foreground" Value="#C9D1D9"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border x:Name="Ring"
+                                    Width="16" Height="16"
+                                    Background="#161B22"
+                                    BorderBrush="#484F58"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center">
+                                <Ellipse x:Name="Dot"
+                                         Width="8" Height="8"
+                                         Fill="White"
+                                         Visibility="Collapsed"
+                                         HorizontalAlignment="Center"
+                                         VerticalAlignment="Center"/>
+                            </Border>
+                            <ContentPresenter VerticalAlignment="Center"
+                                              RecognizesAccessKey="True"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Ring" Property="Background" Value="#1F6FEB"/>
+                                <Setter TargetName="Ring" Property="BorderBrush" Value="#388BFD"/>
+                                <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Ring" Property="BorderBrush" Value="#58A6FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <!-- ── Slider ──────────────────────────────────────────────────── -->
         <Style x:Key="SliderRepeatButton" TargetType="RepeatButton">
             <Setter Property="OverridesDefaultStyle" Value="True"/>
@@ -333,21 +376,32 @@
                 <TabItem Header="Notifications">
                     <StackPanel Margin="0,20,0,0">
 
-                        <!-- CI group -->
-                        <TextBlock Text="CI STATUS" Style="{StaticResource SectionLabel}"/>
-                        <CheckBox Margin="0,0,0,10" IsChecked="{Binding NotifyCiFailed}"   Content="CI Failed"/>
-                        <CheckBox Margin="0,0,0,10" IsChecked="{Binding NotifyCiPassed}"   Content="CI Passed (recovered from failure)"/>
-                        <CheckBox Margin="0,0,0,0"  IsChecked="{Binding NotifyCiError}"    Content="CI Error"/>
+                        <!-- When to show -->
+                        <TextBlock Text="WHEN TO SHOW" Style="{StaticResource SectionLabel}"/>
+                        <RadioButton Margin="0,0,0,6" IsChecked="{Binding NotificationModeAlways}"          Content="Always"/>
+                        <RadioButton Margin="0,0,0,6" IsChecked="{Binding NotificationModeWhenWindowClosed}" Content="Only when window is closed"/>
+                        <RadioButton Margin="0,0,0,0" IsChecked="{Binding NotificationModeNever}"           Content="Never"/>
 
-                        <!-- Activity group -->
-                        <TextBlock Text="ACTIVITY" Style="{StaticResource SectionLabel}" Margin="0,16,0,10"/>
-                        <CheckBox Margin="0,0,0,10" IsChecked="{Binding NotifyReviewRequested}"  Content="Review Requested"/>
-                        <CheckBox Margin="0,0,0,0"  IsChecked="{Binding NotifyPrMergedOrClosed}" Content="PR Merged / Closed"/>
+                        <!-- Per-type toggles (grayed out when Never) -->
+                        <StackPanel Margin="0,16,0,0" IsEnabled="{Binding IndividualTogglesEnabled}">
 
-                        <!-- Flakiness group -->
-                        <TextBlock Text="FLAKINESS" Style="{StaticResource SectionLabel}" Margin="0,16,0,10"/>
-                        <CheckBox Margin="0,0,0,10" IsChecked="{Binding NotifyFlakinessRerun}"        Content="Flaky CI — auto-rerun triggered"/>
-                        <CheckBox Margin="0,0,0,0"  IsChecked="{Binding NotifyFlakinessRealFailure}"  Content="Real failure detected (not flaky)"/>
+                            <!-- CI group -->
+                            <TextBlock Text="CI STATUS" Style="{StaticResource SectionLabel}"/>
+                            <CheckBox Margin="0,0,0,10" IsChecked="{Binding NotifyCiFailed}"   Content="CI Failed"/>
+                            <CheckBox Margin="0,0,0,10" IsChecked="{Binding NotifyCiPassed}"   Content="CI Passed (recovered from failure)"/>
+                            <CheckBox Margin="0,0,0,0"  IsChecked="{Binding NotifyCiError}"    Content="CI Error"/>
+
+                            <!-- Activity group -->
+                            <TextBlock Text="ACTIVITY" Style="{StaticResource SectionLabel}" Margin="0,16,0,10"/>
+                            <CheckBox Margin="0,0,0,10" IsChecked="{Binding NotifyReviewRequested}"  Content="Review Requested"/>
+                            <CheckBox Margin="0,0,0,0"  IsChecked="{Binding NotifyPrMergedOrClosed}" Content="PR Merged / Closed"/>
+
+                            <!-- Flakiness group -->
+                            <TextBlock Text="FLAKINESS" Style="{StaticResource SectionLabel}" Margin="0,16,0,10"/>
+                            <CheckBox Margin="0,0,0,10" IsChecked="{Binding NotifyFlakinessRerun}"        Content="Flaky CI — auto-rerun triggered"/>
+                            <CheckBox Margin="0,0,0,0"  IsChecked="{Binding NotifyFlakinessRealFailure}"  Content="Real failure detected (not flaky)"/>
+
+                        </StackPanel>
 
                     </StackPanel>
                 </TabItem>

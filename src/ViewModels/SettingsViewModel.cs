@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.Win32;
 using PrMonitor.Models;
 using PrMonitor.Settings;
+using NotificationMode = PrMonitor.Models.NotificationMode;
 
 namespace PrMonitor.ViewModels;
 
@@ -30,6 +31,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _notifyPrMergedOrClosed = settings.NotifyPrMergedOrClosed;
         _notifyFlakinessRerun = settings.NotifyFlakinessRerun;
         _notifyFlakinessRealFailure = settings.NotifyFlakinessRealFailure;
+        _notificationMode = settings.NotificationMode;
         _showTeamReviewSection = settings.ShowTeamReviewSection;
         _flakinessAnalysisEnabled = settings.FlakinessAnalysisEnabled;
         _flakinessAutoMergeOnly = settings.FlakinessAutoMergeOnly;
@@ -115,6 +117,39 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetField(ref _notifyFlakinessRealFailure, value);
     }
 
+    // ── Notification mode ────────────────────────────────────────────────
+
+    private NotificationMode _notificationMode;
+
+    public bool NotificationModeAlways
+    {
+        get => _notificationMode == NotificationMode.Always;
+        set { if (value) { _notificationMode = NotificationMode.Always; OnModeChanged(); } }
+    }
+
+    public bool NotificationModeWhenWindowClosed
+    {
+        get => _notificationMode == NotificationMode.WhenWindowClosed;
+        set { if (value) { _notificationMode = NotificationMode.WhenWindowClosed; OnModeChanged(); } }
+    }
+
+    public bool NotificationModeNever
+    {
+        get => _notificationMode == NotificationMode.Never;
+        set { if (value) { _notificationMode = NotificationMode.Never; OnModeChanged(); } }
+    }
+
+    /// <summary>False when Never is selected — disables the per-type checkboxes.</summary>
+    public bool IndividualTogglesEnabled => _notificationMode != NotificationMode.Never;
+
+    private void OnModeChanged()
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NotificationModeAlways)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NotificationModeWhenWindowClosed)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NotificationModeNever)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IndividualTogglesEnabled)));
+    }
+
     private bool _showTeamReviewSection;
     public bool ShowTeamReviewSection
     {
@@ -174,6 +209,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.NotifyPrMergedOrClosed = _notifyPrMergedOrClosed;
         _settings.NotifyFlakinessRerun = _notifyFlakinessRerun;
         _settings.NotifyFlakinessRealFailure = _notifyFlakinessRealFailure;
+        _settings.NotificationMode = _notificationMode;
         _settings.ShowTeamReviewSection = _showTeamReviewSection;
         _settings.FlakinessAnalysisEnabled = _flakinessAnalysisEnabled;
         _settings.FlakinessAutoMergeOnly = _flakinessAutoMergeOnly;

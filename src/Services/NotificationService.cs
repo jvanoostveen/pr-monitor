@@ -82,6 +82,8 @@ public sealed class NotificationService : IDisposable
     public void Notify(string title, string body)
     {
         if (!_initialized) return;
+        if (_settings.NotificationMode == Models.NotificationMode.Never) return;
+        if (_settings.NotificationMode == Models.NotificationMode.WhenWindowClosed && _settings.MainWindowVisible) return;
         ShowToast(title, body, "", "");
     }
     // ── Flush & grouping ────────────────────────────────────────────────
@@ -138,15 +140,21 @@ public sealed class NotificationService : IDisposable
         _ => null,
     };
 
-    private bool IsNotificationEnabled(string header) => header switch
+    private bool IsNotificationEnabled(string header)
     {
-        "❌ CI Failed"          => _settings.NotifyCiFailed,
-        "✅ CI Passed"          => _settings.NotifyCiPassed,
-        "⚠️ CI Error"          => _settings.NotifyCiError,
-        "👀 Review Requested"  => _settings.NotifyReviewRequested,
-        "🔀 PR Merged / Closed" => _settings.NotifyPrMergedOrClosed,
-        _ => true,
-    };
+        if (_settings.NotificationMode == Models.NotificationMode.Never) return false;
+        if (_settings.NotificationMode == Models.NotificationMode.WhenWindowClosed && _settings.MainWindowVisible) return false;
+
+        return header switch
+        {
+            "❌ CI Failed"          => _settings.NotifyCiFailed,
+            "✅ CI Passed"          => _settings.NotifyCiPassed,
+            "⚠️ CI Error"          => _settings.NotifyCiError,
+            "👀 Review Requested"  => _settings.NotifyReviewRequested,
+            "🔀 PR Merged / Closed" => _settings.NotifyPrMergedOrClosed,
+            _ => true,
+        };
+    }
 
     // ── Toast builder ───────────────────────────────────────────────────
 
