@@ -39,6 +39,8 @@ Right-clicking a PR row shows a context menu with:
 - **Copy branch name** — copies the head branch name to the clipboard
 - **Move to later** / **Restore** — moves the PR to the Later section and back
 
+The PR row context menu is explicitly dark-themed in the WPF window so it stays visually consistent with the app UI, while the tray context menu keeps its native Win32 styling behavior.
+
 The window can be **snapped to any corner** of any monitor by dragging it near a corner — the border turns blue to preview the snap, and the window locks into position on release. Snapped placement uses a compact 6 px edge inset. When a monitor is disconnected the window recovers to the same corner on the primary display.
 
 PR Monitor now also remembers whether the window was open, plus its last position. If it was visible when you last used the app, it opens automatically on startup and restores the previous location. If monitor layout changed, the window is moved by the smallest possible amount so it is fully visible.
