@@ -165,6 +165,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - Log format includes timestamp + level (`INFO`, `WARN`, `ERROR`).
 - `GitHubService` logs GraphQL/`gh` failures (non-zero exit with stderr, GraphQL errors, JSON parse failures).
 - `PollingService` logs poll lifecycle and exceptions for intermittent "no data" investigations.
+- `MainWindow` writes structured `MainWindowPlacement` traces for startup restore, snap application, deferred `SizeChanged` branches, filtered `LocationChanged` events, display-change recovery, and persisted placement state so restart-position bugs can be reconstructed from one ordered timeline.
 
 ### Flakiness analysis and auto-rerun
 - `FlakinessService` subscribes to `PollingService.PrChanged` and handles `CIStatusChanged` events for the current user's own non-draft PRs with `CIState.Failure`.
@@ -199,6 +200,9 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - **Corner snapping**: while dragging, `DetectNearCorner()` checks the current monitor's work area via `Screen.FromHandle`. When the window is within 80 px of a corner the border turns blue (snap indicator). On mouse-up the window snaps into that corner. The snapped corner is remembered so expand/collapse re-applies it. `EnsureOnScreen()` recovers the window to the primary monitor if its monitor is disconnected.
 - **Window restore persistence**: window visibility and `Left`/`Top` are persisted in settings. On startup, if it was visible last session, it opens automatically and restores the saved position. Restored/shown positions are clamped to monitor work areas with minimal displacement so the full window stays visible after monitor changes.
 - Startup placement ordering: on first show, restore saved coordinates before any fallback bottom-right alignment to avoid overwriting in-memory placement for secondary-monitor windows.
+- Startup/resize positioning ignores pre-restore `SizeChanged` auto-alignment; snapped windows keep an anchor monitor derived from restored coordinates so early layout passes cannot drift a restored secondary-monitor position to another screen.
+- Deferred `SizeChanged` auto-positioning is also skipped while the user is actively dragging the window, preventing the previous snapped corner from being re-applied mid-drag and corrupting the eventually persisted restart position.
+- When a drag finishes, `MainWindow` immediately persists the final position and snapped corner to settings, rather than waiting for tray hide or app shutdown.
 - All screen coordinates go through `ScreenRectToWpf()` (device → WPF units via `PresentationSource.TransformFromDevice`) to handle mixed-DPI setups.
 
 ### Collapsible sections

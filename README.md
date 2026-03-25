@@ -45,6 +45,8 @@ The window can be **snapped to any corner** of any monitor by dragging it near a
 
 PR Monitor now also remembers whether the window was open, plus its last position. If it was visible when you last used the app, it opens automatically on startup and restores the previous location. If monitor layout changed, the window is moved by the smallest possible amount so it is fully visible.
 On first show after startup, the saved position is applied before any fallback corner alignment, so secondary-monitor placement is retained across restarts.
+Startup ignores pre-restore size-driven auto-alignment, and snapped windows keep a monitor anchor derived from restored coordinates so early layout passes cannot drift them to another screen.
+After a user drag ends, the final location and snapped corner are persisted immediately, so a restart does not depend on a later tray-hide or app-exit save.
 
 ## Requirements
 
@@ -152,6 +154,9 @@ For diagnostics when polling or GitHub API calls intermittently return no data, 
 - `%APPDATA%\pr-monitor\logs\pr-monitor.log`
 
 The file contains timestamped `INFO`, `WARN`, and `ERROR` entries.
+
+Window restore and restart-placement troubleshooting now also writes structured `MainWindowPlacement` entries to the same log, including saved coordinates, snap corner, chosen monitor, deferred resize branches, and final persisted state.
+Those traces are also used to diagnose drag-time snap issues; while the window is being dragged, deferred resize auto-positioning is now suppressed so an old snapped corner cannot pull it back across the screen.
 
 Update-check failures are logged there as well (including HTTP status or exception details), and the manual **Check for updates…** action in **About…** shows the concrete error reason.
 

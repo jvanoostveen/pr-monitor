@@ -14,11 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- PR row right-click menus were reworked to use a native Win32 popup menu (matching the tray icon menu rendering path), consolidating visual behavior with Windows, removing mixed WPF light/dark artifacts, and eliminating WPF context-menu style container crashes.
+- PR row right-click menus now use a native Win32 popup menu (matching the tray icon menu rendering path), consolidating visual behavior with Windows and eliminating WPF context-menu theming and container issues.
+- Added structured `MainWindowPlacement` diagnostics logging for startup restore, snap application, deferred `SizeChanged` branches, filtered `LocationChanged` events, display-change recovery, and persisted placement state so window-position issues can be reconstructed from `%APPDATA%/pr-monitor/logs/pr-monitor.log`.
 
 ### Fixed
 
-- Fixed a startup placement regression where the window could be pre-aligned to the primary screen before restored coordinates were applied, causing saved positions (for example on a secondary monitor) to be lost after restart.
+- Fixed restart placement so restored windows keep their saved monitor/corner across startup, including early layout passes that previously could drift a restored secondary-monitor window back to the wrong screen.
+- Fixed drag-time placement behavior by skipping deferred `SizeChanged` auto-positioning while the user is dragging and by persisting the final dragged location/corner immediately when the drag ends.
 
 ## [1.6.0] - 2026-03-24
 

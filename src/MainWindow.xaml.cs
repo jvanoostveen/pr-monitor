@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private readonly AppSettings _settings;
     private readonly GitHubService _github;
     private readonly NotificationService _notifications;
+    private readonly DiagnosticsLogger _logger;
     private DoubleAnimation? _spinAnimation;
     private bool _userMoved;
     private bool _isProgrammaticMove;
@@ -42,6 +43,11 @@ public partial class MainWindow : Window
     private SnapCorner _preChangeSnappedCorner;
     private bool _preChangeUserMoved;
     private bool _startupPlacementRestored;
+    private WinForms.Screen? _snapAnchorScreen;
+    private double? _lastLoggedLeft;
+    private double? _lastLoggedTop;
+    private string? _lastLocationSuppressionReason;
+    private SnapCorner _lastLoggedPendingSnapCorner = SnapCorner.None;
 
     [DllImport("user32.dll")] private static extern IntPtr CreatePopupMenu();
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool AppendMenuW(IntPtr hMenu, uint uFlags, UIntPtr uIDNewItem, string? lpNewItem);
@@ -62,12 +68,13 @@ public partial class MainWindow : Window
     private const uint ID_PR_COPILOT       = 1004;
     private const uint ID_PR_MOVE_RESTORE  = 1005;
 
-    public MainWindow(MainViewModel viewModel, AppSettings settings, GitHubService github, NotificationService notifications)
+    public MainWindow(MainViewModel viewModel, AppSettings settings, GitHubService github, NotificationService notifications, DiagnosticsLogger logger)
     {
         ViewModel = viewModel;
         _settings = settings;
         _github = github;
         _notifications = notifications;
+        _logger = logger;
         DataContext = viewModel;
         InitializeComponent();
 
@@ -80,10 +87,14 @@ public partial class MainWindow : Window
 
         Loaded += (_, _) =>
         {
+            LogPlacement("Loaded:start", includeScreens: true);
             RestoreStartupPlacement();
             Microsoft.Win32.SystemEvents.DisplaySettingsChanging += OnDisplaySettingsChanging;
             Microsoft.Win32.SystemEvents.DisplaySettingsChanged  += OnDisplaySettingsChanged;
+            LogPlacement("Loaded:end");
         };
+
+        ContentRendered += (_, _) => LogPlacement("ContentRendered");
     }
 
     /// <summary>
@@ -92,12 +103,16 @@ public partial class MainWindow : Window
     /// </summary>
     public void ShowAtTray()
     {
+        LogPlacement("ShowAtTray:start", includeScreens: true);
         Show();
 
         // On first show, Loaded restores placement from settings.
         // Do not run fallback alignment before this, or it can overwrite in-memory settings.
         if (!_startupPlacementRestored)
+        {
+            LogPlacement("ShowAtTray:skipped", "startup-not-restored");
             return;
+        }
 
         if (_userMoved)
         {
@@ -111,6 +126,7 @@ public partial class MainWindow : Window
 
         Activate();
         PersistWindowState(isVisible: true);
+        LogPlacement("ShowAtTray:end");
     }
 
     /// <summary>
@@ -118,9 +134,11 @@ public partial class MainWindow : Window
     /// </summary>
     public void HideToTray()
     {
+        LogPlacement("HideToTray:start");
         PersistWindowPosition();
         Hide();
         PersistWindowState(isVisible: false);
+        LogPlacement("HideToTray:end");
     }
 
     /// <summary>
@@ -128,8 +146,10 @@ public partial class MainWindow : Window
     /// </summary>
     public void PersistCurrentWindowState()
     {
+        LogPlacement("PersistCurrentWindowState:start");
         PersistWindowPosition();
         PersistWindowState(IsVisible);
+        LogPlacement("PersistCurrentWindowState:end");
     }
 
     protected override void OnClosed(EventArgs e)
@@ -139,45 +159,66 @@ public partial class MainWindow : Window
         base.OnClosed(e);
     }
 
-    private void SetWindowPosition(double left, double top)
+    private void SetWindowPosition(double left, double top, string reason = "unspecified")
     {
+        var fromLeft = Left;
+        var fromTop = Top;
         _isProgrammaticMove = true;
         Left = left;
         Top = top;
+        LogPlacement("SetWindowPosition", $"reason={reason}; from=({FormatDouble(fromLeft)},{FormatDouble(fromTop)}); to=({FormatDouble(left)},{FormatDouble(top)})");
         // Defer reset so any WPF-internal OnLocationChanged calls fired
         // asynchronously by SizeToContent are still suppressed.
         Dispatcher.BeginInvoke(() => _isProgrammaticMove = false);
     }
 
-    private void AlignToBottomRight(double? width = null, double? height = null)
+    private void AlignToBottomRight(double? width = null, double? height = null, string reason = "align-bottom-right")
     {
         // Always use primary screen for the default placement
         var primary = WinForms.Screen.PrimaryScreen!.WorkingArea;
         var wa = ScreenRectToWpf(primary);
         double w = width  ?? (ActualWidth  > 0 ? ActualWidth  : Width);
         double h = height ?? (ActualHeight > 0 ? ActualHeight : 0);
-        SetWindowPosition(wa.Right - w - SnapInset, wa.Bottom - h - SnapInset);
+        var left = wa.Right - w - SnapInset;
+        var top = wa.Bottom - h - SnapInset;
+        LogPlacement("AlignToBottomRight", $"reason={reason}; size=({FormatDouble(w)},{FormatDouble(h)}); screen={DescribeScreen(WinForms.Screen.PrimaryScreen)}; target=({FormatDouble(left)},{FormatDouble(top)})");
+        SetWindowPosition(left, top, reason);
+        _snapAnchorScreen = WinForms.Screen.PrimaryScreen;
     }
 
     private void RestoreStartupPlacement()
     {
+        LogPlacement("RestoreStartupPlacement:start", $"saved=({FormatNullable(_settings.MainWindowLeft)},{FormatNullable(_settings.MainWindowTop)}); savedCorner={_settings.MainWindowSnappedCorner}; visibleSetting={_settings.MainWindowVisible}", includeScreens: true);
         if (_settings.MainWindowLeft is not double savedLeft || _settings.MainWindowTop is not double savedTop)
         {
-            AlignToBottomRight();
+            AlignToBottomRight(reason: "startup-no-saved-position");
             _startupPlacementRestored = true;
+            LogPlacement("RestoreStartupPlacement:end", "branch=no-saved-position");
             return;
         }
 
         var width = ActualWidth > 0 ? ActualWidth : Width;
         var height = ActualHeight > 0 ? ActualHeight : Height;
         var (left, top) = ClampToBestWorkArea(savedLeft, savedTop, width, height);
-        SetWindowPosition(left, top);
+        LogPlacement("RestoreStartupPlacement:clamped", $"saved=({FormatDouble(savedLeft)},{FormatDouble(savedTop)}); clamped=({FormatDouble(left)},{FormatDouble(top)}); size=({FormatDouble(width)},{FormatDouble(height)})");
+        SetWindowPosition(left, top, "startup-restore-clamped");
+        _snapAnchorScreen = FindBestScreenForRect(left, top, width, height);
         _userMoved = true;
         if (_settings.MainWindowSnappedCorner is { } cornerStr
             && Enum.TryParse<SnapCorner>(cornerStr, out var restoredCorner))
             _snappedCorner = restoredCorner;
+
+        if (_snappedCorner != SnapCorner.None && _snapAnchorScreen is not null)
+        {
+            var wa = ScreenRectToWpf(_snapAnchorScreen.WorkingArea);
+            var (snapLeft, snapTop) = GetCornerPositionInArea(wa, _snappedCorner, width, height);
+            LogPlacement("RestoreStartupPlacement:resnap", $"corner={_snappedCorner}; screen={DescribeScreen(_snapAnchorScreen)}; target=({FormatDouble(snapLeft)},{FormatDouble(snapTop)})");
+            SetWindowPosition(snapLeft, snapTop, "startup-restore-snap");
+        }
+
         PersistWindowPosition();
         _startupPlacementRestored = true;
+        LogPlacement("RestoreStartupPlacement:end", $"final=({FormatDouble(Left)},{FormatDouble(Top)}); anchor={DescribeScreen(_snapAnchorScreen)}");
     }
 
     // ── Multi-monitor helpers ────────────────────────────────────────────────
@@ -281,9 +322,18 @@ public partial class MainWindow : Window
     {
         if (!double.IsNaN(Left) && !double.IsNaN(Top) && !double.IsInfinity(Left) && !double.IsInfinity(Top))
         {
+            var previousLeft = _settings.MainWindowLeft;
+            var previousTop = _settings.MainWindowTop;
+            var previousCorner = _settings.MainWindowSnappedCorner;
             _settings.MainWindowLeft = Left;
             _settings.MainWindowTop = Top;
             _settings.MainWindowSnappedCorner = _snappedCorner == SnapCorner.None ? null : _snappedCorner.ToString();
+            if (previousLeft != _settings.MainWindowLeft
+                || previousTop != _settings.MainWindowTop
+                || previousCorner != _settings.MainWindowSnappedCorner)
+            {
+                LogPlacement("PersistWindowPosition", $"saveToDisk={saveToDisk}; saved=({FormatNullable(_settings.MainWindowLeft)},{FormatNullable(_settings.MainWindowTop)}); savedCorner={_settings.MainWindowSnappedCorner}");
+            }
             if (saveToDisk)
                 _settings.Save();
         }
@@ -291,7 +341,10 @@ public partial class MainWindow : Window
 
     private void PersistWindowState(bool isVisible)
     {
+        var previousVisibility = _settings.MainWindowVisible;
         _settings.MainWindowVisible = isVisible;
+        if (previousVisibility != isVisible)
+            LogPlacement("PersistWindowState", $"visible={isVisible}");
         _settings.Save();
     }
 
@@ -328,10 +381,24 @@ public partial class MainWindow : Window
 
     private void ApplyCornerSnap(SnapCorner corner, double? width = null, double? height = null)
     {
-        if (corner == SnapCorner.None) return;
-        var wa = GetCurrentWorkArea();
-        var (l, t) = GetCornerPositionInArea(wa, corner, width, height);
-        SetWindowPosition(l, t);
+        if (corner == SnapCorner.None)
+            return;
+
+        var w = width ?? (ActualWidth > 0 ? ActualWidth : Width);
+        var h = height ?? (ActualHeight > 0 ? ActualHeight : Height);
+        if (double.IsNaN(w) || double.IsInfinity(w) || w <= 0)
+            w = 380;
+        if (double.IsNaN(h) || double.IsInfinity(h) || h <= 0)
+            h = 240;
+
+        // Prefer an anchored monitor for snapped windows so post-startup layout changes
+        // do not drift to a different monitor.
+        var screen = _snapAnchorScreen ?? FindBestScreenForRect(Left, Top, w, h);
+        var wa = ScreenRectToWpf(screen.WorkingArea);
+        var (l, t) = GetCornerPositionInArea(wa, corner, w, h);
+        LogPlacement("ApplyCornerSnap", $"corner={corner}; size=({FormatDouble(w)},{FormatDouble(h)}); screen={DescribeScreen(screen)}; target=({FormatDouble(l)},{FormatDouble(t)})");
+        SetWindowPosition(l, t, "apply-corner-snap");
+        _snapAnchorScreen = screen;
     }
 
     private static readonly SolidColorBrush SnapActiveBrush =
@@ -365,7 +432,10 @@ public partial class MainWindow : Window
         if (left < wa.Left) left = wa.Left;
         if (top  < wa.Top)  top  = wa.Top;
         if (Math.Abs(left - Left) > 0.5 || Math.Abs(top - Top) > 0.5)
-            SetWindowPosition(left, top);
+        {
+            LogPlacement("EnsureFullyVisible", $"current=({FormatDouble(Left)},{FormatDouble(Top)}); corrected=({FormatDouble(left)},{FormatDouble(top)}); workArea={DescribeRect(wa)}");
+            SetWindowPosition(left, top, "ensure-fully-visible");
+        }
     }
 
     /// <summary>
@@ -378,8 +448,12 @@ public partial class MainWindow : Window
         var width = ActualWidth > 0 ? ActualWidth : Width;
         var height = ActualHeight > 0 ? ActualHeight : Height;
         var (left, top) = ClampToBestWorkArea(Left, Top, width, height);
+        LogPlacement("EnsureOnScreen", $"current=({FormatDouble(Left)},{FormatDouble(Top)}); clamped=({FormatDouble(left)},{FormatDouble(top)}); size=({FormatDouble(width)},{FormatDouble(height)})");
         if (Math.Abs(left - Left) > 0.5 || Math.Abs(top - Top) > 0.5)
-            SetWindowPosition(left, top);
+            SetWindowPosition(left, top, "ensure-on-screen");
+
+        if (_snappedCorner != SnapCorner.None)
+            _snapAnchorScreen = FindBestScreenForRect(left, top, width, height);
 
         PersistWindowPosition();
     }
@@ -397,6 +471,7 @@ public partial class MainWindow : Window
             _preChangeTop           = Top;
             _preChangeSnappedCorner = _snappedCorner;
             _preChangeUserMoved     = _userMoved;
+            LogPlacement("DisplaySettingsChanging", $"preChange=({FormatDouble(_preChangeLeft)},{FormatDouble(_preChangeTop)}); preCorner={_preChangeSnappedCorner}; preUserMoved={_preChangeUserMoved}", includeScreens: true);
         });
     }
 
@@ -406,8 +481,10 @@ public partial class MainWindow : Window
         Dispatcher.BeginInvoke(() =>
         {
             _displayChangePending = false;
+            LogPlacement("DisplaySettingsChanged:start", includeScreens: true);
             ReapplyPositionAfterDisplayChange();
             PersistWindowPosition();
+            LogPlacement("DisplaySettingsChanged:end");
         });
     }
 
@@ -422,7 +499,8 @@ public partial class MainWindow : Window
 
         if (!_preChangeUserMoved)
         {
-            AlignToBottomRight(width, height);
+            LogPlacement("ReapplyPositionAfterDisplayChange", "branch=align-bottom-right");
+            AlignToBottomRight(width, height, "display-change-align-bottom-right");
             return;
         }
 
@@ -435,13 +513,17 @@ public partial class MainWindow : Window
             var wa = ScreenRectToWpf(screen.WorkingArea);
             var (l, t) = GetCornerPositionInArea(wa, _preChangeSnappedCorner, width, height);
             _snappedCorner = _preChangeSnappedCorner;
-            SetWindowPosition(l, t);
+            _snapAnchorScreen = screen;
+            LogPlacement("ReapplyPositionAfterDisplayChange", $"branch=resnap; corner={_preChangeSnappedCorner}; screen={DescribeScreen(screen)}; target=({FormatDouble(l)},{FormatDouble(t)})");
+            SetWindowPosition(l, t, "display-change-resnap");
         }
         else
         {
             // No snap: clamp the pre-change position to the best available work area.
             var (l, t) = ClampToBestWorkArea(_preChangeLeft, _preChangeTop, width, height);
-            SetWindowPosition(l, t);
+            _snapAnchorScreen = null;
+            LogPlacement("ReapplyPositionAfterDisplayChange", $"branch=clamp; target=({FormatDouble(l)},{FormatDouble(t)})");
+            SetWindowPosition(l, t, "display-change-clamp");
         }
     }
 
@@ -480,20 +562,52 @@ public partial class MainWindow : Window
             }
         }
 
-        return bestOverlap ?? closest ?? WinForms.Screen.PrimaryScreen!;
+        var selected = bestOverlap ?? closest ?? WinForms.Screen.PrimaryScreen!;
+        var mode = bestOverlap is not null ? "overlap" : closest is not null ? "closest" : "primary";
+        LogPlacement("FindBestScreenForRect", $"inputRect={DescribeRect(windowRect)}; mode={mode}; overlap={FormatDouble(maxOverlap)}; distance={FormatDouble(minDist)}; selected={DescribeScreen(selected)}");
+        return selected;
     }
 
     protected override void OnLocationChanged(EventArgs e)
     {
         base.OnLocationChanged(e);
+        if (_isProgrammaticMove)
+        {
+            LogLocationSuppression("programmatic");
+            return;
+        }
+
+        if (_displayChangePending)
+        {
+            LogLocationSuppression("display-change-pending");
+            return;
+        }
+
+        _lastLocationSuppressionReason = null;
         if (!_isProgrammaticMove && !_displayChangePending)
         {
             _userMoved = true;
+            if (ShouldLogPositionChange(_lastLoggedLeft, _lastLoggedTop, Left, Top))
+            {
+                LogPlacement("OnLocationChanged", $"accepted-user-move=({FormatDouble(Left)},{FormatDouble(Top)})");
+                _lastLoggedLeft = Left;
+                _lastLoggedTop = Top;
+            }
             PersistWindowPosition(saveToDisk: false);
             if (_isDragging)
             {
                 _pendingSnapCorner = DetectNearCorner();
+                if (_pendingSnapCorner != _lastLoggedPendingSnapCorner)
+                {
+                    LogPlacement("OnLocationChanged:drag", $"pendingSnapCorner={_pendingSnapCorner}");
+                    _lastLoggedPendingSnapCorner = _pendingSnapCorner;
+                }
                 UpdateSnapIndicator(_pendingSnapCorner);
+            }
+            else if (_snappedCorner == SnapCorner.None)
+            {
+                _snapAnchorScreen = null;
+                LogPlacement("OnLocationChanged", "cleared-snap-anchor");
             }
         }
     }
@@ -503,14 +617,36 @@ public partial class MainWindow : Window
         // Defer until after WPF finishes all internal layout/position adjustments
         // triggered by SizeToContent, so _isProgrammaticMove is still active.
         var newSize = e.NewSize;
+        LogPlacement("Window_SizeChanged:event", $"newSize=({FormatDouble(newSize.Width)},{FormatDouble(newSize.Height)})");
         Dispatcher.BeginInvoke(() =>
         {
+            if (!_startupPlacementRestored)
+            {
+                LogPlacement("Window_SizeChanged:deferred", "branch=skip-startup-not-restored");
+                return;
+            }
+
+            if (_isDragging)
+            {
+                LogPlacement("Window_SizeChanged:deferred", "branch=skip-dragging");
+                return;
+            }
+
             if (_userMoved && _snappedCorner != SnapCorner.None)
+            {
+                LogPlacement("Window_SizeChanged:deferred", $"branch=apply-snap; corner={_snappedCorner}; newSize=({FormatDouble(newSize.Width)},{FormatDouble(newSize.Height)})");
                 ApplyCornerSnap(_snappedCorner, newSize.Width, newSize.Height);
+            }
             else if (_userMoved)
+            {
+                LogPlacement("Window_SizeChanged:deferred", "branch=ensure-fully-visible");
                 EnsureFullyVisible();
+            }
             else
-                AlignToBottomRight(newSize.Width, newSize.Height);
+            {
+                LogPlacement("Window_SizeChanged:deferred", "branch=align-bottom-right");
+                AlignToBottomRight(newSize.Width, newSize.Height, "size-changed-align-bottom-right");
+            }
         });
     }
 
@@ -528,11 +664,93 @@ public partial class MainWindow : Window
         {
             _snappedCorner = _pendingSnapCorner;
             ApplyCornerSnap(_snappedCorner);
+            _snapAnchorScreen = FindBestScreenForRect(Left, Top, ActualWidth, ActualHeight);
+            LogPlacement("Header_MouseLeftButtonDown", $"snap-applied={_snappedCorner}; anchor={DescribeScreen(_snapAnchorScreen)}");
         }
         else
         {
             _snappedCorner = SnapCorner.None;
+            _snapAnchorScreen = null;
+            LogPlacement("Header_MouseLeftButtonDown", "snap-cleared");
         }
+
+        PersistWindowPosition();
+        LogPlacement("Header_MouseLeftButtonDown", "persisted-final-drag-position");
+    }
+
+    private void LogLocationSuppression(string reason)
+    {
+        if (_lastLocationSuppressionReason == reason)
+            return;
+
+        _lastLocationSuppressionReason = reason;
+        LogPlacement("OnLocationChanged:suppressed", $"reason={reason}");
+    }
+
+    private void LogPlacement(string phase, string? reason = null, bool includeScreens = false)
+    {
+        var message = $"MainWindowPlacement phase={phase}";
+        if (!string.IsNullOrWhiteSpace(reason))
+            message += $" reason={reason}";
+
+        message += $" state={DescribePlacementState()} settings={DescribeSettingsState()}";
+        if (includeScreens)
+            message += $" screens={DescribeAllScreens()}";
+
+        _logger.Info(message);
+    }
+
+    private string DescribePlacementState()
+    {
+        return $"pos=({FormatDouble(Left)},{FormatDouble(Top)}); actual=({FormatDouble(ActualWidth)},{FormatDouble(ActualHeight)}); size=({FormatDouble(Width)},{FormatDouble(Height)}); visible={IsVisible}; windowState={WindowState}; startupRestored={_startupPlacementRestored}; userMoved={_userMoved}; programmatic={_isProgrammaticMove}; displayChangePending={_displayChangePending}; dragging={_isDragging}; snapped={_snappedCorner}; pendingSnap={_pendingSnapCorner}; anchor={DescribeScreen(_snapAnchorScreen)}";
+    }
+
+    private string DescribeSettingsState()
+    {
+        return $"savedPos=({FormatNullable(_settings.MainWindowLeft)},{FormatNullable(_settings.MainWindowTop)}); savedCorner={_settings.MainWindowSnappedCorner}; savedVisible={_settings.MainWindowVisible}";
+    }
+
+    private string DescribeAllScreens()
+    {
+        return string.Join(" | ", WinForms.Screen.AllScreens.Select(DescribeScreen));
+    }
+
+    private string DescribeScreen(WinForms.Screen? screen)
+    {
+        if (screen is null)
+            return "none";
+
+        var wa = ScreenRectToWpf(screen.WorkingArea);
+        return $"{screen.DeviceName}[primary={screen.Primary}; workArea={DescribeRect(wa)}]";
+    }
+
+    private static string DescribeRect(Rect rect)
+    {
+        return $"({FormatDouble(rect.Left)},{FormatDouble(rect.Top)},{FormatDouble(rect.Width)},{FormatDouble(rect.Height)})";
+    }
+
+    private static bool ShouldLogPositionChange(double? previousLeft, double? previousTop, double left, double top)
+    {
+        if (previousLeft is null || previousTop is null)
+            return true;
+
+        return Math.Abs(previousLeft.Value - left) > 0.5 || Math.Abs(previousTop.Value - top) > 0.5;
+    }
+
+    private static string FormatDouble(double value)
+    {
+        if (double.IsNaN(value))
+            return "NaN";
+        if (double.IsPositiveInfinity(value))
+            return "+Inf";
+        if (double.IsNegativeInfinity(value))
+            return "-Inf";
+        return value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatNullable(double? value)
+    {
+        return value is double actual ? FormatDouble(actual) : "null";
     }
 
     private void UpdateRefreshIcon(bool isRefreshing)
