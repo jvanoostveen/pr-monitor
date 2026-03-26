@@ -27,44 +27,47 @@ Repository license: MIT (see `LICENSE`).
 ## Project Structure
 
 ```
-pr-bot/
-├── pr-bot.slnx
-└── src/
-    ├── PrMonitor.csproj
-    ├── App.xaml / App.xaml.cs          # Entry point, wiring, single-instance
-    ├── MainWindow.xaml / .xaml.cs      # Floating PR list window
-    ├── AssemblyInfo.cs
-    ├── Assets/
-    │   └── icon.ico
-    ├── Converters/
-    │   ├── ZeroToVisibleConverter.cs   # int == 0 → Visible
-    │   ├── BoolToAngleConverter.cs     # true → 0°, false → -90° (chevron)
-    │   └── CIStateToBrushConverter.cs  # CIState → hex color brush
-    ├── Models/
-    │   ├── CIState.cs                  # Enum: Unknown/Pending/Success/Failure/Error
-    │   ├── PullRequestInfo.cs          # PR data model (includes HeadCommitSha)
-    │   ├── FailureContext.cs           # Context passed to flakiness AI analysis
-    │   ├── FlakinessAnalysisResult.cs  # AI analysis result + suggested rules
-    │   ├── FlakinessRule.cs            # Persisted flakiness regex rule
-    │   └── RerunRecord.cs              # Per-PR rerun count + timestamp
-    ├── Services/
-    │   ├── GitHubService.cs            # GraphQL via `gh api graphql` + workflow run helpers
-    │   ├── PollingService.cs           # Timer polling + delta events (incl. MyPrs CI changes)
-    │   ├── NotificationService.cs      # Windows toast on PR changes + Notify() helper
-    │   ├── UpdateService.cs            # GitHub latest release check + version compare
-    │   ├── CopilotService.cs           # GitHub Models API (gpt-4o-mini) flakiness analysis
-    │   └── FlakinessService.cs         # CI failure analysis orchestrator + auto-rerun
-    ├── Settings/
-    │   └── AppSettings.cs              # JSON-backed settings
-    ├── ViewModels/
-    │   ├── MainViewModel.cs            # Main window VM + PrItemViewModel (inner)
-    │   └── SettingsViewModel.cs        # Settings window VM
-    └── Views/
-        ├── TrayIconManager.cs          # NotifyIcon + context menu
-        ├── IconGenerator.cs            # Generates 16×16 icon with colored badge
-      ├── AboutWindow.xaml / .cs      # About dialog (version/repo/update check)
-        ├── FlakinessRulesWindow.xaml / .cs  # Resizable/scrollable window for managing flakiness rules
-        └── SettingsWindow.xaml / .cs   # Settings dialog
+pr-monitor/
+├── pr-monitor.slnx
+├── src/
+│   ├── PrMonitor.csproj
+│   ├── App.xaml / App.xaml.cs          # Entry point, wiring, single-instance
+│   ├── MainWindow.xaml / .xaml.cs      # Floating PR list window
+│   ├── AssemblyInfo.cs
+│   ├── Assets/
+│   │   └── icon.ico
+│   ├── Converters/
+│   │   ├── ZeroToVisibleConverter.cs   # int == 0 → Visible
+│   │   ├── BoolToAngleConverter.cs     # true → 0°, false → -90° (chevron)
+│   │   └── CIStateToBrushConverter.cs  # CIState → hex color brush
+│   ├── Models/
+│   │   ├── CIState.cs                  # Enum: Unknown/Pending/Success/Failure/Error
+│   │   ├── PullRequestInfo.cs          # PR data model (includes HeadCommitSha)
+│   │   ├── FailureContext.cs           # Context passed to flakiness AI analysis
+│   │   ├── FlakinessAnalysisResult.cs  # AI analysis result + suggested rules
+│   │   ├── FlakinessRule.cs            # Persisted flakiness regex rule
+│   │   └── RerunRecord.cs              # Per-PR rerun count + timestamp
+│   ├── Services/
+│   │   ├── GitHubService.cs            # GraphQL via `gh api graphql` + workflow run helpers
+│   │   ├── PollingService.cs           # Timer polling + delta events (incl. MyPrs CI changes)
+│   │   ├── NotificationService.cs      # Windows toast on PR changes + Notify() helper
+│   │   ├── UpdateService.cs            # GitHub latest release check + version compare
+│   │   ├── CopilotService.cs           # GitHub Models API (gpt-4o-mini) flakiness analysis
+│   │   └── FlakinessService.cs         # CI failure analysis orchestrator + auto-rerun
+│   ├── Settings/
+│   │   └── AppSettings.cs              # JSON-backed settings
+│   ├── ViewModels/
+│   │   ├── MainViewModel.cs            # Main window VM + PrItemViewModel (inner)
+│   │   └── SettingsViewModel.cs        # Settings window VM
+│   └── Views/
+│       ├── TrayIconManager.cs          # NotifyIcon + context menu
+│       ├── IconGenerator.cs            # Generates 16×16 icon with colored badge
+│       ├── AboutWindow.xaml / .cs      # About dialog (version/repo/update check)
+│       ├── FlakinessRulesWindow.xaml / .cs  # Resizable/scrollable window for managing flakiness rules
+│       └── SettingsWindow.xaml / .cs   # Settings dialog
+└── tests/
+    └── PrMonitor.Tests/
+        └── PrMonitor.Tests.csproj  # xUnit test project (converters, services, ViewModels, settings)
 ```
 
 ---
@@ -249,8 +252,9 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
   - `pull_request` to `main`
   - `push` to `main`
 - Behavior:
-  - Restores and builds `src/PrMonitor.csproj` in `Release` with .NET 10 on `windows-latest`
-  - Build validation only (no tag/release/upload steps)
+  - Restores and builds the full solution (`pr-monitor.slnx`) in `Release` with .NET 10 on `windows-latest`
+  - Runs `dotnet test` on `tests/PrMonitor.Tests` (149 xUnit tests)
+  - Build + test validation only (no tag/release/upload steps)
 
 - Release workflow: `.github/workflows/release-on-version-change.yml`
 - Triggers:
