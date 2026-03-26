@@ -11,6 +11,16 @@ namespace PrMonitor.Services;
 /// </summary>
 public sealed class FlakinessService
 {
+    // Built-in infrastructure patterns that are always flaky — checked before user rules and AI.
+    // These short-circuit the AI entirely to avoid false "real failure" classifications.
+    private static readonly (string Pattern, string Description)[] _builtInRules =
+    [
+        (@"(?i)cannot create a symbolic link", "CI runner: cannot create symbolic link (Windows)"),
+        (@"(?i)unable to create symlink", "CI runner: git unable to create symlink"),
+        (@"(?i)(error.*creating.*symbolic\s*link|creating.*symbolic\s*link.*error)", "CI runner: I/O error creating symbolic link"),
+        (@"(?i)symlink.*(failed|error|unable|permission\s+denied)", "CI runner: symlink operation failed"),
+    ];
+
     private readonly GitHubService _github;
     private readonly CopilotService _copilot;
     private readonly AppSettings _settings;
@@ -99,6 +109,15 @@ public sealed class FlakinessService
             FailedCheckNames = ExtractCheckNamesFromLog(log),
             LogExcerpt = log,
         };
+
+        // ── Check built-in infrastructure rules first ────────────────
+        var matchedBuiltIn = Array.Find(_builtInRules, r => IsRegexMatch(r.Pattern, log));
+        if (matchedBuiltIn != default)
+        {
+            _logger.Info($"FlakinessService: built-in rule '{matchedBuiltIn.Description}' matched {prKey}. Rerunning.");
+            await RerunAndNotify(pr, owner, repo, primaryRunId, prKey, maxAttempts, $"Matched built-in rule: {matchedBuiltIn.Description}");
+            return;
+        }
 
         // ── Check local rules first ──────────────────────────────────
         var matchedRule = _settings.FlakinessRules

@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The AI flakiness analysis system prompt now treats E2E and browser-based tests (Playwright, Cypress, Selenium) as flaky by default, unless the log contains a clear deterministic assertion failure.
 - Settings → Notifications tab now includes a **When to show** section with three options: **Always** (default), **Only when window is closed**, and **Never**. Per-type notification checkboxes are unchanged but are grayed out when "Never" is selected.
 
+### Fixed
+
+- CI runner infrastructure errors (symbolic link creation failures, disk full, git checkout/clone issues, OOM kills) are now always treated as flaky. A set of built-in regex rules in `FlakinessService` short-circuits the AI entirely for these patterns, preventing false "real failure" classifications. The AI system prompt is also expanded to classify such errors as flaky as a backstop for patterns not caught by the built-in rules.
+
 ## [1.6.1] - 2026-03-25
 
 ### Added
