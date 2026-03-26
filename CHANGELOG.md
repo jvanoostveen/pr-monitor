@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Unit test project (`tests/PrMonitor.Tests`) with 149 xUnit tests covering converters, service parsing logic, ViewModel properties, polling delta detection, and settings serialization.
 - Settings → Flakiness tab now includes a **Custom AI hints** free-text field. Text entered here is injected into the gpt-4o-mini system prompt, allowing teams to describe project-specific CI characteristics (e.g. which test suites are inherently flaky) without hardcoding knowledge into the app.
 - The AI flakiness analysis system prompt now treats E2E and browser-based tests (Playwright, Cypress, Selenium) as flaky by default, unless the log contains a clear deterministic assertion failure.
 - Settings → Notifications tab now includes a **When to show** section with three options: **Always** (default), **Only when window is closed**, and **Never**. Per-type notification checkboxes are unchanged but are grayed out when "Never" is selected.

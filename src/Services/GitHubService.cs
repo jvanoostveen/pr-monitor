@@ -305,7 +305,7 @@ public sealed class GitHubService
 
     // ── Internal helpers ────────────────────────────────────────────────
 
-    private static List<string> BuildSearchQueries(string baseQuery, IReadOnlyList<string> orgs)
+    internal static List<string> BuildSearchQueries(string baseQuery, IReadOnlyList<string> orgs)
     {
         if (orgs.Count == 0)
             return [baseQuery];
@@ -349,7 +349,7 @@ public sealed class GitHubService
         }
     }
 
-    private static List<PullRequestInfo> ParseMyPrs(JsonElement root)
+    internal static List<PullRequestInfo> ParseMyPrs(JsonElement root)
     {
         var result = new List<PullRequestInfo>();
 
@@ -420,7 +420,7 @@ public sealed class GitHubService
         return result;
     }
 
-    private static List<PullRequestInfo> ParseReviewPrs(JsonElement root, string? currentUsername = null)
+    internal static List<PullRequestInfo> ParseReviewPrs(JsonElement root, string? currentUsername = null)
     {
         var result = new List<PullRequestInfo>();
 
@@ -508,7 +508,7 @@ public sealed class GitHubService
         return result;
     }
 
-    private static int ParseUnresolvedReviewCommentCount(JsonElement node)
+    internal static int ParseUnresolvedReviewCommentCount(JsonElement node)
     {
         if (!node.TryGetProperty("reviewThreads", out var reviewThreads)) return 0;
         if (reviewThreads.ValueKind != JsonValueKind.Object) return 0;
@@ -541,7 +541,7 @@ public sealed class GitHubService
         return unresolvedComments;
     }
 
-    private static string GetAuthorLogin(JsonElement node)
+    internal static string GetAuthorLogin(JsonElement node)
     {
         if (!node.TryGetProperty("author", out var author))
             return "";
@@ -553,7 +553,7 @@ public sealed class GitHubService
         return login.GetString() ?? "";
     }
 
-    private static string GetCommitOid(JsonElement node)
+    internal static string GetCommitOid(JsonElement node)
     {
         if (node.TryGetProperty("commits", out var commits)
             && commits.TryGetProperty("nodes", out var nodes))
@@ -568,7 +568,7 @@ public sealed class GitHubService
         return "";
     }
 
-    private static CIState ParseCIState(string? state) => state?.ToUpperInvariant() switch
+    internal static CIState ParseCIState(string? state) => state?.ToUpperInvariant() switch
     {
         "SUCCESS" => CIState.Success,
         "FAILURE" => CIState.Failure,
@@ -618,6 +618,6 @@ public sealed class GitHubService
     /// <summary>
     /// Minimal escaping for passing strings as gh CLI arguments.
     /// </summary>
-    private static string EscapeForShell(string value) =>
+    internal static string EscapeForShell(string value) =>
         value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 }

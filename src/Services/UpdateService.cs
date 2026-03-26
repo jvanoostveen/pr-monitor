@@ -97,7 +97,7 @@ public sealed class UpdateService
         return output;
     }
 
-    private UpdateCheckResult ParseReleaseResult(string jsonText, string currentVersion, string source)
+    internal UpdateCheckResult ParseReleaseResult(string jsonText, string currentVersion, string source)
     {
         try
         {
@@ -204,7 +204,7 @@ public sealed class UpdateService
         return NormalizeVersionText(assembly.GetName().Version?.ToString() ?? "0.0.0");
     }
 
-    private static string NormalizeVersionText(string versionText)
+    internal static string NormalizeVersionText(string versionText)
     {
         var normalized = versionText.Trim();
         if (normalized.StartsWith("v", StringComparison.OrdinalIgnoreCase))
@@ -221,7 +221,7 @@ public sealed class UpdateService
         return normalized;
     }
 
-    private static bool TryParseSemanticVersion(string versionText, out Version version)
+    internal static bool TryParseSemanticVersion(string versionText, out Version version)
     {
         version = new Version(0, 0, 0, 0);
         if (string.IsNullOrWhiteSpace(versionText))

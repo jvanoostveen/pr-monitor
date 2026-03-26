@@ -525,7 +525,7 @@ public sealed class PrItemViewModel
         TimeAgo = FormatTimeAgo(pr.CreatedAt),
     };
 
-    private static string FormatTimeAgo(DateTimeOffset created)
+    internal static string FormatTimeAgo(DateTimeOffset created)
     {
         var span = DateTimeOffset.Now - created;
         if (span.TotalMinutes < 1) return "just now";

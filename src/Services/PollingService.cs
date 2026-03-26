@@ -48,9 +48,9 @@ public sealed class PollingService : IDisposable
     private readonly DiagnosticsLogger _logger;
     private System.Timers.Timer? _timer;
 
-    private Dictionary<string, PullRequestInfo> _previousAutoMerge = new();
-    private Dictionary<string, PullRequestInfo> _previousReviews = new();
-    private Dictionary<string, PullRequestInfo> _previousMyPrs = new();
+    internal Dictionary<string, PullRequestInfo> _previousAutoMerge = new();
+    internal Dictionary<string, PullRequestInfo> _previousReviews = new();
+    internal Dictionary<string, PullRequestInfo> _previousMyPrs = new();
 
     public PollingService(GitHubService github, AppSettings settings, DiagnosticsLogger logger)
     {
@@ -171,7 +171,7 @@ public sealed class PollingService : IDisposable
         }
     }
 
-    private void DetectAutoMergeChanges(List<PullRequestInfo> current)
+    internal void DetectAutoMergeChanges(List<PullRequestInfo> current)
     {
         var currentDict = current.ToDictionary(p => p.Key);
 
@@ -203,7 +203,7 @@ public sealed class PollingService : IDisposable
         _previousAutoMerge = currentDict;
     }
 
-    private void DetectReviewChanges(List<PullRequestInfo> current)
+    internal void DetectReviewChanges(List<PullRequestInfo> current)
     {
         var currentDict = current.ToDictionary(p => p.Key);
 
@@ -226,7 +226,7 @@ public sealed class PollingService : IDisposable
         _previousReviews = currentDict;
     }
 
-    private void DetectMyPrsChanges(List<PullRequestInfo> current)
+    internal void DetectMyPrsChanges(List<PullRequestInfo> current)
     {
         var currentDict = current.ToDictionary(p => p.Key);
 

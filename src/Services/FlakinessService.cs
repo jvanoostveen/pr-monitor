@@ -186,7 +186,7 @@ public sealed class FlakinessService
         return record.Count;
     }
 
-    private static bool IsRegexMatch(string pattern, string input)
+    internal static bool IsRegexMatch(string pattern, string input)
     {
         if (string.IsNullOrWhiteSpace(pattern) || string.IsNullOrWhiteSpace(input))
             return false;
@@ -200,7 +200,7 @@ public sealed class FlakinessService
         }
     }
 
-    private static IReadOnlyList<string> ExtractCheckNamesFromLog(string log)
+    internal static IReadOnlyList<string> ExtractCheckNamesFromLog(string log)
     {
         if (string.IsNullOrWhiteSpace(log))
             return [];

@@ -132,15 +132,17 @@ public sealed class AppSettings
     /// <summary>
     /// Load settings from disk, or return defaults if no file exists.
     /// </summary>
-    public static AppSettings Load()
+    public static AppSettings Load() => LoadFrom(SettingsPath);
+
+    internal static AppSettings LoadFrom(string path)
     {
-        if (!File.Exists(SettingsPath))
+        if (!File.Exists(path))
             return new AppSettings();
 
         AppSettings? settings = null;
         try
         {
-            var json = File.ReadAllText(SettingsPath);
+            var json = File.ReadAllText(path);
             settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
         }
         catch
@@ -163,10 +165,12 @@ public sealed class AppSettings
     /// <summary>
     /// Persist current settings to disk.
     /// </summary>
-    public void Save()
+    public void Save() => SaveTo(SettingsPath);
+
+    internal void SaveTo(string path)
     {
-        Directory.CreateDirectory(SettingsDir);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var json = JsonSerializer.Serialize(this, JsonOptions);
-        File.WriteAllText(SettingsPath, json);
+        File.WriteAllText(path, json);
     }
 }

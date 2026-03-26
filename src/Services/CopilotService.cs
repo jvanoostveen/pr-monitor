@@ -122,7 +122,7 @@ public sealed class CopilotService
         return (response, body);
     }
 
-    private FlakinessAnalysisResult ParseResponse(string responseBody)
+    internal FlakinessAnalysisResult ParseResponse(string responseBody)
     {
         try
         {

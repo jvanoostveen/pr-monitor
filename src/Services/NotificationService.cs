@@ -130,7 +130,7 @@ public sealed class NotificationService : IDisposable
         _pending.Clear();
     }
 
-    private static string? GetHeader(PrChangeEventArgs e) => e.Kind switch
+    internal static string? GetHeader(PrChangeEventArgs e) => e.Kind switch
     {
         PrChangeKind.CIStatusChanged when e.PullRequest.CIState == CIState.Failure                                    => "❌ CI Failed",
         PrChangeKind.CIStatusChanged when e.PullRequest.CIState == CIState.Success && e.PreviousCIState == CIState.Failure => "✅ CI Passed",
@@ -140,7 +140,7 @@ public sealed class NotificationService : IDisposable
         _ => null,
     };
 
-    private bool IsNotificationEnabled(string header)
+    internal bool IsNotificationEnabled(string header)
     {
         if (_settings.NotificationMode == Models.NotificationMode.Never) return false;
         if (_settings.NotificationMode == Models.NotificationMode.WhenWindowClosed && _settings.MainWindowVisible) return false;
