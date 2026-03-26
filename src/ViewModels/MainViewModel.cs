@@ -482,6 +482,30 @@ public sealed class PrItemViewModel
     public string HeadRefName { get; init; } = "";
     public string HeadCommitSha { get; init; } = "";
     public bool IsApproved { get; init; }
+    public IReadOnlyList<string> ReviewerLogins { get; init; } = [];
+    public bool HasNonCopilotReviewer => ReviewerLogins.Count > 0;
+    public bool IsOwnPr => IsMyPr || IsAutoMergePr || IsHotfixPr;
+    public bool ShowNoReviewerWarning => IsOwnPr && !HasNonCopilotReviewer;
+    public string ReviewerTooltip => HasNonCopilotReviewer
+        ? string.Join(", ", ReviewerLogins)
+        : "No reviewer assigned";
+    public string PrTooltip
+    {
+        get
+        {
+            var parts = new System.Collections.Generic.List<string>();
+            parts.Add($"CI: {CIState}");
+            if (IsOwnPr)
+                parts.Add(HasNonCopilotReviewer
+                    ? $"Reviewers: {string.Join(", ", ReviewerLogins)}"
+                    : "No reviewer assigned");
+            if (HasUnresolvedReviewComments)
+                parts.Add(UnresolvedReviewCommentsToolTip);
+            if (ShowApprovedIcon)
+                parts.Add("Approved");
+            return string.Join(System.Environment.NewLine, parts);
+        }
+    }
     public bool CanRerunFailedJobs => !IsDraft && CIState == CIState.Failure && !string.IsNullOrWhiteSpace(HeadCommitSha);
     public bool CanRequestCopilotReview => !IsDraft;
 
@@ -514,6 +538,7 @@ public sealed class PrItemViewModel
         HeadRefName = pr.HeadRefName,
         HeadCommitSha = pr.HeadCommitSha,
         IsApproved = pr.IsApproved,
+        ReviewerLogins = pr.ReviewerLogins,
         CIIcon = pr.CIState switch
         {
             CIState.Success => "✅",

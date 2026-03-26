@@ -34,6 +34,15 @@ public sealed class GitHubService
                 headRefName
                 reviewDecision
                 autoMergeRequest { enabledAt }
+                reviewRequests(first: 10) {
+                  nodes {
+                    requestedReviewer {
+                      __typename
+                      ... on User { login }
+                      ... on Team { slug }
+                    }
+                  }
+                }
                 commits(last: 1) {
                   nodes {
                     commit {
@@ -73,6 +82,15 @@ public sealed class GitHubService
                 mergeable
                 headRefName
                 reviewDecision
+                reviewRequests(first: 10) {
+                  nodes {
+                    requestedReviewer {
+                      __typename
+                      ... on User { login }
+                      ... on Team { slug }
+                    }
+                  }
+                }
                 commits(last: 1) {
                   nodes {
                     commit {
@@ -414,6 +432,7 @@ public sealed class GitHubService
                 IsApproved = node.TryGetProperty("reviewDecision", out var rd1)
                     && rd1.GetString() == "APPROVED",
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
+                ReviewerLogins = ParseReviewerLogins(node),
             });
         }
 
@@ -501,11 +520,45 @@ public sealed class GitHubService
                 IsApproved = node.TryGetProperty("reviewDecision", out var rd2)
                     && rd2.GetString() == "APPROVED",
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
+                ReviewerLogins = ParseReviewerLogins(node),
                 IsTeamReviewRequested = isTeamOnly,
             });
         }
 
         return result;
+    }
+
+    internal static IReadOnlyList<string> ParseReviewerLogins(JsonElement node)
+    {
+        if (!node.TryGetProperty("reviewRequests", out var reviewRequests)) return [];
+        if (reviewRequests.ValueKind != JsonValueKind.Object) return [];
+        if (!reviewRequests.TryGetProperty("nodes", out var nodes)) return [];
+        if (nodes.ValueKind != JsonValueKind.Array) return [];
+
+        var logins = new List<string>();
+        foreach (var requestNode in nodes.EnumerateArray())
+        {
+            if (!requestNode.TryGetProperty("requestedReviewer", out var reviewer)) continue;
+            if (!reviewer.TryGetProperty("__typename", out var typename)) continue;
+
+            var type = typename.GetString();
+            if (type == "User")
+            {
+                if (!reviewer.TryGetProperty("login", out var login)) continue;
+                var loginStr = login.GetString() ?? "";
+                if (string.IsNullOrEmpty(loginStr)) continue;
+                if (string.Equals(loginStr, "copilot", StringComparison.OrdinalIgnoreCase)) continue;
+                logins.Add(loginStr);
+            }
+            else if (type == "Team")
+            {
+                if (!reviewer.TryGetProperty("slug", out var slug)) continue;
+                var slugStr = slug.GetString() ?? "";
+                if (!string.IsNullOrEmpty(slugStr))
+                    logins.Add(slugStr);
+            }
+        }
+        return logins;
     }
 
     internal static int ParseUnresolvedReviewCommentCount(JsonElement node)

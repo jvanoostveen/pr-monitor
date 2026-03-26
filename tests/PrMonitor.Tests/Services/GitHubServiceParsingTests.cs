@@ -194,6 +194,57 @@ public class GitHubServiceParsingTests
     }
 
     [Fact]
+    public void ParseMyPrs_WithNonCopilotReviewer_PopulatesReviewerLogins()
+    {
+        var json = BuildMyPrsJson(BuildPrNode(number: 9, reviewers: [("alice", "User")]));
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseMyPrs(doc.RootElement);
+
+        Assert.Single(result[0].ReviewerLogins);
+        Assert.Equal("alice", result[0].ReviewerLogins[0]);
+    }
+
+    [Fact]
+    public void ParseMyPrs_WithCopilotReviewer_FiltersCopilotFromReviewerLogins()
+    {
+        var json = BuildMyPrsJson(BuildPrNode(number: 10, reviewers: [("copilot", "User"), ("bob", "User")]));
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseMyPrs(doc.RootElement);
+
+        Assert.Single(result[0].ReviewerLogins);
+        Assert.Equal("bob", result[0].ReviewerLogins[0]);
+    }
+
+    [Fact]
+    public void ParseMyPrs_WithOnlyCopilotReviewer_ReturnsEmptyReviewerLogins()
+    {
+        var json = BuildMyPrsJson(BuildPrNode(number: 11, reviewers: [("Copilot", "User")]));
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseMyPrs(doc.RootElement);
+
+        Assert.Empty(result[0].ReviewerLogins);
+    }
+
+    [Fact]
+    public void ParseMyPrs_WithTeamReviewer_IncludesTeamSlug()
+    {
+        var json = BuildMyPrsJson(BuildPrNode(number: 12, reviewers: [("platform-team", "Team")]));
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseMyPrs(doc.RootElement);
+
+        Assert.Single(result[0].ReviewerLogins);
+        Assert.Equal("platform-team", result[0].ReviewerLogins[0]);
+    }
+
+    [Fact]
+    public void ParseReviewerLogins_NoReviewRequestsProperty_ReturnsEmpty()
+    {
+        using var doc = JsonDocument.Parse("{}");
+        var result = GitHubService.ParseReviewerLogins(doc.RootElement);
+        Assert.Empty(result);
+    }
+
+    [Fact]
     public void ParseReviewPrs_DirectUserReviewRequest_IsNotTeamOnly()
     {
         var json = BuildReviewPrsJson(BuildReviewPrNode(number: 10, reviewerName: "alice", reviewerType: "User"));
@@ -242,13 +293,20 @@ public class GitHubServiceParsingTests
         string headSha = "sha1",
         string headRef = "feature/test",
         bool isArchived = false,
-        string mergeable = "MERGEABLE")
+        string mergeable = "MERGEABLE",
+        IEnumerable<(string name, string type)>? reviewers = null)
     {
         var autoMerge = hasAutoMerge ? "{\"enabledAt\":\"2026-01-01T00:00:00Z\"}" : "null";
         var ciNode = ciState != null
             ? "{\"commit\":{\"oid\":\"" + headSha + "\",\"statusCheckRollup\":{\"state\":\"" + ciState + "\"}}}"
             : "{\"commit\":{\"oid\":\"" + headSha + "\",\"statusCheckRollup\":null}}";
         var rd = reviewDecision != null ? "\"" + reviewDecision + "\"" : "null";
+        var reviewRequestNodes = reviewers != null
+            ? string.Join(",", reviewers.Select(r =>
+                r.type == "Team"
+                    ? $"{{\"requestedReviewer\":{{\"__typename\":\"Team\",\"slug\":\"{r.name}\"}}}}"
+                    : $"{{\"requestedReviewer\":{{\"__typename\":\"User\",\"login\":\"{r.name}\"}}}}"  ))
+            : "";
         return "{\"number\":" + number
             + ",\"title\":\"" + title + "\""
             + ",\"url\":\"https://github.com/org/repo/pull/" + number + "\""
@@ -261,6 +319,7 @@ public class GitHubServiceParsingTests
             + ",\"mergeable\":\"" + mergeable + "\""
             + ",\"headRefName\":\"" + headRef + "\""
             + ",\"commits\":{\"nodes\":[" + ciNode + "]}"
+            + ",\"reviewRequests\":{\"nodes\":[" + reviewRequestNodes + "]}"
             + ",\"reviewThreads\":{\"nodes\":[]}}";
     }
 

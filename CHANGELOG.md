@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Reviewer indicator** on own PR rows (My Auto-Merge PRs, My PRs, Hotfixes, and own PRs in Later): a `SwitchUser` icon (Segoe Fluent Icons `E748`, gray) shows when no non-Copilot reviewer has been assigned. No icon is shown when reviewer(s) are assigned — names appear in the row tooltip instead.
+- **Combined row tooltip** on all PR rows: hovering a PR row shows CI state, reviewer info (own PRs only), unresolved comment count, and approved state in a single tooltip. Individual icons (CI dot, comment badge, approved checkmark) no longer carry separate tooltips.
 - Unit test project (`tests/PrMonitor.Tests`) with 149 xUnit tests covering converters, service parsing logic, ViewModel properties, polling delta detection, and settings serialization.
 - Settings → Flakiness tab now includes a **Custom AI hints** free-text field. Text entered here is injected into the gpt-4o-mini system prompt, allowing teams to describe project-specific CI characteristics (e.g. which test suites are inherently flaky) without hardcoding knowledge into the app.
 - The AI flakiness analysis system prompt now treats E2E and browser-based tests (Playwright, Cypress, Selenium) as flaky by default, unless the log contains a clear deterministic assertion failure.

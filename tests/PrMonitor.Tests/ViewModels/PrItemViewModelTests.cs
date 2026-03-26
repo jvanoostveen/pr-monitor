@@ -78,6 +78,95 @@ public class PrItemViewModelTests
     }
 
     [Theory]
+    [InlineData(false, false, false, false)]
+    [InlineData(true,  false, false, true)]
+    [InlineData(false, true,  false, true)]
+    [InlineData(false, false, true,  true)]
+    [InlineData(true,  true,  false, true)]
+    public void IsOwnPr_TrueWhenMyOrAutoMergeOrHotfix(
+        bool isMyPr, bool isAutoMerge, bool isHotfix, bool expected)
+    {
+        var vm = MakeVm(isMyPr: isMyPr, isAutoMerge: isAutoMerge, isHotfix: isHotfix);
+        Assert.Equal(expected, vm.IsOwnPr);
+    }
+
+    [Theory]
+    [InlineData(new string[0],                   false)]
+    [InlineData(new[] { "alice" },               true)]
+    [InlineData(new[] { "alice", "bob" },         true)]
+    public void HasNonCopilotReviewer_BasedOnReviewerLoginsCount(
+        string[] logins, bool expected)
+    {
+        var vm = MakeVm(reviewerLogins: logins);
+        Assert.Equal(expected, vm.HasNonCopilotReviewer);
+    }
+
+    [Fact]
+    public void ReviewerTooltip_NoReviewers_ReturnsNoReviewerAssigned()
+    {
+        var vm = MakeVm(reviewerLogins: []);
+        Assert.Equal("No reviewer assigned", vm.ReviewerTooltip);
+    }
+
+    [Fact]
+    public void ReviewerTooltip_WithReviewers_ReturnsCommaJoinedNames()
+    {
+        var vm = MakeVm(reviewerLogins: ["alice", "bob"]);
+        Assert.Equal("alice, bob", vm.ReviewerTooltip);
+    }
+
+    [Theory]
+    [InlineData(false, false, false, false)]
+    [InlineData(true,  false, false, true)]   // IsMyPr, no reviewer
+    [InlineData(false, true,  false, true)]   // IsAutoMerge, no reviewer
+    [InlineData(false, false, true,  true)]   // IsHotfix, no reviewer
+    [InlineData(true,  false, false, false, new[] { "alice" })]  // IsMyPr, has reviewer
+    public void ShowNoReviewerWarning_TrueWhenOwnPrAndNoReviewer(
+        bool isMyPr, bool isAutoMerge, bool isHotfix, bool expected,
+        string[]? reviewerLogins = null)
+    {
+        var vm = MakeVm(isMyPr: isMyPr, isAutoMerge: isAutoMerge, isHotfix: isHotfix,
+                        reviewerLogins: reviewerLogins ?? []);
+        Assert.Equal(expected, vm.ShowNoReviewerWarning);
+    }
+
+    [Fact]
+    public void PrTooltip_NonOwnPr_ShowsOnlyCIState()
+    {
+        var vm = MakeVm(ciState: CIState.Success);
+        Assert.Equal("CI: Success", vm.PrTooltip);
+    }
+
+    [Fact]
+    public void PrTooltip_OwnPrNoReviewer_IncludesNoReviewerAssigned()
+    {
+        var vm = MakeVm(ciState: CIState.Pending, isMyPr: true, reviewerLogins: []);
+        Assert.Contains("No reviewer assigned", vm.PrTooltip);
+        Assert.Contains("CI: Pending", vm.PrTooltip);
+    }
+
+    [Fact]
+    public void PrTooltip_OwnPrWithReviewer_IncludesReviewerNames()
+    {
+        var vm = MakeVm(ciState: CIState.Success, isMyPr: true, reviewerLogins: ["alice", "bob"]);
+        Assert.Contains("Reviewers: alice, bob", vm.PrTooltip);
+    }
+
+    [Fact]
+    public void PrTooltip_WithUnresolvedComments_IncludesCommentCount()
+    {
+        var vm = MakeVm(ciState: CIState.Success, unresolvedComments: 3);
+        Assert.Contains("3 unresolved review comments", vm.PrTooltip);
+    }
+
+    [Fact]
+    public void PrTooltip_Approved_IncludesApproved()
+    {
+        var vm = MakeVm(ciState: CIState.Success, isApproved: true);
+        Assert.Contains("Approved", vm.PrTooltip);
+    }
+
+    [Theory]
     [InlineData(true,  0, true)]
     [InlineData(true,  2, false)]
     [InlineData(false, 0, false)]
@@ -106,7 +195,11 @@ public class PrItemViewModelTests
         bool isDraft = false,
         string headCommitSha = "sha123",
         bool isApproved = false,
-        int unresolvedComments = 0) =>
+        int unresolvedComments = 0,
+        IEnumerable<string>? reviewerLogins = null,
+        bool isMyPr = false,
+        bool isAutoMerge = false,
+        bool isHotfix = false) =>
         new()
         {
             Key = "org/repo#1",
@@ -122,5 +215,9 @@ public class PrItemViewModelTests
             HeadCommitSha = headCommitSha,
             IsApproved = isApproved,
             UnresolvedReviewCommentCount = unresolvedComments,
+            ReviewerLogins = (reviewerLogins ?? []).ToList(),
+            IsMyPr = isMyPr,
+            IsAutoMergePr = isAutoMerge,
+            IsHotfixPr = isHotfix,
         };
 }

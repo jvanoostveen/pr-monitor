@@ -52,6 +52,12 @@ public sealed class PullRequestInfo
     public bool IsTeamReviewRequested { get; init; }
 
     /// <summary>
+    /// Logins/slugs of pending reviewer requests, excluding Copilot.
+    /// Users are identified by login; teams by slug.
+    /// </summary>
+    public IReadOnlyList<string> ReviewerLogins { get; init; } = [];
+
+    /// <summary>
     /// Unique key used for delta-detection across polls.
     /// </summary>
     public string Key => $"{Repository}#{Number}";

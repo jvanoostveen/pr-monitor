@@ -223,8 +223,14 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 
 ### Unresolved review comments indicator
 - PR rows keep the CI circle unchanged and can show an additional message icon (`Segoe MDL2 Assets`, `E8BD`) when unresolved review comments are present.
-- Tooltip text is in English and includes the unresolved comment count (for example: `3 unresolved review comments`).
+- Each PR row has a combined `PrTooltip` (bound to the row `Border`) showing CI state, reviewer info (for own PRs), unresolved comment count, and approved state. Individual icons carry no separate tooltips.
 - Data is sourced from GraphQL `reviewThreads` per PR by counting unresolved threads (`isResolved == false`) and summing their `comments.totalCount`.
+
+### Reviewer indicator on own PRs
+- Own PR rows (My Auto-Merge PRs, My PRs, Hotfixes, and own PRs in Later) show a `E748` (SwitchUser) icon from **Segoe Fluent Icons** (`FontSize="11"`, gray `#484F58`) when `ShowNoReviewerWarning` is true (i.e., `IsOwnPr && !HasNonCopilotReviewer`).
+- No icon is shown when a non-Copilot reviewer has been assigned — reviewer names appear in `PrTooltip` instead.
+- `ReviewerLogins` is populated from GraphQL `reviewRequests(first: 10)` in `MyPrsQuery` and `ReviewRequestedQuery`, filtering out `login == "copilot"` (case-insensitive). Team slugs are included.
+- `PrTooltip` (computed property on `PrItemViewModel`) shows: `CI: {state}` + reviewer info (if `IsOwnPr`) + unresolved comments + approved state, joined by newlines.
 
 ### Tray icon colors
 - Red `#F85149` — CI failures present

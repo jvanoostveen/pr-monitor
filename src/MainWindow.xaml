@@ -333,6 +333,7 @@
                                     <DataTemplate>
                                         <Border Style="{StaticResource PrRow}"
                                                 MouseLeftButtonUp="PrItem_Click"
+                                                ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
                                             <Border.ContextMenu>
                                                 <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
@@ -360,17 +361,22 @@
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"
-                                                             ToolTip="{Binding CIState}"/>
+                                                             VerticalAlignment="Center"/>
                                                     <TextBlock Text="&#xE8BD;"
                                                                FontFamily="Segoe MDL2 Assets"
                                                                FontSize="11"
                                                                Foreground="#8B949E"
                                                                VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
-                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
-                                                               ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
-                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}" ToolTip="Approved"/>
+                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Text="&#xE748;"
+                                                               FontFamily="Segoe Fluent Icons"
+                                                               FontSize="11"
+                                                               Foreground="#D29922"
+                                                               VerticalAlignment="Center"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -431,6 +437,7 @@
                                     <DataTemplate>
                                         <Border Style="{StaticResource PrRow}"
                                                 MouseLeftButtonUp="PrItem_Click"
+                                                ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
                                             <Border.ContextMenu>
                                                 <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
@@ -458,17 +465,22 @@
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"
-                                                             ToolTip="{Binding CIState}"/>
+                                                             VerticalAlignment="Center"/>
                                                     <TextBlock Text="&#xE8BD;"
                                                                FontFamily="Segoe MDL2 Assets"
                                                                FontSize="11"
                                                                Foreground="#8B949E"
                                                                VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
-                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
-                                                               ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
-                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}" ToolTip="Approved"/>
+                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Text="&#xE748;"
+                                                               FontFamily="Segoe Fluent Icons"
+                                                               FontSize="11"
+                                                               Foreground="#D29922"
+                                                               VerticalAlignment="Center"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -523,6 +535,7 @@
                                     <DataTemplate>
                                         <Border Style="{StaticResource PrRow}"
                                                 MouseLeftButtonUp="PrItem_Click"
+                                                ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
                                             <Border.ContextMenu>
                                                 <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
@@ -550,17 +563,15 @@
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"
-                                                             ToolTip="{Binding CIState}"/>
+                                                             VerticalAlignment="Center"/>
                                                     <TextBlock Text="&#xE8BD;"
                                                                FontFamily="Segoe MDL2 Assets"
                                                                FontSize="11"
                                                                Foreground="#8B949E"
                                                                VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
-                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
-                                                               ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
-                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}" ToolTip="Approved"/>
+                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -617,6 +628,7 @@
                                     <DataTemplate>
                                         <Border Style="{StaticResource PrRow}"
                                                 MouseLeftButtonUp="PrItem_Click"
+                                                ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
                                             <Border.ContextMenu>
                                                 <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
@@ -645,17 +657,22 @@
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"
-                                                             ToolTip="{Binding CIState}"/>
+                                                             VerticalAlignment="Center"/>
                                                     <TextBlock Text="&#xE8BD;"
                                                                FontFamily="Segoe MDL2 Assets"
                                                                FontSize="11"
                                                                Foreground="#8B949E"
                                                                VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
-                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
-                                                               ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
-                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}" ToolTip="Approved"/>
+                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Text="&#xE748;"
+                                                               FontFamily="Segoe Fluent Icons"
+                                                               FontSize="11"
+                                                               Foreground="#D29922"
+                                                               VerticalAlignment="Center"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -710,6 +727,7 @@
                                     <DataTemplate>
                                         <Border Style="{StaticResource PrRow}"
                                                 MouseLeftButtonUp="PrItem_Click"
+                                                ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
                                             <Border.ContextMenu>
                                                 <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
@@ -737,17 +755,15 @@
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"
-                                                             ToolTip="{Binding CIState}"/>
+                                                             VerticalAlignment="Center"/>
                                                     <TextBlock Text="&#xE8BD;"
                                                                FontFamily="Segoe MDL2 Assets"
                                                                FontSize="11"
                                                                Foreground="#8B949E"
                                                                VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
-                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
-                                                               ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
-                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}" ToolTip="Approved"/>
+                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -804,6 +820,7 @@
                                 <DataTemplate>
                                     <Border Style="{StaticResource PrRow}"
                                             MouseLeftButtonUp="PrItem_Click"
+                                            ToolTip="{Binding PrTooltip}"
                                             Tag="{Binding}">
                                         <Border.ContextMenu>
                                             <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
@@ -831,17 +848,22 @@
                                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                 <Ellipse Width="10" Height="10"
                                                          Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
-                                                         VerticalAlignment="Center"
-                                                         ToolTip="{Binding CIState}"/>
+                                                         VerticalAlignment="Center"/>
                                                 <TextBlock Text="&#xE8BD;"
                                                            FontFamily="Segoe MDL2 Assets"
                                                            FontSize="11"
                                                            Foreground="#8B949E"
                                                            VerticalAlignment="Center"
                                                            Margin="5,0,0,0"
-                                                           Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"
-                                                           ToolTip="{Binding UnresolvedReviewCommentsToolTip}"/>
-                                                <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}" ToolTip="Approved"/>
+                                                           Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
+                                                <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                <TextBlock Text="&#xE748;"
+                                                           FontFamily="Segoe Fluent Icons"
+                                                           FontSize="11"
+                                                           Foreground="#D29922"
+                                                           VerticalAlignment="Center"
+                                                           Margin="5,0,0,0"
+                                                           Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1">
                                                 <TextBlock Style="{StaticResource RepoText}">
