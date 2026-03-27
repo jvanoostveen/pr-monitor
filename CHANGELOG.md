@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-03-27
+
 ### Added
 
 - **Reviewer indicator** on own PR rows (My Auto-Merge PRs, My PRs, Hotfixes, and own PRs in Later): a `SwitchUser` icon (Segoe Fluent Icons `E748`, gray) shows when no non-Copilot reviewer has been assigned. No icon is shown when reviewer(s) are assigned — names appear in the row tooltip instead.
