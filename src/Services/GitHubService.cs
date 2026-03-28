@@ -25,8 +25,9 @@ public sealed class GitHubService
     // ── GraphQL fragments ───────────────────────────────────────────────
 
     private const string MyPrsQuery = """
-        query($q: String!) {
-          search(query: $q, type: ISSUE, first: 50) {
+        query($q: String!, $cursor: String) {
+          search(query: $q, type: ISSUE, first: 50, after: $cursor) {
+            pageInfo { hasNextPage endCursor }
             nodes {
               ... on PullRequest {
                 number
@@ -75,8 +76,9 @@ public sealed class GitHubService
         """;
 
     private const string ReviewRequestedQuery = """
-        query($q: String!) {
-          search(query: $q, type: ISSUE, first: 50) {
+        query($q: String!, $cursor: String) {
+          search(query: $q, type: ISSUE, first: 50, after: $cursor) {
+            pageInfo { hasNextPage endCursor }
             nodes {
               ... on PullRequest {
                 number
@@ -124,8 +126,9 @@ public sealed class GitHubService
         """;
 
     private const string ReviewRequestedFullQuery = """
-        query($q: String!) {
-          search(query: $q, type: ISSUE, first: 50) {
+        query($q: String!, $cursor: String) {
+          search(query: $q, type: ISSUE, first: 50, after: $cursor) {
+            pageInfo { hasNextPage endCursor }
             nodes {
               ... on PullRequest {
                 number
@@ -182,11 +185,22 @@ public sealed class GitHubService
         var allPrs = new List<PullRequestInfo>();
         var queries = BuildSearchQueries("is:pr is:open author:@me", organizations);
 
+        const int MaxPages = 5;
         foreach (var q in queries)
         {
-            var json = await RunGraphQlAsync(MyPrsQuery, q);
-            if (json is not { } jsonValue) continue;
-            allPrs.AddRange(ParseMyPrs(jsonValue));
+            string? cursor = null;
+            for (int page = 0; page < MaxPages; page++)
+            {
+                var json = await RunGraphQlAsync(MyPrsQuery, q, cursor);
+                if (json is not { } jsonValue) break;
+                allPrs.AddRange(ParseMyPrs(jsonValue));
+                if (!jsonValue.TryGetProperty("data", out var d) ||
+                    !d.TryGetProperty("search", out var s) ||
+                    !s.TryGetProperty("pageInfo", out var pi) ||
+                    !pi.GetProperty("hasNextPage").GetBoolean()) break;
+                cursor = pi.GetProperty("endCursor").GetString();
+                if (cursor is null) break;
+            }
         }
 
         return allPrs.DistinctBy(p => p.Key).ToList();
@@ -211,13 +225,24 @@ public sealed class GitHubService
     {
         var allPrs = new List<PullRequestInfo>();
 
+        const int MaxPages = 5;
         foreach (var q in BuildSearchQueries("is:pr is:open involves:@me", organizations))
         {
-            var json = await RunGraphQlAsync(ReviewRequestedQuery, q);
-            if (json is not { } jsonValue) continue;
-            allPrs.AddRange(
-                ParseReviewPrs(jsonValue)
-                    .Where(p => p.BaseRefName.StartsWith("release/", StringComparison.OrdinalIgnoreCase)));
+            string? cursor = null;
+            for (int page = 0; page < MaxPages; page++)
+            {
+                var json = await RunGraphQlAsync(ReviewRequestedQuery, q, cursor);
+                if (json is not { } jsonValue) break;
+                allPrs.AddRange(
+                    ParseReviewPrs(jsonValue)
+                        .Where(p => p.BaseRefName.StartsWith("release/", StringComparison.OrdinalIgnoreCase)));
+                if (!jsonValue.TryGetProperty("data", out var d) ||
+                    !d.TryGetProperty("search", out var s) ||
+                    !s.TryGetProperty("pageInfo", out var pi) ||
+                    !pi.GetProperty("hasNextPage").GetBoolean()) break;
+                cursor = pi.GetProperty("endCursor").GetString();
+                if (cursor is null) break;
+            }
         }
 
         return allPrs.DistinctBy(p => p.Key).ToList();
@@ -233,12 +258,22 @@ public sealed class GitHubService
         var queries = BuildSearchQueries("is:pr is:open review-requested:@me", organizations);
         var queryToUse = classifyTeams ? ReviewRequestedFullQuery : ReviewRequestedQuery;
 
+        const int MaxPages = 5;
         foreach (var q in queries)
         {
-            var json = await RunGraphQlAsync(queryToUse, q);
-            if (json is not { } jsonValue) continue;
-
-            allPrs.AddRange(ParseReviewPrs(jsonValue, currentUsername));
+            string? cursor = null;
+            for (int page = 0; page < MaxPages; page++)
+            {
+                var json = await RunGraphQlAsync(queryToUse, q, cursor);
+                if (json is not { } jsonValue) break;
+                allPrs.AddRange(ParseReviewPrs(jsonValue, currentUsername));
+                if (!jsonValue.TryGetProperty("data", out var d) ||
+                    !d.TryGetProperty("search", out var s) ||
+                    !s.TryGetProperty("pageInfo", out var pi) ||
+                    !pi.GetProperty("hasNextPage").GetBoolean()) break;
+                cursor = pi.GetProperty("endCursor").GetString();
+                if (cursor is null) break;
+            }
         }
 
         return allPrs;
@@ -424,10 +459,12 @@ public sealed class GitHubService
         return orgs.Select(org => $"{baseQuery} org:{org}").ToList();
     }
 
-    private async Task<JsonElement?> RunGraphQlAsync(string query, string searchString)
+    private async Task<JsonElement?> RunGraphQlAsync(string query, string searchString, string? cursor = null)
     {
-        var (output, stderr, exitCode) = await RunGhAsync(
-            "api", "graphql", "-f", $"query={query}", "-f", $"q={searchString}");
+        var ghArgs = cursor is null
+            ? new[] { "api", "graphql", "-f", $"query={query}", "-f", $"q={searchString}" }
+            : new[] { "api", "graphql", "-f", $"query={query}", "-f", $"q={searchString}", "-f", $"cursor={cursor}" };
+        var (output, stderr, exitCode) = await RunGhAsync(ghArgs);
         if (exitCode != 0)
         {
             _logger.Error($"GitHubService GraphQL call failed (exit={exitCode}) for query '{searchString}'. stderr: {stderr?.Trim()}");
