@@ -525,6 +525,8 @@ public sealed class PrItemViewModel
     }
     public bool CanRerunFailedJobs => !IsDraft && CIState == CIState.Failure && !string.IsNullOrWhiteSpace(HeadCommitSha);
     public bool CanRequestCopilotReview => !IsDraft;
+    public bool CanMarkAsReady => IsOwnPr && IsDraft;
+    public bool CanConvertToDraft => IsOwnPr && !IsDraft;
 
     /// <summary>Show the approved checkmark icon: PR is approved but has no unresolved review comments (comments take priority).</summary>
     public bool ShowApprovedIcon => IsApproved && !HasUnresolvedReviewComments;

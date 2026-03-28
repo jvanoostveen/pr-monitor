@@ -340,6 +340,32 @@ public sealed class GitHubService
         return exitCode == 0;
     }
 
+    /// <summary>
+    /// Converts a draft PR to ready for review. Returns true on success.
+    /// </summary>
+    public async Task<bool> SetPrReadyAsync(string owner, string repo, int prNumber)
+    {
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo"))
+            return false;
+        var (_, stderr, exitCode) = await RunGhAsync("pr", "ready", prNumber.ToString(), "--repo", $"{owner}/{repo}");
+        if (exitCode != 0)
+            _logger.Warn($"SetPrReadyAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
+        return exitCode == 0;
+    }
+
+    /// <summary>
+    /// Converts a ready PR to draft. Returns true on success.
+    /// </summary>
+    public async Task<bool> SetPrDraftAsync(string owner, string repo, int prNumber)
+    {
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo"))
+            return false;
+        var (_, stderr, exitCode) = await RunGhAsync("pr", "edit", prNumber.ToString(), "--draft", "--repo", $"{owner}/{repo}");
+        if (exitCode != 0)
+            _logger.Warn($"SetPrDraftAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
+        return exitCode == 0;
+    }
+
     // ── Internal helpers ────────────────────────────────────────────────
 
     internal static List<string> BuildSearchQueries(string baseQuery, IReadOnlyList<string> orgs)

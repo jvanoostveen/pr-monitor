@@ -79,6 +79,8 @@ public partial class MainWindow : Window
     private const uint ID_PR_RERUN_FAILED  = 1003;
     private const uint ID_PR_COPILOT       = 1004;
     private const uint ID_PR_MOVE_RESTORE  = 1005;
+    private const uint ID_DRAFT_READY      = 1006;
+    private const uint ID_DRAFT_CONVERT    = 1007;
 
     public MainWindow(MainViewModel viewModel, AppSettings settings, GitHubService github, NotificationService notifications, DiagnosticsLogger logger)
     {
@@ -846,6 +848,14 @@ public partial class MainWindow : Window
             AppendMenuW(hMenu, rerunFlags, (UIntPtr)ID_PR_RERUN_FAILED, "Rerun failed jobs");
             AppendMenuW(hMenu, copilotFlags, (UIntPtr)ID_PR_COPILOT, "Request Copilot review");
             AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_MOVE_RESTORE, moveLabel);
+            if (vm.CanMarkAsReady || vm.CanConvertToDraft)
+            {
+                AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
+                if (vm.CanMarkAsReady)
+                    AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_DRAFT_READY, "Mark as ready");
+                else
+                    AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_DRAFT_CONVERT, "Convert to draft");
+            }
 
             var cursor = WinForms.Cursor.Position;
             var hwnd = new WindowInteropHelper(this).Handle;
@@ -881,6 +891,14 @@ public partial class MainWindow : Window
                         ViewModel.RestoreItem(vm.Key);
                     else
                         ViewModel.HideItem(vm.Key);
+                    break;
+                case ID_DRAFT_READY:
+                    if (vm.CanMarkAsReady)
+                        _ = SetPrReadyAsync(vm);
+                    break;
+                case ID_DRAFT_CONVERT:
+                    if (vm.CanConvertToDraft)
+                        _ = SetPrDraftAsync(vm);
                     break;
             }
         }
@@ -1063,6 +1081,80 @@ public partial class MainWindow : Window
             System.Windows.MessageBox.Show(
                 $"Could not request Copilot review.\n\nDetails: {ex.Message}",
                 "Request Copilot review",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private async Task SetPrReadyAsync(PrItemViewModel vm)
+    {
+        if (!vm.CanMarkAsReady)
+            return;
+
+        if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
+        {
+            System.Windows.MessageBox.Show(
+                "Could not determine owner/repository for this PR.",
+                "Mark as ready",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            var success = await _github.SetPrReadyAsync(owner, repo, vm.Number);
+            if (success)
+                await ViewModel.RefreshAsync();
+            else
+                System.Windows.MessageBox.Show(
+                    "Could not mark this pull request as ready.",
+                    "Mark as ready",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Could not mark PR as ready.\n\nDetails: {ex.Message}",
+                "Mark as ready",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private async Task SetPrDraftAsync(PrItemViewModel vm)
+    {
+        if (!vm.CanConvertToDraft)
+            return;
+
+        if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
+        {
+            System.Windows.MessageBox.Show(
+                "Could not determine owner/repository for this PR.",
+                "Convert to draft",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            var success = await _github.SetPrDraftAsync(owner, repo, vm.Number);
+            if (success)
+                await ViewModel.RefreshAsync();
+            else
+                System.Windows.MessageBox.Show(
+                    "Could not convert this pull request to draft.",
+                    "Convert to draft",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Could not convert PR to draft.\n\nDetails: {ex.Message}",
+                "Convert to draft",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         }
