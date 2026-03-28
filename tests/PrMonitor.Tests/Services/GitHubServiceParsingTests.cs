@@ -23,17 +23,6 @@ public class GitHubServiceParsingTests
         Assert.Equal(expected, result);
     }
 
-    [Theory]
-    [InlineData("hello",           "hello")]
-    [InlineData("he\"llo",         "he\\\"llo")]
-    [InlineData("back\\slash",     "back\\\\slash")]
-    [InlineData("both\\and\"here", "both\\\\and\\\"here")]
-    [InlineData("",                "")]
-    public void EscapeForShell_EscapesSpecialCharacters(string input, string expected)
-    {
-        var result = GitHubService.EscapeForShell(input);
-        Assert.Equal(expected, result);
-    }
 
     [Fact]
     public void BuildSearchQueries_NoOrgs_ReturnsBaseQueryUnchanged()

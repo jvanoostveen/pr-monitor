@@ -229,7 +229,8 @@ public sealed class TrayIconManager : IDisposable
 
     private static void OpenInBrowser(string url)
     {
-        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
     public static string GetAppVersion()

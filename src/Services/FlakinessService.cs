@@ -137,9 +137,14 @@ public sealed class FlakinessService
         _logger.Info($"FlakinessService: no local rule matched {prKey}, calling Copilot for analysis.");
         var result = await _copilot.AnalyzeFlakiness(context, _settings.FlakinessCustomHints);
 
-        // Persist any suggested rules (deduplicate by pattern)
+        // Persist any suggested rules (deduplicate by pattern; validate before saving)
         foreach (var suggestion in result.SuggestedRules)
         {
+            if (!IsValidFlakinessPattern(suggestion.Pattern))
+            {
+                _logger.Warn($"FlakinessService: rejected AI-suggested pattern (failed validation): '{suggestion.Pattern}'");
+                continue;
+            }
             if (_settings.FlakinessRules.All(r => r.Pattern != suggestion.Pattern))
             {
                 _settings.FlakinessRules.Add(new FlakinessRule
@@ -215,6 +220,28 @@ public sealed class FlakinessService
         }
         catch
         {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Validates an AI-suggested regex pattern before persisting it.
+    /// Rejects overly broad or invalid patterns.
+    /// </summary>
+    internal static bool IsValidFlakinessPattern(string? pattern)
+    {
+        if (string.IsNullOrWhiteSpace(pattern) || pattern.Length < 5)
+            return false;
+        try
+        {
+            // Reject patterns that match an empty string (catches .*, ^, etc.)
+            if (Regex.IsMatch("", pattern, RegexOptions.None, TimeSpan.FromMilliseconds(100)))
+                return false;
+            return true;
+        }
+        catch
+        {
+            // Invalid regex
             return false;
         }
     }

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **URL scheme validation**: all `Process.Start(UseShellExecute=true)` call sites now require `https://` scheme before opening URLs in the browser, guarding against `file://`, `ms-msdt:`, and other registered protocol handlers being invoked via a compromised API response.
+- **Subprocess argument injection hardening**: `GitHubService` and `UpdateService` now use `ProcessStartInfo.ArgumentList` instead of a flat `Arguments` string, eliminating Windows shell tokenisation and argument-splitting issues. `owner`, `repo`, and `headSha` values are validated against safe character patterns (`^[a-zA-Z0-9_.\-]+$` / `^[0-9a-fA-F]{1,40}$`) before use in subprocess calls. The now-redundant `EscapeForShell` helper has been removed.
+- **Prompt injection mitigation**: untrusted GitHub data (PR title, branch, CI log excerpt) in the AI flakiness-analysis user message is now wrapped in explicit `[UNTRUSTED DATA START/END]` markers, with the task directive re-stated after the boundary.
+- **AI-suggested regex validation**: patterns returned by the GitHub Models API are now validated before being persisted as flakiness rules — patterns shorter than 5 characters or that match an empty string (e.g. `.*`, `^`) are rejected and logged as warnings.
+- **`FlakinessCustomHints` length cap**: the custom AI hints field in Settings is capped at 500 characters to limit the blast radius of a locally-modified `settings.json`.
+- **`HttpClient` timeout and size cap** in `CopilotService`: requests to the GitHub Models API now have a 30-second timeout and a 1 MB response-body cap.
+- **Atomic settings file write**: `AppSettings.SaveTo` now writes to a `.tmp` file and atomically renames it over the target, preventing a truncated `settings.json` on process-kill during write.
+
 ## [1.7.0] - 2026-03-27
 
 ### Added

@@ -185,7 +185,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     public string FlakinessCustomHints
     {
         get => _flakinessCustomHints;
-        set => SetField(ref _flakinessCustomHints, value ?? "");
+        set => SetField(ref _flakinessCustomHints, value is null ? "" : value.Length <= 500 ? value : value[..500]);
     }
 
     public ObservableCollection<FlakinessRuleViewModel> FlakinessRules { get; } = [];

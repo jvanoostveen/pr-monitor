@@ -11,6 +11,12 @@ public sealed class GitHubService
 {
     private readonly DiagnosticsLogger _logger;
 
+    // Safe patterns for values interpolated into subprocess arguments.
+    private static readonly System.Text.RegularExpressions.Regex _safeSlug =
+        new(@"^[a-zA-Z0-9_.\-]+$", System.Text.RegularExpressions.RegexOptions.Compiled);
+    private static readonly System.Text.RegularExpressions.Regex _safeSha =
+        new(@"^[0-9a-fA-F]{1,40}$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
     public GitHubService(DiagnosticsLogger logger)
     {
         _logger = logger;
@@ -259,7 +265,7 @@ public sealed class GitHubService
     /// </summary>
     public async Task<string?> GetCurrentUserAsync()
     {
-        var (output, _, _) = await RunGhAsync("api user -q .login");
+        var (output, _, _) = await RunGhAsync("api", "user", "-q", ".login");
         return string.IsNullOrWhiteSpace(output) ? null : output.Trim();
     }
 
@@ -268,7 +274,11 @@ public sealed class GitHubService
     /// </summary>
     public async Task<IReadOnlyList<long>> FetchFailedRunIdsAsync(string owner, string repo, string headSha)
     {
-        var (output, stderr, exitCode) = await RunGhAsync($"api repos/{owner}/{repo}/actions/runs?head_sha={headSha} --jq \".workflow_runs[] | select(.conclusion==\\\"failure\\\") | .id\"");
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo") || !ValidateSha(headSha))
+            return [];
+        var (output, stderr, exitCode) = await RunGhAsync(
+            "api", $"repos/{owner}/{repo}/actions/runs?head_sha={headSha}",
+            "--jq", ".workflow_runs[] | select(.conclusion==\"failure\") | .id");
         if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
         {
             if (exitCode != 0)
@@ -290,7 +300,9 @@ public sealed class GitHubService
     /// </summary>
     public async Task<string> FetchFailedLogAsync(string owner, string repo, long runId)
     {
-        var (output, _, exitCode) = await RunGhAsync($"run view {runId} --log-failed --repo {owner}/{repo}");
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo"))
+            return "";
+        var (output, _, exitCode) = await RunGhAsync("run", "view", runId.ToString(), "--log-failed", "--repo", $"{owner}/{repo}");
         if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
             return "";
 
@@ -303,7 +315,9 @@ public sealed class GitHubService
     /// </summary>
     public async Task<bool> RerunFailedJobsAsync(string owner, string repo, long runId)
     {
-        var (_, stderr, exitCode) = await RunGhAsync($"run rerun {runId} --failed --repo {owner}/{repo}");
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo"))
+            return false;
+        var (_, stderr, exitCode) = await RunGhAsync("run", "rerun", runId.ToString(), "--failed", "--repo", $"{owner}/{repo}");
         if (exitCode != 0)
             _logger.Warn($"RerunFailedJobsAsync failed (exit={exitCode}) for run {runId} in {owner}/{repo}: {stderr?.Trim()}");
         return exitCode == 0;
@@ -315,7 +329,9 @@ public sealed class GitHubService
     /// </summary>
     public async Task<bool> RequestCopilotReviewAsync(string owner, string repo, int prNumber)
     {
-        var (_, stderr, exitCode) = await RunGhAsync($"pr edit {prNumber} --add-reviewer copilot --repo {owner}/{repo}");
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo"))
+            return false;
+        var (_, stderr, exitCode) = await RunGhAsync("pr", "edit", prNumber.ToString(), "--add-reviewer", "copilot", "--repo", $"{owner}/{repo}");
         if (exitCode != 0)
             _logger.Warn($"RequestCopilotReviewAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
         return exitCode == 0;
@@ -335,9 +351,8 @@ public sealed class GitHubService
 
     private async Task<JsonElement?> RunGraphQlAsync(string query, string searchString)
     {
-        // Escape the query for passing as -f argument
-        var args = $"api graphql -f query=\"{EscapeForShell(query)}\" -f q=\"{EscapeForShell(searchString)}\"";
-        var (output, stderr, exitCode) = await RunGhAsync(args);
+        var (output, stderr, exitCode) = await RunGhAsync(
+            "api", "graphql", "-f", $"query={query}", "-f", $"q={searchString}");
         if (exitCode != 0)
         {
             _logger.Error($"GitHubService GraphQL call failed (exit={exitCode}) for query '{searchString}'. stderr: {stderr?.Trim()}");
@@ -633,7 +648,7 @@ public sealed class GitHubService
 
     // ── Process helpers ─────────────────────────────────────────────────
 
-    private async Task<(string? Output, string? Stderr, int ExitCode)> RunGhAsync(string arguments)
+    private async Task<(string? Output, string? Stderr, int ExitCode)> RunGhAsync(params string[] arguments)
     {
         try
         {
@@ -641,12 +656,13 @@ public sealed class GitHubService
             process.StartInfo = new ProcessStartInfo
             {
                 FileName = "gh",
-                Arguments = arguments,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
+            foreach (var arg in arguments)
+                process.StartInfo.ArgumentList.Add(arg);
 
             process.Start();
             var output = await process.StandardOutput.ReadToEndAsync();
@@ -655,7 +671,7 @@ public sealed class GitHubService
 
             if (process.ExitCode != 0)
             {
-                _logger.Error($"GitHubService gh command failed (exit={process.ExitCode}). args: {arguments}. stderr: {stderr?.Trim()}");
+                _logger.Error($"GitHubService gh command failed (exit={process.ExitCode}). args: {string.Join(" ", arguments)}. stderr: {stderr?.Trim()}");
             }
 
             return (process.ExitCode == 0 ? output : null, stderr, process.ExitCode);
@@ -668,9 +684,17 @@ public sealed class GitHubService
         }
     }
 
-    /// <summary>
-    /// Minimal escaping for passing strings as gh CLI arguments.
-    /// </summary>
-    internal static string EscapeForShell(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private bool ValidateSlug(string value, string paramName)
+    {
+        if (_safeSlug.IsMatch(value)) return true;
+        _logger.Warn($"GitHubService: rejected unsafe {paramName} value: '{value}'");
+        return false;
+    }
+
+    private bool ValidateSha(string value)
+    {
+        if (_safeSha.IsMatch(value)) return true;
+        _logger.Warn($"GitHubService: rejected unsafe headSha value: '{value}'");
+        return false;
+    }
 }

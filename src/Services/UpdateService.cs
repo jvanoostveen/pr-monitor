@@ -79,7 +79,7 @@ public sealed class UpdateService
 
     private async Task<string?> TryGetLatestReleaseViaGhAsync(CancellationToken cancellationToken)
     {
-        var (output, stderr, exitCode) = await RunGhAsync("api repos/jvanoostveen/pr-monitor/releases/latest", cancellationToken);
+        var (output, stderr, exitCode) = await RunGhAsync(cancellationToken, "api", "repos/jvanoostveen/pr-monitor/releases/latest");
 
         if (exitCode != 0)
         {
@@ -153,7 +153,7 @@ public sealed class UpdateService
         }
     }
 
-    private async Task<(string? Output, string? Stderr, int ExitCode)> RunGhAsync(string arguments, CancellationToken cancellationToken)
+    private async Task<(string? Output, string? Stderr, int ExitCode)> RunGhAsync(CancellationToken cancellationToken, params string[] arguments)
     {
         try
         {
@@ -161,12 +161,13 @@ public sealed class UpdateService
             process.StartInfo = new ProcessStartInfo
             {
                 FileName = "gh",
-                Arguments = arguments,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
+            foreach (var arg in arguments)
+                process.StartInfo.ArgumentList.Add(arg);
 
             process.Start();
 

@@ -43,7 +43,9 @@ public sealed class NotificationService : IDisposable
         ToastNotificationManagerCompat.OnActivated += args =>
         {
             var url = args.Argument;
-            if (!string.IsNullOrEmpty(url) && Uri.TryCreate(url, UriKind.Absolute, out _))
+            if (!string.IsNullOrEmpty(url)
+                && Uri.TryCreate(url, UriKind.Absolute, out var toastUri)
+                && toastUri.Scheme == Uri.UriSchemeHttps)
             {
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             }

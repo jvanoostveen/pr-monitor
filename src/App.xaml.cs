@@ -220,7 +220,8 @@ public partial class App : System.Windows.Application
 
     private static void OpenInBrowser(string url)
     {
-        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
     // Tells Windows to render native Win32 menus (and other controls) in

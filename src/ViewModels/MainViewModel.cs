@@ -326,7 +326,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public void OpenUpdateRelease()
     {
-        if (!string.IsNullOrWhiteSpace(UpdateReleaseUrl))
+        if (!string.IsNullOrWhiteSpace(UpdateReleaseUrl)
+            && Uri.TryCreate(UpdateReleaseUrl, UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps)
             Process.Start(new ProcessStartInfo(UpdateReleaseUrl) { UseShellExecute = true });
     }
 
@@ -437,8 +439,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
         LastUpdated = DateTime.Now.ToString("HH:mm:ss");
     }
 
-    private static void OpenUrl(string url) =>
-        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    private static void OpenUrl(string url)
+    {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
 
     // ── INotifyPropertyChanged ──────────────────────────────────────
 
@@ -517,8 +522,11 @@ public sealed class PrItemViewModel
     /// </summary>
     public CIState EffectiveCIState => IsDraft ? CIState.Unknown : CIState;
 
-    public void OpenInBrowser() =>
-        Process.Start(new ProcessStartInfo(Url) { UseShellExecute = true });
+    public void OpenInBrowser()
+    {
+        if (Uri.TryCreate(Url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+            Process.Start(new ProcessStartInfo(Url) { UseShellExecute = true });
+    }
 
     public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false) => new()
     {
