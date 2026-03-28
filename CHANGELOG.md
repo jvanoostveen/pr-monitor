@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`HttpClient` timeout and size cap** in `CopilotService`: requests to the GitHub Models API now have a 30-second timeout and a 1 MB response-body cap.
 - **Atomic settings file write**: `AppSettings.SaveTo` now writes to a `.tmp` file and atomically renames it over the target, preventing a truncated `settings.json` on process-kill during write.
 
+### Performance
+
+- **Poll concurrency guard**: `PollingService.PollAsync` is now protected by a `SemaphoreSlim(1,1)`. A manual refresh or settings-save triggered while a timer poll is already in progress is silently skipped instead of running in parallel and producing duplicate `PrChanged` events.
+- **`async void` timer callback fixed**: the `Timer.Elapsed` handler in `PollingService` was changed from `async void` (which would crash the process on an unhandled exception from a threadpool thread) to a fire-and-forget `_ = PollAsync()`.
+- **Parallel stdout/stderr reads in `GitHubService`**: stdout and stderr are now drained concurrently before waiting for process exit, matching the existing `UpdateService` pattern and preventing a pipe-buffer deadlock on verbose `gh` error output.
+- **Frozen static `SolidColorBrush` for refresh icon**: the refresh-icon foreground brushes in `MainWindow` are now frozen static fields instead of being allocated via `ColorConverter` on every poll cycle, eliminating repeated `ColorConverter` reflection cost and short-lived brush objects.
+- **`PooledConnectionLifetime` on static `HttpClient` instances**: `UpdateService` and `CopilotService` now configure `SocketsHttpHandler.PooledConnectionLifetime = 15 min`, ensuring DNS entries are periodically refreshed for long-running sessions.
+- **`HttpResponseMessage` disposed after API call**: `CopilotService.SendChatCompletionAsync` now disposes the response object after reading the body, rather than leaving it for the GC finaliser.
+- **`_spinAnimation` nulled on stop**: the `DoubleAnimation` field is set to `null` when the refresh animation is stopped, releasing the animation clock reference promptly.
+
 ## [1.7.0] - 2026-03-27
 
 ### Added

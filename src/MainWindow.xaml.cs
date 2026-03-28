@@ -27,6 +27,18 @@ public partial class MainWindow : Window
     private readonly DiagnosticsLogger _logger;
     private DoubleAnimation? _spinAnimation;
     private bool _userMoved;
+
+    private static readonly SolidColorBrush RefreshBlueBrush;
+    private static readonly SolidColorBrush RefreshGreyBrush;
+
+    static MainWindow()
+    {
+        RefreshBlueBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x58, 0xA6, 0xFF));
+        RefreshBlueBrush.Freeze();
+        RefreshGreyBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x6E, 0x76, 0x81));
+        RefreshGreyBrush.Freeze();
+    }
+
     private bool _isProgrammaticMove;
     private bool _isDragging;
     private SnapCorner _snappedCorner  = SnapCorner.None;
@@ -755,12 +767,9 @@ public partial class MainWindow : Window
 
     private void UpdateRefreshIcon(bool isRefreshing)
     {
-        var blue = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#58A6FF"));
-        var grey = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#6E7681"));
-
         if (isRefreshing)
         {
-            RefreshIcon.Foreground = blue;
+            RefreshIcon.Foreground = RefreshBlueBrush;
             _spinAnimation = new DoubleAnimation(0, 360, new Duration(TimeSpan.FromMilliseconds(800)))
             {
                 RepeatBehavior = RepeatBehavior.Forever,
@@ -771,7 +780,8 @@ public partial class MainWindow : Window
         {
             RefreshRotate.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, null);
             RefreshRotate.Angle = 0;
-            RefreshIcon.Foreground = grey;
+            RefreshIcon.Foreground = RefreshGreyBrush;
+            _spinAnimation = null;
         }
     }
 

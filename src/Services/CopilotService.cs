@@ -13,7 +13,10 @@ namespace PrMonitor.Services;
 public sealed class CopilotService
 {
     private readonly DiagnosticsLogger _logger;
-    private static readonly HttpClient _http = new()
+    private static readonly HttpClient _http = new(new System.Net.Http.SocketsHttpHandler
+    {
+        PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+    })
     {
         Timeout = TimeSpan.FromSeconds(30),
         MaxResponseContentBufferSize = 1024 * 1024, // 1 MB cap
@@ -127,6 +130,7 @@ public sealed class CopilotService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await _http.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
+        response.Dispose();
         return (response, body);
     }
 

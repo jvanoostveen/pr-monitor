@@ -665,9 +665,11 @@ public sealed class GitHubService
                 process.StartInfo.ArgumentList.Add(arg);
 
             process.Start();
-            var output = await process.StandardOutput.ReadToEndAsync();
-            var stderr = await process.StandardError.ReadToEndAsync();
+            var outputTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
             await process.WaitForExitAsync();
+            var output = await outputTask;
+            var stderr = await stderrTask;
 
             if (process.ExitCode != 0)
             {

@@ -1,4 +1,5 @@
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
@@ -69,7 +70,10 @@ public sealed class UpdateService
 
     private static HttpClient CreateHttpClient()
     {
-        var client = new HttpClient
+        var client = new HttpClient(new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+        })
         {
             Timeout = TimeSpan.FromSeconds(8),
         };

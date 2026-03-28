@@ -47,6 +47,7 @@ public sealed class PollingService : IDisposable
     private readonly AppSettings _settings;
     private readonly DiagnosticsLogger _logger;
     private System.Timers.Timer? _timer;
+    private readonly SemaphoreSlim _pollLock = new(1, 1);
 
     internal Dictionary<string, PullRequestInfo> _previousAutoMerge = new();
     internal Dictionary<string, PullRequestInfo> _previousReviews = new();
@@ -78,7 +79,7 @@ public sealed class PollingService : IDisposable
         _ = PollAsync();
 
         _timer = new System.Timers.Timer(_settings.PollingIntervalSeconds * 1000);
-        _timer.Elapsed += async (_, _) => await PollAsync();
+        _timer.Elapsed += (_, _) => _ = PollAsync();
         _timer.AutoReset = true;
         _timer.Start();
     }
@@ -98,12 +99,17 @@ public sealed class PollingService : IDisposable
     {
         _timer?.Stop();
         _timer?.Dispose();
+        _pollLock.Dispose();
     }
 
     // ── Core polling logic ──────────────────────────────────────────────
 
     private async Task PollAsync()
     {
+        if (!await _pollLock.WaitAsync(0))
+            return; // another poll is already in progress — skip
+        try
+        {
         _logger.Info("PollingService poll started.");
         try
         {
@@ -168,6 +174,11 @@ public sealed class PollingService : IDisposable
         {
             _logger.Error("PollingService poll failed.", ex);
             // Swallow – we'll try again next interval.
+        }
+        }
+        finally
+        {
+            _pollLock.Release();
         }
     }
 
