@@ -118,6 +118,9 @@ public sealed class AppSettings
     /// <summary>Whether to show a startup summary toast after the first successful poll.</summary>
     public bool NotifyStartupSummary { get; set; } = true;
 
+    /// <summary>Whether to show a toast when @mentioned in a PR comment or description.</summary>
+    public bool NotifyMentioned { get; set; } = true;
+
     /// <summary>Controls when toast notifications are shown: always, only when the window is closed, or never.</summary>
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public NotificationMode NotificationMode { get; set; } = NotificationMode.Always;

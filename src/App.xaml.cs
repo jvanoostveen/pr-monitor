@@ -69,6 +69,8 @@ public partial class App : System.Windows.Application
         _notifications = new NotificationService(settings);
         _notifications.Initialize();
         _notifications.Subscribe(_polling);
+        _polling.MentionDetected += (_, title, repo) =>
+            _notifications.Notify("You were mentioned", $"In {repo}: {title}");
 
         var copilot = new CopilotService(_logger);
         _flakinessService = new FlakinessService(_github, copilot, settings, _notifications, _logger);

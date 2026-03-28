@@ -408,6 +408,10 @@
                             <!-- Other -->
                             <TextBlock Text="OTHER" Style="{StaticResource SectionLabel}" Margin="0,16,0,10"/>
                             <CheckBox Margin="0,0,0,0" IsChecked="{Binding NotifyStartupSummary}" Content="Summary on startup"/>
+                            <CheckBox Margin="0,4,0,0"
+                                      IsChecked="{Binding NotifyMentioned}"
+                                      IsEnabled="{Binding IndividualTogglesEnabled}"
+                                      Content="You were mentioned in a PR"/>
 
                         </StackPanel>
 

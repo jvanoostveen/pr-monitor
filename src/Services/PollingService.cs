@@ -53,6 +53,8 @@ public sealed class PollingService : IDisposable
     internal Dictionary<string, PullRequestInfo> _previousReviews = new();
     internal Dictionary<string, PullRequestInfo> _previousMyPrs = new();
 
+    private readonly HashSet<string> _seenMentionIds = new();
+
     public PollingService(GitHubService github, AppSettings settings, DiagnosticsLogger logger)
     {
         _github = github;
@@ -70,6 +72,9 @@ public sealed class PollingService : IDisposable
 
     /// <summary>Raised when a poll cycle fails with an exception.</summary>
     public event Action<Exception>? PollFailed;
+
+    /// <summary>Raised when an unseen @mention notification is detected in a PR. Args: (id, title, repo).</summary>
+    public event Action<string, string, string>? MentionDetected;
 
     /// <summary>The most recent snapshot (null before first poll).</summary>
     public PollSnapshot? LatestSnapshot { get; private set; }
@@ -170,6 +175,16 @@ public sealed class PollingService : IDisposable
 
             LatestSnapshot = snapshot;
             Polled?.Invoke(this, snapshot);
+
+            if (_settings.NotifyMentioned)
+            {
+                var mentions = await _github.FetchMentionNotificationsAsync();
+                foreach (var (id, title, repo) in mentions)
+                {
+                    if (_seenMentionIds.Add(id))
+                        MentionDetected?.Invoke(id, title, repo);
+                }
+            }
 
             _logger.Info($"PollingService poll finished. AutoMerge={autoMergePrs.Count}, MyPrs={myPrs.Count}, AwaitingReview={combinedReviewPrs.Count}, TeamReview={teamReviewPrs.Count} (reviewRequested={reviewPrs.Count}, assigned={assignedPrs.Count(p => !myPrKeys.Contains(p.Key))}), Hotfixes={hotfixPrs.Count}.");
         }

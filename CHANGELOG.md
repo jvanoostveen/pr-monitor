@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Mentions notification: toast when @mentioned in a PR comment or description (GitHub Notifications API); toggle in Settings → Notifications.
 - Startup summary notification after first poll (shows count of pending PRs per section); toggle in Settings → Notifications.
 - "Mark as ready" / "Convert to draft" context menu actions for own PRs.
 - Offline indicator in window footer when polling fails; clears automatically on next successful poll.

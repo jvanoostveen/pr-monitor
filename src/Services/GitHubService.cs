@@ -264,6 +264,52 @@ public sealed class GitHubService
     }
 
     /// <summary>
+    /// Fetch unread @mention notifications for pull requests via the GitHub Notifications API.
+    /// Returns a list of (Id, Title, Repo) tuples. Returns empty list on any failure.
+    /// </summary>
+    public async Task<IReadOnlyList<(string Id, string Title, string Repo)>> FetchMentionNotificationsAsync()
+    {
+        try
+        {
+            var (output, stderr, exitCode) = await RunGhAsync("api", "/notifications?reason=mention&per_page=50");
+            if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
+            {
+                if (exitCode != 0)
+                    _logger.Warn($"FetchMentionNotificationsAsync failed (exit={exitCode}): {stderr?.Trim()}");
+                return [];
+            }
+
+            using var doc = JsonDocument.Parse(output);
+            var result = new List<(string, string, string)>();
+            foreach (var element in doc.RootElement.EnumerateArray())
+            {
+                if (!element.TryGetProperty("unread", out var unreadProp) || !unreadProp.GetBoolean())
+                    continue;
+                if (!element.TryGetProperty("subject", out var subject))
+                    continue;
+                if (subject.TryGetProperty("type", out var typeProp) && typeProp.GetString() != "PullRequest")
+                    continue;
+                if (!element.TryGetProperty("id", out var idProp))
+                    continue;
+                var id = idProp.GetString();
+                var title = subject.TryGetProperty("title", out var titleProp) ? titleProp.GetString() : null;
+                var repo = element.TryGetProperty("repository", out var repoProp)
+                    && repoProp.TryGetProperty("full_name", out var fullNameProp)
+                    ? fullNameProp.GetString()
+                    : null;
+                if (id is not null && title is not null && repo is not null)
+                    result.Add((id, title, repo));
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("FetchMentionNotificationsAsync failed.", ex);
+            return [];
+        }
+    }
+
+    /// <summary>
     /// Detect the authenticated GitHub username via <c>gh api user</c>.
     /// </summary>
     public async Task<string?> GetCurrentUserAsync()
