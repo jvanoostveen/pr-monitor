@@ -67,6 +67,12 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetField(ref _autoStartWithWindows, value);
     }
 
+    public bool CompactMode
+    {
+        get => _settings.CompactMode;
+        set { _settings.CompactMode = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompactMode))); }
+    }
+
     // ── Notification toggles ─────────────────────────────────────────
 
     private bool _notifyCiFailed;
@@ -233,6 +239,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.Save();
 
         ApplyAutoStart(_autoStartWithWindows);
+        App.ApplyCompactMode(_settings.CompactMode);
     }
 
     // ── Auto-start registry ─────────────────────────────────────────

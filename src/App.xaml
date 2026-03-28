@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:conv="clr-namespace:PrMonitor.Converters"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <conv:ZeroToVisibleConverter x:Key="ZeroToVisibleConverter"/>
@@ -9,6 +10,11 @@
         <conv:BoolToAngleConverter x:Key="BoolToAngleConverter"/>
         <conv:CIStateToBrushConverter x:Key="CIStateToBrush"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <!-- PR row layout resources (updated by ApplyCompactMode) -->
+        <Thickness x:Key="PrRowPadding">8,6,8,6</Thickness>
+        <sys:Double x:Key="PrRowFontSize">12</sys:Double>
+        <sys:Double x:Key="PrRowRepoFontSize">10</sys:Double>
 
         <!-- Dark-themed tooltips to match the app's GitHub-dark palette -->
         <Style TargetType="ToolTip">

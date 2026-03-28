@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Compact mode**: new toggle in Settings → General tab. When enabled, PR rows use reduced vertical padding (3 px instead of 6 px) and slightly smaller fonts, fitting more PRs on screen. The setting is persisted in `compactMode` and applied immediately when Settings is saved.
+
 ## [1.7.1] - 2026-03-28
 
 ### Security

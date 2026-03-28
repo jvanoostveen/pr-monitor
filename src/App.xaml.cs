@@ -60,6 +60,9 @@ public partial class App : System.Windows.Application
         // Apply auto-start registry setting
         SettingsViewModel.ApplyAutoStart(settings.AutoStartWithWindows);
 
+        // Apply compact mode resources
+        ApplyCompactMode(settings.CompactMode);
+
         // ── Services ───────────────────────────────────────────────
         _polling = new PollingService(_github, settings, _logger);
 
@@ -235,6 +238,23 @@ public partial class App : System.Windows.Application
     {
         try { SetPreferredAppMode(1 /* AllowDark */); }
         catch { /* non-critical: older Windows without uxtheme #135 */ }
+    }
+
+    public static void ApplyCompactMode(bool compact)
+    {
+        var resources = System.Windows.Application.Current.Resources;
+        if (compact)
+        {
+            resources["PrRowPadding"] = new System.Windows.Thickness(8, 3, 8, 3);
+            resources["PrRowFontSize"] = 11.5;
+            resources["PrRowRepoFontSize"] = 9.5;
+        }
+        else
+        {
+            resources["PrRowPadding"] = new System.Windows.Thickness(8, 6, 8, 6);
+            resources["PrRowFontSize"] = 12.0;
+            resources["PrRowRepoFontSize"] = 10.0;
+        }
     }
 }
 

@@ -31,7 +31,7 @@
             <Setter Property="Background" Value="#161B22"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Margin" Value="0,2"/>
-            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Padding" Value="{DynamicResource PrRowPadding}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <EventSetter Event="PreviewMouseRightButtonUp" Handler="PrRow_PreviewMouseRightButtonUp"/>
             <Style.Triggers>
@@ -42,12 +42,12 @@
         </Style>
 
         <Style x:Key="RepoText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="FontSize" Value="{DynamicResource PrRowRepoFontSize}"/>
             <Setter Property="Foreground" Value="#8B949E"/>
         </Style>
 
         <Style x:Key="TitleText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{DynamicResource PrRowFontSize}"/>
             <Setter Property="Foreground" Value="#C9D1D9"/>
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         </Style>

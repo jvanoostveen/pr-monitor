@@ -356,6 +356,10 @@
                                   IsChecked="{Binding AutoStartWithWindows}"
                                   Content="Start with Windows"/>
 
+                        <CheckBox Margin="0,8,0,0"
+                                  IsChecked="{Binding CompactMode}"
+                                  Content="Compact mode (smaller rows)"/>
+
                     </StackPanel>
                 </TabItem>
 

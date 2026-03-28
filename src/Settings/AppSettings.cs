@@ -36,6 +36,11 @@ public sealed class AppSettings
     public bool AutoStartWithWindows { get; set; } = true;
 
     /// <summary>
+    /// Whether to use compact row layout (smaller padding and font).
+    /// </summary>
+    public bool CompactMode { get; set; } = false;
+
+    /// <summary>
     /// Cached GitHub username (auto-detected via `gh api user`).
     /// </summary>
     public string? GitHubUsername { get; set; }
