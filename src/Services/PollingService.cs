@@ -54,6 +54,7 @@ public sealed class PollingService : IDisposable
     internal Dictionary<string, PullRequestInfo> _previousMyPrs = new();
 
     private readonly HashSet<string> _seenMentionIds = new();
+    private readonly DateTimeOffset _startedAt = DateTimeOffset.UtcNow;
 
     public PollingService(GitHubService github, AppSettings settings, DiagnosticsLogger logger)
     {
@@ -183,10 +184,11 @@ public sealed class PollingService : IDisposable
                     .Where(o => o.Length > 0)
                     .ToHashSet();
                 var mentions = (await _github.FetchMentionNotificationsAsync())
+                    .Where(m => m.UpdatedAt >= _startedAt)
                     .Where(m => monitoredOrgs.Count == 0 ||
                                 monitoredOrgs.Contains(m.Repo.Split('/')[0].ToLowerInvariant()))
                     .ToList();
-                foreach (var (id, title, repo) in mentions)
+                foreach (var (id, title, repo, _) in mentions)
                 {
                     if (_seenMentionIds.Add(id))
                     {

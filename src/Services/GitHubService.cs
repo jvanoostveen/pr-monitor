@@ -302,7 +302,7 @@ public sealed class GitHubService
     /// Fetch unread @mention notifications for pull requests via the GitHub Notifications API.
     /// Returns a list of (Id, Title, Repo) tuples. Returns empty list on any failure.
     /// </summary>
-    public async Task<IReadOnlyList<(string Id, string Title, string Repo)>> FetchMentionNotificationsAsync()
+    public async Task<IReadOnlyList<(string Id, string Title, string Repo, DateTimeOffset UpdatedAt)>> FetchMentionNotificationsAsync()
     {
         try
         {
@@ -315,7 +315,7 @@ public sealed class GitHubService
             }
 
             using var doc = JsonDocument.Parse(output);
-            var result = new List<(string, string, string)>();
+            var result = new List<(string, string, string, DateTimeOffset)>();
             foreach (var element in doc.RootElement.EnumerateArray())
             {
                 if (!element.TryGetProperty("unread", out var unreadProp) || !unreadProp.GetBoolean())
@@ -332,8 +332,12 @@ public sealed class GitHubService
                     && repoProp.TryGetProperty("full_name", out var fullNameProp)
                     ? fullNameProp.GetString()
                     : null;
+                var updatedAt = element.TryGetProperty("updated_at", out var updatedAtProp)
+                    && DateTimeOffset.TryParse(updatedAtProp.GetString(), out var parsed)
+                    ? parsed
+                    : DateTimeOffset.MinValue;
                 if (id is not null && title is not null && repo is not null)
-                    result.Add((id, title, repo));
+                    result.Add((id, title, repo, updatedAt));
             }
             return result;
         }
