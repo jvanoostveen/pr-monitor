@@ -115,6 +115,9 @@ public sealed class AppSettings
     /// <summary>Whether to show a toast when Copilot determines a CI failure is a real (non-flaky) failure.</summary>
     public bool NotifyFlakinessRealFailure { get; set; } = true;
 
+    /// <summary>Whether to show a startup summary toast after the first successful poll.</summary>
+    public bool NotifyStartupSummary { get; set; } = true;
+
     /// <summary>Controls when toast notifications are shown: always, only when the window is closed, or never.</summary>
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public NotificationMode NotificationMode { get; set; } = NotificationMode.Always;

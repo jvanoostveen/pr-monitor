@@ -405,6 +405,10 @@
                             <CheckBox Margin="0,0,0,10" IsChecked="{Binding NotifyFlakinessRerun}"        Content="Flaky CI — auto-rerun triggered"/>
                             <CheckBox Margin="0,0,0,0"  IsChecked="{Binding NotifyFlakinessRealFailure}"  Content="Real failure detected (not flaky)"/>
 
+                            <!-- Other -->
+                            <TextBlock Text="OTHER" Style="{StaticResource SectionLabel}" Margin="0,16,0,10"/>
+                            <CheckBox Margin="0,0,0,0" IsChecked="{Binding NotifyStartupSummary}" Content="Summary on startup"/>
+
                         </StackPanel>
 
                     </StackPanel>

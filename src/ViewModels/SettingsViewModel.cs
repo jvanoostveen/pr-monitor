@@ -31,6 +31,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _notifyPrMergedOrClosed = settings.NotifyPrMergedOrClosed;
         _notifyFlakinessRerun = settings.NotifyFlakinessRerun;
         _notifyFlakinessRealFailure = settings.NotifyFlakinessRealFailure;
+        _notifyStartupSummary = settings.NotifyStartupSummary;
         _notificationMode = settings.NotificationMode;
         _showTeamReviewSection = settings.ShowTeamReviewSection;
         _flakinessAnalysisEnabled = settings.FlakinessAnalysisEnabled;
@@ -122,6 +123,13 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     {
         get => _notifyFlakinessRealFailure;
         set => SetField(ref _notifyFlakinessRealFailure, value);
+    }
+
+    private bool _notifyStartupSummary;
+    public bool NotifyStartupSummary
+    {
+        get => _notifyStartupSummary;
+        set => SetField(ref _notifyStartupSummary, value);
     }
 
     // ── Notification mode ────────────────────────────────────────────────
@@ -223,6 +231,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.NotifyPrMergedOrClosed = _notifyPrMergedOrClosed;
         _settings.NotifyFlakinessRerun = _notifyFlakinessRerun;
         _settings.NotifyFlakinessRealFailure = _notifyFlakinessRealFailure;
+        _settings.NotifyStartupSummary = _notifyStartupSummary;
         _settings.NotificationMode = _notificationMode;
         _settings.ShowTeamReviewSection = _showTeamReviewSection;
         _settings.FlakinessAnalysisEnabled = _flakinessAnalysisEnabled;

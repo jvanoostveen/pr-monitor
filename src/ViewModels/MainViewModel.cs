@@ -15,11 +15,14 @@ namespace PrMonitor.ViewModels;
 public sealed class MainViewModel : INotifyPropertyChanged
 {
     private readonly AppSettings _settings;
+    private readonly NotificationService _notificationService;
     private PollingService? _polling;
+    private bool _startupSummaryShown;
 
-    public MainViewModel(AppSettings settings)
+    public MainViewModel(AppSettings settings, NotificationService notificationService)
     {
         _settings = settings;
+        _notificationService = notificationService;
         _hiddenCount = settings.HiddenPrKeys.Count;
     }
 
@@ -308,6 +311,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 IsOffline = false;
                 IsRefreshing = false;
                 UpdateFromSnapshot(snapshot);
+                if (!_startupSummaryShown)
+                {
+                    _startupSummaryShown = true;
+                    if (_settings.NotifyStartupSummary)
+                        ShowStartupSummary();
+                }
             });
         };
         polling.PollFailed += ex =>
@@ -464,6 +473,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    private void ShowStartupSummary()
+    {
+        var parts = new List<string>();
+        if (HotfixCount > 0)     parts.Add($"{HotfixCount} hotfix{(HotfixCount > 1 ? "es" : "")}");
+        if (AutoMergeCount > 0)  parts.Add($"{AutoMergeCount} auto-merge PR{(AutoMergeCount > 1 ? "s" : "")}");
+        if (ReviewCount > 0)     parts.Add($"{ReviewCount} review request{(ReviewCount > 1 ? "s" : "")}");
+        if (MyPrsCount > 0)      parts.Add($"{MyPrsCount} own PR{(MyPrsCount > 1 ? "s" : "")}");
+        if (TeamReviewCount > 0) parts.Add($"{TeamReviewCount} team review{(TeamReviewCount > 1 ? "s" : "")}");
+        if (parts.Count == 0) return;
+        _notificationService.Notify("PR Monitor", string.Join(" · ", parts));
     }
 
     private static string FormatSnoozedUntil(DateTimeOffset until)
