@@ -86,6 +86,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         private set => SetField(ref _isRefreshing, value);
     }
 
+    private bool _isOffline;
+    public bool IsOffline
+    {
+        get => _isOffline;
+        private set => SetField(ref _isOffline, value);
+    }
+
     private bool _updateAvailable;
     public bool UpdateAvailable
     {
@@ -296,10 +303,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             System.Windows.Application.Current?.Dispatcher.Invoke(() =>
             {
+                IsOffline = false;
                 IsRefreshing = false;
                 UpdateFromSnapshot(snapshot);
             });
         };
+        polling.PollFailed += ex =>
+            System.Windows.Application.Current?.Dispatcher.Invoke(() => IsOffline = true);
     }
 
     // ── Commands ────────────────────────────────────────────────────

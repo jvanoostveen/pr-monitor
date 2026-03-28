@@ -68,6 +68,9 @@ public sealed class PollingService : IDisposable
     /// <summary>Raised after every completed poll with the full snapshot.</summary>
     public event EventHandler<PollSnapshot>? Polled;
 
+    /// <summary>Raised when a poll cycle fails with an exception.</summary>
+    public event Action<Exception>? PollFailed;
+
     /// <summary>The most recent snapshot (null before first poll).</summary>
     public PollSnapshot? LatestSnapshot { get; private set; }
 
@@ -173,6 +176,7 @@ public sealed class PollingService : IDisposable
         catch (Exception ex)
         {
             _logger.Error("PollingService poll failed.", ex);
+            PollFailed?.Invoke(ex);
             // Swallow – we'll try again next interval.
         }
         }

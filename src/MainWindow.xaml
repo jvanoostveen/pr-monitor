@@ -893,6 +893,15 @@
                     <TextBlock Visibility="{Binding UpdateNotAvailable, Converter={StaticResource BoolToVisibility}}"
                                FontSize="10" Foreground="#484F58" HorizontalAlignment="Center"
                                Text="Click a PR to open in GitHub &#183; Right-click tray icon for more"/>
+                    <!-- Offline indicator, shown when the last poll failed -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Panel.ZIndex="2"
+                                Visibility="{Binding IsOffline, Converter={StaticResource BoolToVisibility}}">
+                        <Ellipse Width="7" Height="7" Fill="#F85149" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Offline &#x2014; retrying…" Foreground="#8B949E" FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
                     <!-- Update available banner, shown when update is available -->
                     <Border Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVisibility}}"
                             Cursor="Hand" MouseLeftButtonUp="UpdateBanner_Click">
