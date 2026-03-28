@@ -9,5 +9,15 @@
         <conv:BoolToAngleConverter x:Key="BoolToAngleConverter"/>
         <conv:CIStateToBrushConverter x:Key="CIStateToBrush"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <!-- Dark-themed tooltips to match the app's GitHub-dark palette -->
+        <Style TargetType="ToolTip">
+            <Setter Property="Background" Value="#21262D"/>
+            <Setter Property="Foreground" Value="#C9D1D9"/>
+            <Setter Property="BorderBrush" Value="#30363D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="6,4"/>
+        </Style>
     </Application.Resources>
 </Application>
