@@ -137,6 +137,7 @@ public partial class MainWindow : Window
         }
 
         Activate();
+        Focus();
         PersistWindowState(isVisible: true);
         LogPlacement("ShowAtTray:end");
     }
@@ -793,6 +794,20 @@ public partial class MainWindow : Window
     private void RefreshButton_Click(object sender, MouseButtonEventArgs e)
     {
         _ = ViewModel.RefreshAsync();
+    }
+
+    private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Escape)
+        {
+            HideToTray();
+            e.Handled = true;
+        }
+        else if (e.Key == System.Windows.Input.Key.R && e.KeyboardDevice.Modifiers == System.Windows.Input.ModifierKeys.None)
+        {
+            _ = ViewModel.RefreshAsync();
+            e.Handled = true;
+        }
     }
 
     private void PrItem_Click(object sender, MouseButtonEventArgs e)
