@@ -178,7 +178,14 @@ public sealed class PollingService : IDisposable
 
             if (_settings.NotifyMentioned)
             {
-                var mentions = await _github.FetchMentionNotificationsAsync();
+                var monitoredOrgs = _settings.Organizations
+                    .Select(o => o.Trim().ToLowerInvariant())
+                    .Where(o => o.Length > 0)
+                    .ToHashSet();
+                var mentions = (await _github.FetchMentionNotificationsAsync())
+                    .Where(m => monitoredOrgs.Count == 0 ||
+                                monitoredOrgs.Contains(m.Repo.Split('/')[0].ToLowerInvariant()))
+                    .ToList();
                 foreach (var (id, title, repo) in mentions)
                 {
                     if (_seenMentionIds.Add(id))
