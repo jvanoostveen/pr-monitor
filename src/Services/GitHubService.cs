@@ -345,6 +345,24 @@ public sealed class GitHubService
     }
 
     /// <summary>
+    /// Marks a GitHub notification thread as read so it won't be returned in future API calls.
+    /// Fire-and-forget safe — failures are logged and silently swallowed.
+    /// </summary>
+    public async Task MarkNotificationReadAsync(string notificationId)
+    {
+        try
+        {
+            var (_, _, exitCode) = await RunGhAsync("api", "-X", "PATCH", $"/notifications/threads/{notificationId}");
+            if (exitCode != 0)
+                _logger.Warn($"MarkNotificationReadAsync: non-zero exit for id={notificationId}");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("MarkNotificationReadAsync failed.", ex);
+        }
+    }
+
+    /// <summary>
     /// Detect the authenticated GitHub username via <c>gh api user</c>.
     /// </summary>
     public async Task<string?> GetCurrentUserAsync()

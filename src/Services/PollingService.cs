@@ -182,7 +182,11 @@ public sealed class PollingService : IDisposable
                 foreach (var (id, title, repo) in mentions)
                 {
                     if (_seenMentionIds.Add(id))
+                    {
                         MentionDetected?.Invoke(id, title, repo);
+                        // Mark as read so it won't re-fire on next poll or after restart
+                        await _github.MarkNotificationReadAsync(id);
+                    }
                 }
             }
 
