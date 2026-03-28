@@ -471,6 +471,7 @@ public sealed class PrItemViewModel
     public required string Url { get; init; }
     public required string Author { get; init; }
     public required string TimeAgo { get; init; }
+    public string CreatedAtFormatted { get; init; } = "";
     public required string CIIcon { get; init; }
     public required CIState CIState { get; init; }
     public int UnresolvedReviewCommentCount { get; init; }
@@ -499,6 +500,7 @@ public sealed class PrItemViewModel
         get
         {
             var parts = new System.Collections.Generic.List<string>();
+            parts.Add($"Opened: {CreatedAtFormatted}");
             parts.Add($"CI: {CIState}");
             if (IsOwnPr)
                 parts.Add(HasNonCopilotReviewer
@@ -555,7 +557,8 @@ public sealed class PrItemViewModel
             CIState.Error => "⚠️",
             _ => "❔",
         },
-        TimeAgo = FormatTimeAgo(pr.CreatedAt),
+        TimeAgo = FormatTimeAgo(pr.UpdatedAt != DateTimeOffset.MinValue ? pr.UpdatedAt : pr.CreatedAt),
+        CreatedAtFormatted = pr.CreatedAt.ToLocalTime().ToString("MMM d, yyyy"),
     };
 
     internal static string FormatTimeAgo(DateTimeOffset created)

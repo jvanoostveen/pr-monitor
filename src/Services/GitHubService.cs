@@ -35,6 +35,7 @@ public sealed class GitHubService
                 repository { nameWithOwner isArchived }
                 author { login }
                 createdAt
+                updatedAt
                 isDraft
                 mergeable
                 headRefName
@@ -84,6 +85,7 @@ public sealed class GitHubService
                 repository { nameWithOwner isArchived }
                 author { login }
                 createdAt
+                updatedAt
                 baseRefName
                 mergeable
                 headRefName
@@ -132,6 +134,7 @@ public sealed class GitHubService
                 repository { nameWithOwner isArchived }
                 author { login }
                 createdAt
+                updatedAt
                 baseRefName
                 mergeable
                 headRefName
@@ -437,6 +440,7 @@ public sealed class GitHubService
                 CreatedAt = node.TryGetProperty("createdAt", out var ca)
                     ? DateTimeOffset.Parse(ca.GetString()!)
                     : DateTimeOffset.MinValue,
+                UpdatedAt = DateTimeOffset.TryParse(node.TryGetProperty("updatedAt", out var upd1) ? upd1.GetString() : null, out var updVal1) ? updVal1 : DateTimeOffset.MinValue,
                 HasAutoMerge = hasAutoMerge,
                 IsDraft = isDraft,
                 HeadRefName = node.TryGetProperty("headRefName", out var hrn1)
@@ -524,6 +528,7 @@ public sealed class GitHubService
                 CreatedAt = node.TryGetProperty("createdAt", out var ca)
                     ? DateTimeOffset.Parse(ca.GetString()!)
                     : DateTimeOffset.MinValue,
+                UpdatedAt = DateTimeOffset.TryParse(node.TryGetProperty("updatedAt", out var upd2) ? upd2.GetString() : null, out var updVal2) ? updVal2 : DateTimeOffset.MinValue,
                 BaseRefName = node.TryGetProperty("baseRefName", out var brn)
                     ? brn.GetString() ?? ""
                     : "",

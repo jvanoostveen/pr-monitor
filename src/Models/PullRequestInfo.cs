@@ -24,6 +24,9 @@ public sealed class PullRequestInfo
     /// <summary>When the PR was created.</summary>
     public DateTimeOffset CreatedAt { get; init; }
 
+    /// <summary>When the PR was last updated.</summary>
+    public DateTimeOffset UpdatedAt { get; init; }
+
     /// <summary>Whether auto-merge is enabled on this PR.</summary>
     public bool HasAutoMerge { get; init; }
 
