@@ -53,7 +53,6 @@ public sealed class PollingService : IDisposable
     internal Dictionary<string, PullRequestInfo> _previousReviews = new();
     internal Dictionary<string, PullRequestInfo> _previousMyPrs = new();
 
-    private readonly HashSet<string> _seenMentionIds = new();
     private readonly DateTimeOffset _startedAt = DateTimeOffset.UtcNow;
 
     public PollingService(GitHubService github, AppSettings settings, DiagnosticsLogger logger)
@@ -183,19 +182,13 @@ public sealed class PollingService : IDisposable
                     .Select(o => o.Trim().ToLowerInvariant())
                     .Where(o => o.Length > 0)
                     .ToHashSet();
-                var mentions = (await _github.FetchMentionNotificationsAsync())
-                    .Where(m => m.UpdatedAt >= _startedAt)
-                    .Where(m => monitoredOrgs.Count == 0 ||
-                                monitoredOrgs.Contains(m.Repo.Split('/')[0].ToLowerInvariant()))
-                    .ToList();
-                foreach (var (id, title, repo, _) in mentions)
+                var mentions = await _github.FetchMentionNotificationsAsync();
+                foreach (var (id, title, repo, updatedAt) in mentions)
                 {
-                    if (_seenMentionIds.Add(id))
-                    {
-                        MentionDetected?.Invoke(id, title, repo);
-                        // Mark as read so it won't re-fire on next poll or after restart
-                        await _github.MarkNotificationReadAsync(id);
-                    }
+                    if (updatedAt < _startedAt) continue;
+                    if (monitoredOrgs.Count > 0 && !monitoredOrgs.Contains(repo.Split('/')[0].ToLowerInvariant())) continue;
+                    MentionDetected?.Invoke(id, title, repo);
+                    await _github.MarkNotificationReadAsync(id);
                 }
             }
 
