@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-03-28
+
 ### Security
 
 - **Multiple hardening fixes**: all `Process.Start(UseShellExecute=true)` calls now require `https://` scheme; subprocess calls migrate to `ProcessStartInfo.ArgumentList` with slug/SHA pattern validation (removing the `EscapeForShell` workaround); untrusted GitHub data in the AI prompt is wrapped in explicit boundary markers; AI-suggested flakiness regex patterns are validated before persisting; `FlakinessCustomHints` is capped at 500 chars; `CopilotService` gains a 30 s timeout and 1 MB response cap; `AppSettings` saves atomically via a temp-file rename.
@@ -15,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Polling robustness**: `PollingService.PollAsync` is guarded by a `SemaphoreSlim(1,1)` so a manual refresh concurrent with a timer poll is skipped instead of running in parallel and emitting duplicate events; the `Timer.Elapsed` handler is changed from `async void` to fire-and-forget to prevent a threadpool unhandled exception from crashing the process; stdout and stderr in `GitHubService` are now drained in parallel to prevent a pipe-buffer deadlock on verbose `gh` error output.
 - **Resource cleanup**: `HttpResponseMessage` in `CopilotService` is disposed after reading the body; both static `HttpClient` instances use `SocketsHttpHandler.PooledConnectionLifetime = 15 min` to avoid stale DNS in long-running sessions; refresh-icon brushes are frozen static fields instead of being re-allocated via `ColorConverter` on every poll cycle.
+
+### Fixed
+
+- Tooltips now use the app's dark color palette instead of the system light theme.
 
 ## [1.7.0] - 2026-03-27
 
