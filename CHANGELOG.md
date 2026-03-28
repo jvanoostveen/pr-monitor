@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- "Move to later" replaced with snooze submenu (1h / 4h / tomorrow 09:00 / 1 week / indefinitely); Later rows show expiry time; PRs auto-restore when snooze expires.
 - PR rows now show time since last update instead of creation time; tooltip shows PR creation date.
 
 ## [1.7.1] - 2026-03-28

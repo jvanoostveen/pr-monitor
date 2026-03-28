@@ -70,6 +70,7 @@ public partial class MainWindow : Window
     private const uint MF_STRING       = 0x0000;
     private const uint MF_SEPARATOR    = 0x0800;
     private const uint MF_GRAYED       = 0x0001;
+    private const uint MF_POPUP        = 0x0010;
     private const uint TPM_BOTTOMALIGN = 0x0020;
     private const uint TPM_RETURNCMD   = 0x0100;
     private const uint TPM_RIGHTBUTTON = 0x0002;
@@ -81,6 +82,11 @@ public partial class MainWindow : Window
     private const uint ID_PR_MOVE_RESTORE  = 1005;
     private const uint ID_DRAFT_READY      = 1006;
     private const uint ID_DRAFT_CONVERT    = 1007;
+    private const uint ID_SNOOZE_1H          = 1008;
+    private const uint ID_SNOOZE_4H          = 1009;
+    private const uint ID_SNOOZE_TOMORROW    = 1010;
+    private const uint ID_SNOOZE_1W          = 1011;
+    private const uint ID_SNOOZE_INDEFINITELY= 1012;
 
     public MainWindow(MainViewModel viewModel, AppSettings settings, GitHubService github, NotificationService notifications, DiagnosticsLogger logger)
     {
@@ -838,16 +844,30 @@ public partial class MainWindow : Window
         try
         {
             var isHidden = _settings.HiddenPrKeys.Contains(vm.Key);
-            var moveLabel = isHidden ? "Restore" : "Move to later";
             var rerunFlags = vm.CanRerunFailedJobs ? MF_STRING : MF_STRING | MF_GRAYED;
             var copilotFlags = vm.CanRequestCopilotReview ? MF_STRING : MF_STRING | MF_GRAYED;
+            var snoozeMenu = IntPtr.Zero;
 
             AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_COPY_URL, "Copy PR URL");
             AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_COPY_BRANCH, "Copy branch name");
             AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
             AppendMenuW(hMenu, rerunFlags, (UIntPtr)ID_PR_RERUN_FAILED, "Rerun failed jobs");
             AppendMenuW(hMenu, copilotFlags, (UIntPtr)ID_PR_COPILOT, "Request Copilot review");
-            AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_MOVE_RESTORE, moveLabel);
+            if (isHidden)
+            {
+                AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_MOVE_RESTORE, "Restore");
+            }
+            else
+            {
+                snoozeMenu = CreatePopupMenu();
+                AppendMenuW(snoozeMenu, MF_STRING, (UIntPtr)ID_SNOOZE_1H, "1 hour");
+                AppendMenuW(snoozeMenu, MF_STRING, (UIntPtr)ID_SNOOZE_4H, "4 hours");
+                AppendMenuW(snoozeMenu, MF_STRING, (UIntPtr)ID_SNOOZE_TOMORROW, "Tomorrow morning (09:00)");
+                AppendMenuW(snoozeMenu, MF_STRING, (UIntPtr)ID_SNOOZE_1W, "1 week");
+                AppendMenuW(snoozeMenu, MF_SEPARATOR, UIntPtr.Zero, null);
+                AppendMenuW(snoozeMenu, MF_STRING, (UIntPtr)ID_SNOOZE_INDEFINITELY, "Indefinitely");
+                AppendMenuW(hMenu, MF_POPUP, (UIntPtr)(ulong)snoozeMenu.ToInt64(), "Move to later");
+            }
             if (vm.CanMarkAsReady || vm.CanConvertToDraft)
             {
                 AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
@@ -887,10 +907,25 @@ public partial class MainWindow : Window
                         _ = RequestCopilotReviewAsync(vm);
                     break;
                 case ID_PR_MOVE_RESTORE:
-                    if (isHidden)
-                        ViewModel.RestoreItem(vm.Key);
-                    else
-                        ViewModel.HideItem(vm.Key);
+                    ViewModel.RestoreItem(vm.Key);
+                    break;
+                case ID_SNOOZE_1H:
+                    ViewModel.HideItem(vm.Key, DateTimeOffset.UtcNow.AddHours(1));
+                    break;
+                case ID_SNOOZE_4H:
+                    ViewModel.HideItem(vm.Key, DateTimeOffset.UtcNow.AddHours(4));
+                    break;
+                case ID_SNOOZE_TOMORROW:
+                {
+                    var tomorrow = DateTimeOffset.Now.Date.AddDays(1).AddHours(9);
+                    ViewModel.HideItem(vm.Key, new DateTimeOffset(tomorrow, DateTimeOffset.Now.Offset));
+                    break;
+                }
+                case ID_SNOOZE_1W:
+                    ViewModel.HideItem(vm.Key, DateTimeOffset.UtcNow.AddDays(7));
+                    break;
+                case ID_SNOOZE_INDEFINITELY:
+                    ViewModel.HideItem(vm.Key, null);
                     break;
                 case ID_DRAFT_READY:
                     if (vm.CanMarkAsReady)

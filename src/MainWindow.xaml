@@ -874,8 +874,10 @@
                                                 <TextBlock Style="{StaticResource TitleText}"
                                                            Text="{Binding Title}" Opacity="0.6"/>
                                             </StackPanel>
-                                            <TextBlock Grid.Column="2" Style="{StaticResource MetaText}"
-                                                       Text="{Binding TimeAgo}" VerticalAlignment="Center"/>
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource MetaText}" Text="{Binding TimeAgo}" HorizontalAlignment="Right"/>
+                                                <TextBlock Text="{Binding SnoozedUntilText}" FontSize="9" Foreground="#484F58" HorizontalAlignment="Right"/>
+                                            </StackPanel>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>

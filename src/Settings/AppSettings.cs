@@ -87,6 +87,11 @@ public sealed class AppSettings
     /// </summary>
     public Dictionary<string, DateTimeOffset> HiddenPrLastSeen { get; set; } = [];
 
+    /// <summary>
+    /// Snooze expiry timestamps for hidden PRs. DateTimeOffset.MaxValue means indefinite.
+    /// </summary>
+    public Dictionary<string, DateTimeOffset> SnoozedPrs { get; set; } = new();
+
     // ── Notification toggles ─────────────────────────────────────────────
 
     /// <summary>Whether to show a toast when a CI build fails.</summary>
@@ -163,6 +168,14 @@ public sealed class AppSettings
         {
             settings.FlakinessRerunCounts.Remove(key);
         }
+
+        // Prune expired snooze timers (already woken up)
+        var expiredSnoozes = settings.SnoozedPrs
+            .Where(kv => kv.Value != DateTimeOffset.MaxValue && kv.Value <= DateTimeOffset.UtcNow)
+            .Select(kv => kv.Key)
+            .ToList();
+        foreach (var k in expiredSnoozes)
+            settings.SnoozedPrs.Remove(k);
 
         return settings;
     }

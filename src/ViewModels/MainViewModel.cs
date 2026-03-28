@@ -218,10 +218,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private static readonly TimeSpan StaleCooldown = TimeSpan.FromDays(14);
 
-    public void HideItem(string key)
+    public void HideItem(string key, DateTimeOffset? until = null)
     {
         _settings.HiddenPrKeys.Add(key);
         _settings.HiddenPrLastSeen[key] = DateTimeOffset.UtcNow;
+        _settings.SnoozedPrs[key] = until ?? DateTimeOffset.MaxValue;
         _settings.Save();
 
         // Find item in active lists, move it to HiddenPrs immediately
@@ -252,6 +253,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         _settings.HiddenPrKeys.Remove(key);
         _settings.HiddenPrLastSeen.Remove(key);
+        _settings.SnoozedPrs.Remove(key);
         _settings.Save();
         var item = FindAndRemove(HiddenPrs, key);
         if (item is not null)
@@ -390,6 +392,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (lastSeenChanged || stale.Count > 0) _settings.Save();
         }
 
+        // Auto-restore snoozed PRs whose timer has expired
+        var wakingKeys = _settings.SnoozedPrs
+            .Where(kv => kv.Value != DateTimeOffset.MaxValue && kv.Value <= DateTimeOffset.UtcNow)
+            .Select(kv => kv.Key)
+            .ToList();
+        foreach (var k in wakingKeys)
+            RestoreItem(k);
+
         var hidden = _settings.HiddenPrKeys;
 
         AutoMergePrs.Clear();
@@ -437,7 +447,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
                      .DistinctBy(x => x.pr.Key)
                      .Where(x => hidden.Contains(x.pr.Key)))
         {
-            HiddenPrs.Add(PrItemViewModel.From(x.pr, isAutoMerge: x.isAm, isMyPr: x.isMyPr, isHotfix: x.isHotfix, isTeamReview: x.isTeamReview));
+            HiddenPrs.Add(PrItemViewModel.From(x.pr, isAutoMerge: x.isAm, isMyPr: x.isMyPr, isHotfix: x.isHotfix, isTeamReview: x.isTeamReview,
+                snoozedUntilText: FormatSnoozedUntil(_settings.SnoozedPrs.GetValueOrDefault(x.pr.Key, DateTimeOffset.MaxValue))));
         }
 
         AutoMergeCount = AutoMergePrs.Count;
@@ -453,6 +464,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    private static string FormatSnoozedUntil(DateTimeOffset until)
+    {
+        if (until == DateTimeOffset.MaxValue) return "Indefinitely";
+        var local = until.ToLocalTime();
+        var now = DateTimeOffset.Now;
+        var diff = local - now;
+        if (diff.TotalMinutes < 90) return $"Until {(int)diff.TotalMinutes + 1}m";
+        if (diff.TotalHours < 24) return $"Until {local:HH:mm}";
+        if (diff.TotalDays < 7) return $"Until {local:ddd HH:mm}";
+        return $"Until {local:MMM d}";
     }
 
     // ── INotifyPropertyChanged ──────────────────────────────────────
@@ -481,6 +504,7 @@ public sealed class PrItemViewModel
     public required string Url { get; init; }
     public required string Author { get; init; }
     public required string TimeAgo { get; init; }
+    public string SnoozedUntilText { get; init; } = "";
     public string CreatedAtFormatted { get; init; } = "";
     public required string CIIcon { get; init; }
     public required CIState CIState { get; init; }
@@ -542,7 +566,7 @@ public sealed class PrItemViewModel
             Process.Start(new ProcessStartInfo(Url) { UseShellExecute = true });
     }
 
-    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false) => new()
+    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, string snoozedUntilText = "") => new()
     {
         Key = pr.Key,
         Repository = pr.Repository,
@@ -571,6 +595,7 @@ public sealed class PrItemViewModel
         },
         TimeAgo = FormatTimeAgo(pr.UpdatedAt != DateTimeOffset.MinValue ? pr.UpdatedAt : pr.CreatedAt),
         CreatedAtFormatted = pr.CreatedAt.ToLocalTime().ToString("MMM d, yyyy"),
+        SnoozedUntilText = snoozedUntilText,
     };
 
     internal static string FormatTimeAgo(DateTimeOffset created)
