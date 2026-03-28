@@ -9,23 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- **URL scheme validation**: all `Process.Start(UseShellExecute=true)` call sites now require `https://` scheme before opening URLs in the browser, guarding against `file://`, `ms-msdt:`, and other registered protocol handlers being invoked via a compromised API response.
-- **Subprocess argument injection hardening**: `GitHubService` and `UpdateService` now use `ProcessStartInfo.ArgumentList` instead of a flat `Arguments` string, eliminating Windows shell tokenisation and argument-splitting issues. `owner`, `repo`, and `headSha` values are validated against safe character patterns (`^[a-zA-Z0-9_.\-]+$` / `^[0-9a-fA-F]{1,40}$`) before use in subprocess calls. The now-redundant `EscapeForShell` helper has been removed.
-- **Prompt injection mitigation**: untrusted GitHub data (PR title, branch, CI log excerpt) in the AI flakiness-analysis user message is now wrapped in explicit `[UNTRUSTED DATA START/END]` markers, with the task directive re-stated after the boundary.
-- **AI-suggested regex validation**: patterns returned by the GitHub Models API are now validated before being persisted as flakiness rules — patterns shorter than 5 characters or that match an empty string (e.g. `.*`, `^`) are rejected and logged as warnings.
-- **`FlakinessCustomHints` length cap**: the custom AI hints field in Settings is capped at 500 characters to limit the blast radius of a locally-modified `settings.json`.
-- **`HttpClient` timeout and size cap** in `CopilotService`: requests to the GitHub Models API now have a 30-second timeout and a 1 MB response-body cap.
-- **Atomic settings file write**: `AppSettings.SaveTo` now writes to a `.tmp` file and atomically renames it over the target, preventing a truncated `settings.json` on process-kill during write.
+- **Multiple hardening fixes**: all `Process.Start(UseShellExecute=true)` calls now require `https://` scheme; subprocess calls migrate to `ProcessStartInfo.ArgumentList` with slug/SHA pattern validation (removing the `EscapeForShell` workaround); untrusted GitHub data in the AI prompt is wrapped in explicit boundary markers; AI-suggested flakiness regex patterns are validated before persisting; `FlakinessCustomHints` is capped at 500 chars; `CopilotService` gains a 30 s timeout and 1 MB response cap; `AppSettings` saves atomically via a temp-file rename.
 
 ### Performance
 
-- **Poll concurrency guard**: `PollingService.PollAsync` is now protected by a `SemaphoreSlim(1,1)`. A manual refresh or settings-save triggered while a timer poll is already in progress is silently skipped instead of running in parallel and producing duplicate `PrChanged` events.
-- **`async void` timer callback fixed**: the `Timer.Elapsed` handler in `PollingService` was changed from `async void` (which would crash the process on an unhandled exception from a threadpool thread) to a fire-and-forget `_ = PollAsync()`.
-- **Parallel stdout/stderr reads in `GitHubService`**: stdout and stderr are now drained concurrently before waiting for process exit, matching the existing `UpdateService` pattern and preventing a pipe-buffer deadlock on verbose `gh` error output.
-- **Frozen static `SolidColorBrush` for refresh icon**: the refresh-icon foreground brushes in `MainWindow` are now frozen static fields instead of being allocated via `ColorConverter` on every poll cycle, eliminating repeated `ColorConverter` reflection cost and short-lived brush objects.
-- **`PooledConnectionLifetime` on static `HttpClient` instances**: `UpdateService` and `CopilotService` now configure `SocketsHttpHandler.PooledConnectionLifetime = 15 min`, ensuring DNS entries are periodically refreshed for long-running sessions.
-- **`HttpResponseMessage` disposed after API call**: `CopilotService.SendChatCompletionAsync` now disposes the response object after reading the body, rather than leaving it for the GC finaliser.
-- **`_spinAnimation` nulled on stop**: the `DoubleAnimation` field is set to `null` when the refresh animation is stopped, releasing the animation clock reference promptly.
+- **Polling robustness**: `PollingService.PollAsync` is guarded by a `SemaphoreSlim(1,1)` so a manual refresh concurrent with a timer poll is skipped instead of running in parallel and emitting duplicate events; the `Timer.Elapsed` handler is changed from `async void` to fire-and-forget to prevent a threadpool unhandled exception from crashing the process; stdout and stderr in `GitHubService` are now drained in parallel to prevent a pipe-buffer deadlock on verbose `gh` error output.
+- **Resource cleanup**: `HttpResponseMessage` in `CopilotService` is disposed after reading the body; both static `HttpClient` instances use `SocketsHttpHandler.PooledConnectionLifetime = 15 min` to avoid stale DNS in long-running sessions; refresh-icon brushes are frozen static fields instead of being re-allocated via `ColorConverter` on every poll cycle.
 
 ## [1.7.0] - 2026-03-27
 
