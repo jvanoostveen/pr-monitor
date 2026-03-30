@@ -190,7 +190,9 @@ public sealed class TrayIconManager : IDisposable
 
         // Amber: reviews requested on me + unresolved comments on My PRs
         int unresolvedOnMyPrs = snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && p.UnresolvedReviewCommentCount > 0);
-        int amberCount = visibleReview + visibleTeamReview + unresolvedOnMyPrs;
+        int amberCount = visibleReview
+                       + (_settings.TeamReviewCountsForTrayIcon ? visibleTeamReview : 0)
+                       + unresolvedOnMyPrs;
 
         // Purple: pipeline still running (pending CI on non-draft, non-hidden PRs)
         int pendingCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Pending)

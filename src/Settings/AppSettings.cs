@@ -66,6 +66,9 @@ public sealed class AppSettings
     /// <summary>Whether to show a separate "Team Review Requests" section (versus folding into Awaiting My Review).</summary>
     public bool ShowTeamReviewSection { get; set; } = true;
 
+    /// <summary>Whether team review requests count towards the tray icon status (amber) when the section is enabled.</summary>
+    public bool TeamReviewCountsForTrayIcon { get; set; } = false;
+
     /// <summary>Whether the PR window was visible when last toggled/exited.</summary>
     public bool MainWindowVisible { get; set; } = false;
 

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Mark as ready" / "Convert to draft" context menu actions for own PRs.
 - Offline indicator in window footer when polling fails; clears automatically on next successful poll.
 - **Compact mode**: new toggle in Settings → General tab. When enabled, PR rows use reduced vertical padding (3 px instead of 6 px) and slightly smaller fonts, fitting more PRs on screen. The setting is persisted in `compactMode` and applied immediately when Settings is saved.
+- **Team review tray icon opt-in**: new checkbox in Settings → Sections (under the team section toggle): "Count team review requests in tray icon status". Default off — team PRs no longer affect the tray icon status unless explicitly enabled.
 
 ### Fixed
 

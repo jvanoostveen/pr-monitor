@@ -372,6 +372,13 @@
                                   Content="Show team review requests as a separate section"/>
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,4,0,0" TextWrapping="Wrap"
                                    Text="When enabled, PRs requested from a team appear in a dedicated &#x2018;Team Review Requests&#x2019; section. When disabled, team review requests are not shown."/>
+                        <CheckBox Margin="24,10,0,0"
+                                  IsChecked="{Binding TeamReviewCountsForTrayIcon}"
+                                  Content="Count team review requests in tray icon status"
+                                  IsEnabled="{Binding ShowTeamReviewSection}"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="48,4,0,0" TextWrapping="Wrap"
+                                   IsEnabled="{Binding ShowTeamReviewSection}"
+                                   Text="When enabled, team review requests contribute to the amber tray icon colour."/>
 
                     </StackPanel>
                 </TabItem>

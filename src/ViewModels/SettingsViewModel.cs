@@ -35,6 +35,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _notifyMentioned = settings.NotifyMentioned;
         _notificationMode = settings.NotificationMode;
         _showTeamReviewSection = settings.ShowTeamReviewSection;
+        _teamReviewCountsForTrayIcon = settings.TeamReviewCountsForTrayIcon;
         _flakinessAnalysisEnabled = settings.FlakinessAnalysisEnabled;
         _flakinessAutoMergeOnly = settings.FlakinessAutoMergeOnly;
         _flakinessMaxReruns = Math.Clamp(settings.FlakinessMaxReruns, 1, 10);
@@ -180,6 +181,13 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetField(ref _showTeamReviewSection, value);
     }
 
+    private bool _teamReviewCountsForTrayIcon;
+    public bool TeamReviewCountsForTrayIcon
+    {
+        get => _teamReviewCountsForTrayIcon;
+        set => SetField(ref _teamReviewCountsForTrayIcon, value);
+    }
+
     // ── Flakiness analysis ───────────────────────────────────────────────
 
     private bool _flakinessAnalysisEnabled;
@@ -243,6 +251,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.NotifyMentioned = _notifyMentioned;
         _settings.NotificationMode = _notificationMode;
         _settings.ShowTeamReviewSection = _showTeamReviewSection;
+        _settings.TeamReviewCountsForTrayIcon = _teamReviewCountsForTrayIcon;
         _settings.FlakinessAnalysisEnabled = _flakinessAnalysisEnabled;
         _settings.FlakinessAutoMergeOnly = _flakinessAutoMergeOnly;
         _settings.FlakinessMaxReruns = _flakinessMaxReruns;
