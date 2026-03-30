@@ -131,10 +131,11 @@ public class PrItemViewModelTests
     }
 
     [Fact]
-    public void PrTooltip_NonOwnPr_ShowsOnlyCIState()
+    public void PrTooltip_NonOwnPr_ShowsOpenedAndCIState()
     {
         var vm = MakeVm(ciState: CIState.Success);
-        Assert.Equal("CI: Success", vm.PrTooltip);
+        Assert.Contains("CI: Success", vm.PrTooltip);
+        Assert.Contains("Opened:", vm.PrTooltip);
     }
 
     [Fact]
