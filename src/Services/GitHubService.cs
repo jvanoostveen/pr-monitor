@@ -302,7 +302,7 @@ public sealed class GitHubService
     /// Fetch unread @mention notifications for pull requests via the GitHub Notifications API.
     /// Returns a list of (Id, Title, Repo) tuples. Returns empty list on any failure.
     /// </summary>
-    public async Task<IReadOnlyList<(string Id, string Title, string Repo, DateTimeOffset UpdatedAt)>> FetchMentionNotificationsAsync()
+    public async Task<IReadOnlyList<(string Id, string Title, string Repo, DateTimeOffset UpdatedAt, string PrUrl)>> FetchMentionNotificationsAsync()
     {
         try
         {
@@ -315,7 +315,7 @@ public sealed class GitHubService
             }
 
             using var doc = JsonDocument.Parse(output);
-            var result = new List<(string, string, string, DateTimeOffset)>();
+            var result = new List<(string, string, string, DateTimeOffset, string)>();
             foreach (var element in doc.RootElement.EnumerateArray())
             {
                 if (!element.TryGetProperty("unread", out var unreadProp) || !unreadProp.GetBoolean())
@@ -336,8 +336,20 @@ public sealed class GitHubService
                     && DateTimeOffset.TryParse(updatedAtProp.GetString(), out var parsed)
                     ? parsed
                     : DateTimeOffset.MinValue;
+                // Convert API URL (api.github.com/repos/owner/repo/pulls/123)
+                // to web URL (github.com/owner/repo/pull/123)
+                var prUrl = "";
+                if (subject.TryGetProperty("url", out var urlProp))
+                {
+                    var apiUrl = urlProp.GetString() ?? "";
+                    prUrl = System.Text.RegularExpressions.Regex.Replace(
+                        apiUrl,
+                        @"^https://api\.github\.com/repos/(.+)/pulls/(\d+)$",
+                        "https://github.com/$1/pull/$2");
+                    if (!prUrl.StartsWith("https://github.com/")) prUrl = "";
+                }
                 if (id is not null && title is not null && repo is not null)
-                    result.Add((id, title, repo, updatedAt));
+                    result.Add((id, title, repo, updatedAt, prUrl));
             }
             return result;
         }

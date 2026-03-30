@@ -88,6 +88,14 @@ public sealed class NotificationService : IDisposable
         if (_settings.NotificationMode == Models.NotificationMode.WhenWindowClosed && _settings.MainWindowVisible) return;
         ShowToast(title, body, "", "");
     }
+
+    public void NotifyWithUrl(string title, string body, string url)
+    {
+        if (!_initialized) return;
+        if (_settings.NotificationMode == Models.NotificationMode.Never) return;
+        if (_settings.NotificationMode == Models.NotificationMode.WhenWindowClosed && _settings.MainWindowVisible) return;
+        ShowToast(title, body, "", url);
+    }
     // ── Flush & grouping ────────────────────────────────────────────────
 
     private void FlushNotifications()

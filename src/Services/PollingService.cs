@@ -73,8 +73,8 @@ public sealed class PollingService : IDisposable
     /// <summary>Raised when a poll cycle fails with an exception.</summary>
     public event Action<Exception>? PollFailed;
 
-    /// <summary>Raised when an unseen @mention notification is detected in a PR. Args: (id, title, repo).</summary>
-    public event Action<string, string, string>? MentionDetected;
+    /// <summary>Raised when an unseen @mention notification is detected in a PR. Args: (id, title, repo, prUrl).</summary>
+    public event Action<string, string, string, string>? MentionDetected;
 
     /// <summary>The most recent snapshot (null before first poll).</summary>
     public PollSnapshot? LatestSnapshot { get; private set; }
@@ -183,11 +183,11 @@ public sealed class PollingService : IDisposable
                     .Where(o => o.Length > 0)
                     .ToHashSet();
                 var mentions = await _github.FetchMentionNotificationsAsync();
-                foreach (var (id, title, repo, updatedAt) in mentions)
+                foreach (var (id, title, repo, updatedAt, prUrl) in mentions)
                 {
                     if (updatedAt < _startedAt) continue;
                     if (monitoredOrgs.Count > 0 && !monitoredOrgs.Contains(repo.Split('/')[0].ToLowerInvariant())) continue;
-                    MentionDetected?.Invoke(id, title, repo);
+                    MentionDetected?.Invoke(id, title, repo, prUrl);
                     await _github.MarkNotificationReadAsync(id);
                 }
             }
