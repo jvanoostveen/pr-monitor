@@ -306,7 +306,7 @@ public sealed class GitHubService
     {
         try
         {
-            var (output, stderr, exitCode) = await RunGhAsync("api", "/notifications?reason=mention&per_page=50");
+            var (output, stderr, exitCode) = await RunGhAsync("api", "/notifications?per_page=50");
             if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
             {
                 if (exitCode != 0)
@@ -319,6 +319,9 @@ public sealed class GitHubService
             foreach (var element in doc.RootElement.EnumerateArray())
             {
                 if (!element.TryGetProperty("unread", out var unreadProp) || !unreadProp.GetBoolean())
+                    continue;
+                // Only direct @username mentions, not team mentions (@org/team)
+                if (!element.TryGetProperty("reason", out var reasonProp) || reasonProp.GetString() != "mention")
                     continue;
                 if (!element.TryGetProperty("subject", out var subject))
                     continue;
