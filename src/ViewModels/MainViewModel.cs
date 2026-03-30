@@ -489,7 +489,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private static string FormatSnoozedUntil(DateTimeOffset until)
     {
-        if (until == DateTimeOffset.MaxValue) return "Indefinitely";
+        if (until == DateTimeOffset.MaxValue) return "∞";
         var local = until.ToLocalTime();
         var now = DateTimeOffset.Now;
         var diff = local - now;
