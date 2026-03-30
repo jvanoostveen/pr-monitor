@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-03-30
+
 ### Fixed
 
 - Team review PRs no longer count toward the tray icon badge total when "Team review counts for tray icon" is disabled.
