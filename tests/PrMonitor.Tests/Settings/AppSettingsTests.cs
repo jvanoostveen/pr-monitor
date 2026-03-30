@@ -142,6 +142,69 @@ public class AppSettingsTests
         finally { File.Delete(path); }
     }
 
+    // ── Snooze pruning ───────────────────────────────────────────────
+
+    [Fact]
+    public void LoadFrom_PrunesExpiredSnoozedPrs()
+    {
+        var path = TempPath();
+        try
+        {
+            var settings = new AppSettings
+            {
+                SnoozedPrs = new Dictionary<string, DateTimeOffset>
+                {
+                    ["org/repo#1"] = DateTimeOffset.UtcNow.AddMinutes(-5),   // expired
+                    ["org/repo#2"] = DateTimeOffset.UtcNow.AddHours(2),      // still active
+                },
+            };
+            settings.SaveTo(path);
+
+            var loaded = AppSettings.LoadFrom(path);
+
+            Assert.False(loaded.SnoozedPrs.ContainsKey("org/repo#1"));
+            Assert.True(loaded.SnoozedPrs.ContainsKey("org/repo#2"));
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void LoadFrom_KeepsIndefiniteSnooze()
+    {
+        var path = TempPath();
+        try
+        {
+            var settings = new AppSettings
+            {
+                SnoozedPrs = new Dictionary<string, DateTimeOffset>
+                {
+                    ["org/repo#42"] = DateTimeOffset.MaxValue,
+                },
+            };
+            settings.SaveTo(path);
+
+            var loaded = AppSettings.LoadFrom(path);
+
+            Assert.True(loaded.SnoozedPrs.ContainsKey("org/repo#42"));
+            Assert.Equal(DateTimeOffset.MaxValue, loaded.SnoozedPrs["org/repo#42"]);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void LoadFrom_EmptySnoozedPrs_LoadsWithoutError()
+    {
+        var path = TempPath();
+        try
+        {
+            new AppSettings().SaveTo(path);
+            var loaded = AppSettings.LoadFrom(path);
+
+            Assert.Empty(loaded.SnoozedPrs);
+        }
+        finally { File.Delete(path); }
+    }
+
     private static string TempPath() =>
         Path.Combine(Path.GetTempPath(), $"prtests_{Guid.NewGuid()}.json");
 }

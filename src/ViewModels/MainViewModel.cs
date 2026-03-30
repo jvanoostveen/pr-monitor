@@ -487,7 +487,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _notificationService.Notify("PR Monitor", string.Join(" · ", parts));
     }
 
-    private static string FormatSnoozedUntil(DateTimeOffset until)
+    internal static string FormatSnoozedUntil(DateTimeOffset until)
     {
         if (until == DateTimeOffset.MaxValue) return "∞";
         var local = until.ToLocalTime();

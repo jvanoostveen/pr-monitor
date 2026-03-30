@@ -123,6 +123,44 @@ public class NotificationServiceLogicTests
         Assert.True(svc.IsNotificationEnabled("❌ CI Failed"));
     }
 
+    [Fact]
+    public void IsNotificationEnabled_CIErrorToggleOff_ReturnsFalse()
+    {
+        var settings = new AppSettings
+        {
+            NotificationMode = NotificationMode.Always,
+            NotifyCiError = false,
+        };
+        var svc = new NotificationService(settings);
+
+        Assert.False(svc.IsNotificationEnabled("⚠️ CI Error"));
+    }
+
+    [Fact]
+    public void IsNotificationEnabled_PrMergedClosedToggleOff_ReturnsFalse()
+    {
+        var settings = new AppSettings
+        {
+            NotificationMode = NotificationMode.Always,
+            NotifyPrMergedOrClosed = false,
+        };
+        var svc = new NotificationService(settings);
+
+        Assert.False(svc.IsNotificationEnabled("🔀 PR Merged / Closed"));
+    }
+
+    [Fact]
+    public void IsNotificationEnabled_UnknownHeader_ReturnsTrueByDefault()
+    {
+        var settings = new AppSettings
+        {
+            NotificationMode = NotificationMode.Always,
+        };
+        var svc = new NotificationService(settings);
+
+        Assert.True(svc.IsNotificationEnabled("🔔 Some unknown notification type"));
+    }
+
     private static PrChangeEventArgs MakeEvent(
         PrChangeKind kind, CIState ciState, CIState previousCI = CIState.Unknown) =>
         new()

@@ -85,4 +85,49 @@ public class FlakinessServiceTests
     {
         Assert.Empty(FlakinessService.ExtractCheckNamesFromLog(null!));
     }
+
+    // ── IsValidFlakinessPattern ──────────────────────────────────────
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void IsValidFlakinessPattern_NullOrWhitespace_ReturnsFalse(string? pattern)
+    {
+        Assert.False(FlakinessService.IsValidFlakinessPattern(pattern));
+    }
+
+    [Theory]
+    [InlineData("abc")]   // 3 chars
+    [InlineData("abcd")]  // 4 chars — exactly below threshold
+    public void IsValidFlakinessPattern_TooShort_ReturnsFalse(string pattern)
+    {
+        Assert.False(FlakinessService.IsValidFlakinessPattern(pattern));
+    }
+
+    [Theory]
+    [InlineData(".*")]   // matches empty string
+    [InlineData("^$")]   // matches empty string
+    [InlineData(".*?")]  // matches empty string
+    [InlineData("a*")]   // matches empty string (zero a's)
+    public void IsValidFlakinessPattern_MatchesEmptyString_ReturnsFalse(string pattern)
+    {
+        Assert.False(FlakinessService.IsValidFlakinessPattern(pattern));
+    }
+
+    [Fact]
+    public void IsValidFlakinessPattern_InvalidRegex_ReturnsFalse()
+    {
+        Assert.False(FlakinessService.IsValidFlakinessPattern("(unclosed"));
+    }
+
+    [Theory]
+    [InlineData("Timeout")]                  // exactly 7 chars, valid
+    [InlineData(@"connection\s+failed")]     // valid non-empty-matching pattern
+    [InlineData("E2E test flaky")]           // plain substring, valid
+    [InlineData(@"\bflaky\b")]              // word boundary, won't match empty
+    public void IsValidFlakinessPattern_ValidPattern_ReturnsTrue(string pattern)
+    {
+        Assert.True(FlakinessService.IsValidFlakinessPattern(pattern));
+    }
 }

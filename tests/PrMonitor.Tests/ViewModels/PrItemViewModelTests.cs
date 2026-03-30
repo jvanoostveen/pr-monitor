@@ -191,6 +191,32 @@ public class PrItemViewModelTests
         Assert.Equal("3 unresolved review comments", vm.UnresolvedReviewCommentsToolTip);
     }
 
+    // ── CanMarkAsReady ───────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(true,  true,  true)]   // own pr, draft → can mark ready
+    [InlineData(true,  false, false)]  // own pr, not draft → cannot mark ready
+    [InlineData(false, true,  false)]  // not own pr, draft → cannot mark ready
+    [InlineData(false, false, false)]  // not own pr, not draft → cannot mark ready
+    public void CanMarkAsReady_DependsOnIsOwnPrAndIsDraft(bool isOwnPr, bool isDraft, bool expected)
+    {
+        var vm = MakeVm(isMyPr: isOwnPr, isDraft: isDraft);
+        Assert.Equal(expected, vm.CanMarkAsReady);
+    }
+
+    // ── CanConvertToDraft ────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(true,  false, true)]   // own pr, not draft → can convert to draft
+    [InlineData(true,  true,  false)]  // own pr, already draft → cannot convert
+    [InlineData(false, false, false)]  // not own pr, not draft → cannot convert
+    [InlineData(false, true,  false)]  // not own pr, draft → cannot convert
+    public void CanConvertToDraft_DependsOnIsOwnPrAndNotDraft(bool isOwnPr, bool isDraft, bool expected)
+    {
+        var vm = MakeVm(isMyPr: isOwnPr, isDraft: isDraft);
+        Assert.Equal(expected, vm.CanConvertToDraft);
+    }
+
     private static PrItemViewModel MakeVm(
         CIState ciState = CIState.Unknown,
         bool isDraft = false,
