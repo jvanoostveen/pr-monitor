@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Flakiness analysis is now **enabled by default** (`flakinessAnalysisEnabled: true`). Existing installations with the setting explicitly set to `false` are unaffected.
 - GraphQL queries now paginate up to 5 pages (250 PRs per section) instead of stopping at 50.
 - "Move to later" replaced with snooze submenu (1h / 4h / tomorrow 09:00 / 1 week / indefinitely); Later rows show expiry time; PRs auto-restore when snooze expires.
 - PR rows now show time since last update instead of creation time; tooltip shows PR creation date.
