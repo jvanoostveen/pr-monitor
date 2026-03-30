@@ -9,6 +9,7 @@ namespace PrMonitor.Services;
 public sealed class UpdateService
 {
     private const string LatestReleaseUrl = "https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest";
+    private const string RepoBaseUrl = "https://github.com/jvanoostveen/pr-monitor";
 
     private static readonly HttpClient HttpClient = CreateHttpClient();
     private readonly DiagnosticsLogger _logger;
@@ -138,11 +139,15 @@ public sealed class UpdateService
             var isUpdateAvailable = latestParsed > currentParsed;
             _logger.Info($"UpdateService check finished via {source}. Latest={latestVersionText}, IsUpdateAvailable={isUpdateAvailable}");
 
+            var releaseUrl = isUpdateAvailable
+                ? $"{RepoBaseUrl}/compare/v{currentVersion}...v{latestVersionText}"
+                : htmlUrl;
+
             return new UpdateCheckResult(
                 IsUpdateAvailable: isUpdateAvailable,
                 CurrentVersion: currentVersion,
                 LatestVersionText: latestVersionText,
-                ReleaseUrl: htmlUrl,
+                ReleaseUrl: releaseUrl,
                 ErrorMessage: null);
         }
         catch (JsonException ex)

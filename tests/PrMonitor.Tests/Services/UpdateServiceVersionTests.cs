@@ -62,7 +62,7 @@ public class UpdateServiceVersionTests
 
         Assert.True(result.IsUpdateAvailable);
         Assert.Equal("2.0.0", result.LatestVersionText);
-        Assert.Equal("https://github.com/owner/repo/releases/tag/v2.0.0", result.ReleaseUrl);
+        Assert.Equal("https://github.com/jvanoostveen/pr-monitor/compare/v1.0.0...v2.0.0", result.ReleaseUrl);
         Assert.Null(result.ErrorMessage);
     }
 

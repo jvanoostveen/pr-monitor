@@ -207,7 +207,7 @@ public partial class App : System.Windows.Application
                 $"A new version of PR Monitor is available.\n\n" +
                 $"Current version: {result.CurrentVersion}\n" +
                 $"Latest version: {result.LatestVersionText}\n\n" +
-                "Do you want to open the latest release page?";
+                "Do you want to see what changed since your current version?";
 
             var answer = System.Windows.MessageBox.Show(
                 message,
