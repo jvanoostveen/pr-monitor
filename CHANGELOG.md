@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Offline indicator in window footer when polling fails; clears automatically on next successful poll.
 - **Compact mode**: new toggle in Settings → General tab. When enabled, PR rows use reduced vertical padding (3 px instead of 6 px) and slightly smaller fonts, fitting more PRs on screen. The setting is persisted in `compactMode` and applied immediately when Settings is saved.
 
+### Fixed
+
+- Corner snapping now works when dragging the window directly from one monitor to a corner on another. Two root causes fixed: `DetectNearCorner` now uses overlap-based screen selection instead of `Screen.FromHandle` (which lags during cross-screen `DragMove`), and `_snapAnchorScreen` is cleared before `ApplyCornerSnap` on drag-end so the correct target screen is used. Pure snap calculations extracted to `SnapHelper` with 47 new unit tests to prevent regression.
+
 ### Changed
 
 - GraphQL queries now paginate up to 5 pages (250 PRs per section) instead of stopping at 50.

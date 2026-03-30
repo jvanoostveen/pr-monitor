@@ -18,7 +18,6 @@ namespace PrMonitor;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private enum SnapCorner { None, TopLeft, TopRight, BottomLeft, BottomRight }
 
     public MainViewModel ViewModel { get; }
     private readonly AppSettings _settings;
@@ -278,16 +277,8 @@ public partial class MainWindow : Window
         return Math.Max(min, Math.Min(value, max));
     }
 
-    private static double ComputeOverlapArea(Rect a, Rect b)
-    {
-        var x1 = Math.Max(a.Left, b.Left);
-        var y1 = Math.Max(a.Top, b.Top);
-        var x2 = Math.Min(a.Right, b.Right);
-        var y2 = Math.Min(a.Bottom, b.Bottom);
-        var w = Math.Max(0, x2 - x1);
-        var h = Math.Max(0, y2 - y1);
-        return w * h;
-    }
+    private static double ComputeOverlapArea(Rect a, Rect b) =>
+        SnapHelper.ComputeOverlapArea(a, b);
 
     private (double left, double top) ClampToWorkArea(Rect wa, double left, double top, double width, double height)
     {
@@ -373,31 +364,18 @@ public partial class MainWindow : Window
 
     private SnapCorner DetectNearCorner()
     {
-        var wa = GetCurrentWorkArea();
-        bool nearLeft   = Left < wa.Left + SnapThreshold;
-        bool nearRight  = Left + ActualWidth > wa.Right - SnapThreshold;
-        bool nearTop    = Top  < wa.Top  + SnapThreshold;
-        bool nearBottom = Top  + ActualHeight > wa.Bottom - SnapThreshold;
-
-        if (nearLeft  && nearTop)    return SnapCorner.TopLeft;
-        if (nearRight && nearTop)    return SnapCorner.TopRight;
-        if (nearLeft  && nearBottom) return SnapCorner.BottomLeft;
-        if (nearRight && nearBottom) return SnapCorner.BottomRight;
-        return SnapCorner.None;
+        var w  = ActualWidth  > 0 ? ActualWidth  : Width;
+        var h  = ActualHeight > 0 ? ActualHeight : Height;
+        var screen = FindBestScreenForRect(Left, Top, w, h, log: false);
+        var wa = ScreenRectToWpf(screen.WorkingArea);
+        return SnapHelper.DetectNearCorner(Left, Top, w, h, wa, SnapThreshold);
     }
 
     private (double left, double top) GetCornerPositionInArea(Rect wa, SnapCorner corner, double? width = null, double? height = null)
     {
         double w = width  ?? ActualWidth;
         double h = height ?? ActualHeight;
-        return corner switch
-        {
-            SnapCorner.TopLeft     => (wa.Left + SnapInset,           wa.Top + SnapInset),
-            SnapCorner.TopRight    => (wa.Right  - w - SnapInset,     wa.Top + SnapInset),
-            SnapCorner.BottomLeft  => (wa.Left + SnapInset,           wa.Bottom - h - SnapInset),
-            SnapCorner.BottomRight => (wa.Right  - w - SnapInset,     wa.Bottom - h - SnapInset),
-            _                      => (Left, Top)
-        };
+        return SnapHelper.GetCornerPosition(wa, corner, w, h, SnapInset);
     }
 
     private void ApplyCornerSnap(SnapCorner corner, double? width = null, double? height = null)
@@ -553,7 +531,7 @@ public partial class MainWindow : Window
     /// Falls back to the closest screen (by center distance) when there is no overlap,
     /// then to the primary screen.
     /// </summary>
-    private WinForms.Screen FindBestScreenForRect(double left, double top, double width, double height)
+    private WinForms.Screen FindBestScreenForRect(double left, double top, double width, double height, bool log = true)
     {
         var windowRect   = new Rect(left, top, width, height);
         var windowCenter = new System.Windows.Point(left + width / 2, top + height / 2);
@@ -584,8 +562,11 @@ public partial class MainWindow : Window
         }
 
         var selected = bestOverlap ?? closest ?? WinForms.Screen.PrimaryScreen!;
-        var mode = bestOverlap is not null ? "overlap" : closest is not null ? "closest" : "primary";
-        LogPlacement("FindBestScreenForRect", $"inputRect={DescribeRect(windowRect)}; mode={mode}; overlap={FormatDouble(maxOverlap)}; distance={FormatDouble(minDist)}; selected={DescribeScreen(selected)}");
+        if (log)
+        {
+            var mode = bestOverlap is not null ? "overlap" : closest is not null ? "closest" : "primary";
+            LogPlacement("FindBestScreenForRect", $"inputRect={DescribeRect(windowRect)}; mode={mode}; overlap={FormatDouble(maxOverlap)}; distance={FormatDouble(minDist)}; selected={DescribeScreen(selected)}");
+        }
         return selected;
     }
 
@@ -684,8 +665,9 @@ public partial class MainWindow : Window
         if (_pendingSnapCorner != SnapCorner.None)
         {
             _snappedCorner = _pendingSnapCorner;
+            _snapAnchorScreen = null; // clear so ApplyCornerSnap picks the best screen for current drag position
             ApplyCornerSnap(_snappedCorner);
-            _snapAnchorScreen = FindBestScreenForRect(Left, Top, ActualWidth, ActualHeight);
+            // _snapAnchorScreen is now set by ApplyCornerSnap to the correct target screen
             LogPlacement("Header_MouseLeftButtonDown", $"snap-applied={_snappedCorner}; anchor={DescribeScreen(_snapAnchorScreen)}");
         }
         else
