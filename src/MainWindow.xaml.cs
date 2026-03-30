@@ -117,6 +117,17 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Re-applies the active corner snap, if any, after WPF layout has settled.
+    /// Call this after resource changes that affect window height (e.g. compact mode toggle)
+    /// so a snapped window stays flush with the correct corner.
+    /// </summary>
+    internal void ReapplySnapIfSnapped()
+    {
+        if (_snappedCorner != SnapCorner.None)
+            ApplyCornerSnap(_snappedCorner);
+    }
+
+    /// <summary>
     /// Show the window. Snaps to bottom-right unless the user has manually moved it.
     /// If the window's monitor is gone, recover it to the same corner on the primary.
     /// </summary>

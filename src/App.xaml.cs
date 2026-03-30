@@ -104,6 +104,11 @@ public partial class App : System.Windows.Application
                 // Apply new polling interval live and refresh data immediately
                 _polling.UpdateInterval(settings.PollingIntervalSeconds);
                 _ = _polling.RefreshAsync();
+                // Re-apply corner snap after WPF has processed the layout change
+                // caused by compact mode toggling (window height changes).
+                _mainWindow.Dispatcher.BeginInvoke(
+                    System.Windows.Threading.DispatcherPriority.Loaded,
+                    new System.Action(() => _mainWindow.ReapplySnapIfSnapped()));
             });
             settingsWindow.ShowDialog();
         });
