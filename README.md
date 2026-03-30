@@ -28,16 +28,20 @@ Empty sections are hidden automatically. The tray icon badge changes colour to r
 - 🔵 Blue — only "Later" items, nothing active
 - ⚫ Gray — not yet polled
 
-Click the tray icon to toggle the window. Right-click for a context menu with **Open PR Monitor**, **About…**, **Settings…**, totals, and a non-clickable app version line (for example, `Version 1.0.0`).
+Click the tray icon to toggle the window. Right-click for a context menu with **Open PR Monitor**, **About…**, **Settings…**, and totals per section.
 
 Windows toast notifications are shown under the app name **PR Monitor**.
 
 The app automatically checks for a new release ~30 seconds after startup and again every 24 hours. When a newer version is available, a green clickable banner appears at the bottom of the PR window — click it to open the latest release page. A manual check is also available from **About… → Check for updates…**.
 
 Right-clicking a PR row shows a context menu with:
-- **Request Copilot review** — requests (or re-requests) a Copilot review for the PR
+- **Copy PR URL** — copies the PR URL to the clipboard
 - **Copy branch name** — copies the head branch name to the clipboard
-- **Move to later** / **Restore** — moves the PR to the Later section and back
+- **Rerun failed jobs** — retriggers failed CI runs for the PR (enabled for failed, non-draft PRs)
+- **Request Copilot review** — requests (or re-requests) a Copilot review for the PR
+- **Move to later** (submenu: 1 hour / 4 hours / Tomorrow morning / 1 week / Indefinitely) — snoozes the PR into the Later section
+- **Restore** — moves the PR back from the Later section
+- **Mark as ready** / **Convert to draft** — toggles the PR’s draft state (shown when applicable)
 
 PR row right-click actions now use a native Win32 popup menu (same rendering path as the tray icon menu), so visuals and dark/light behavior stay aligned with Windows.
 
@@ -81,7 +85,7 @@ Right-click the tray icon and choose **Settings** to:
 - Add the GitHub **organisations** to include in search results (leave empty for personal repos only)
 - Adjust the **polling interval** (default: 120 seconds)
 - Enable **auto-start with Windows**
-- Configure **Notifications** — choose when to show toasts: **Always**, **Only when window is closed** (default), or **Never**, with per-event-type toggles for CI failures, review requests, and more
+- Configure **Notifications** — choose when to show toasts: **Always** (default), **Only when window is closed**, or **Never**, with per-event-type toggles for CI failures, review requests, and more
 - Configure **Flakiness** options, including limiting AI flakiness analysis to **My Auto-Merge PRs** only and setting **Maximum automatic reruns** (1-10, default 3)
 
 Settings are stored in `%APPDATA%\pr-monitor\settings.json`.

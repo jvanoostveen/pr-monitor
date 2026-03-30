@@ -37,9 +37,10 @@ pr-monitor/
 │   ├── Assets/
 │   │   └── icon.ico
 │   ├── Converters/
-│   │   ├── ZeroToVisibleConverter.cs   # int == 0 → Visible
-│   │   ├── BoolToAngleConverter.cs     # true → 0°, false → -90° (chevron)
-│   │   └── CIStateToBrushConverter.cs  # CIState → hex color brush
+│   │   ├── ZeroToVisibleConverter.cs      # int == 0 → Visible
+│   │   ├── NonZeroToVisibleConverter.cs   # int != 0 → Visible
+│   │   ├── BoolToAngleConverter.cs        # true → 0°, false → -90° (chevron)
+│   │   └── CIStateToBrushConverter.cs     # CIState → hex color brush
 │   ├── Models/
 │   │   ├── CIState.cs                  # Enum: Unknown/Pending/Success/Failure/Error
 │   │   ├── PullRequestInfo.cs          # PR data model (includes HeadCommitSha)
@@ -161,7 +162,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - `PrChanged(PrChangeEvent)` — per individual change (for toast)
 - `Polled(PollSnapshot)` — full snapshot after each poll cycle
 
-`PollingService` also writes lightweight diagnostics log entries for poll start/end and poll exceptions.
+`PollingService` also writes lightweight diagnostics log entries for poll start/end and poll exceptions. Additional events: `PollFailed` (on exception) and `MentionDetected` (bypasses `PrChanged` and the initial-batch suppression).
 
 ### Diagnostics logging
 - `DiagnosticsLogger` writes thread-safe entries to `%APPDATA%/pr-monitor/logs/pr-monitor.log` with automatic size-based rotation.
@@ -177,7 +178,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - **Auto-rerun**: `gh run rerun {runId} --failed --repo {owner}/{repo}` is invoked. Max reruns per PR is configurable in Settings (default 3), counter persisted in `settings.json` and pruned after 30 days.
 - **Suggested rules**: after each Copilot analysis, any suggested `.NET regex` patterns are persisted to `FlakinessRules` (auto-enabled) and reused in future without calling the AI.
 - **Real failure toast**: when Copilot concludes the failure is not flaky, a toast is shown with the one-sentence rationale.
-- The feature is disabled by default (`flakinessAnalysisEnabled: false`) and can be enabled in Settings → Flakiness tab.
+- The feature is **enabled by default** (`flakinessAnalysisEnabled: true`) and can be disabled in Settings → Flakiness tab.
 - Optional scope filter: `flakinessAutoMergeOnly` limits AI flakiness analysis to PRs in **My Auto-Merge PRs**; non-auto-merge PR failures are skipped when this is enabled.
 - `NotificationService.Notify(title, body)` is a public helper for ad-hoc toasts outside the poll cycle.
 - **Manage rules window**: the Flakiness tab in Settings shows a rule count and a **Manage rules…** button that opens `FlakinessRulesWindow` — a resizable, scrollable window (`CanResizeWithGrip`) owned by SettingsWindow. Rules can be enabled/disabled and deleted there; changes persist when Settings is saved.
@@ -191,7 +192,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - Windows toast notifications should display the app name as **PR Monitor** (configured via project metadata in `src/PrMonitor.csproj`).
 
 ### Main Window behavior
-- Borderless, transparent, `Topmost=True`, `SizeToContent=Height`, `MaxHeight=600`
+- Borderless, transparent, `Topmost=True`, `SizeToContent=Height`, `MaxHeight=700`
 - **No auto-hide on deactivate** — stays visible until user clicks X or tray icon
 - **Tray left-click** toggles window visibility
 - Tray context menu order starts with **Open PR Monitor**, then **About…**, then **Settings…**
@@ -227,7 +228,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 - Data is sourced from GraphQL `reviewThreads` per PR by counting unresolved threads (`isResolved == false`) and summing their `comments.totalCount`.
 
 ### Reviewer indicator on own PRs
-- Own PR rows (My Auto-Merge PRs, My PRs, Hotfixes, and own PRs in Later) show a `E748` (SwitchUser) icon from **Segoe Fluent Icons** (`FontSize="11"`, gray `#484F58`) when `ShowNoReviewerWarning` is true (i.e., `IsOwnPr && !HasNonCopilotReviewer`).
+- Own PR rows (My Auto-Merge PRs, My PRs, Hotfixes, and own PRs in Later) show a `E748` (SwitchUser) icon from **Segoe Fluent Icons** (`FontSize="11"`, amber `#D29922`) when `ShowNoReviewerWarning` is true (i.e., `IsOwnPr && !HasNonCopilotReviewer`).
 - No icon is shown when a non-Copilot reviewer has been assigned — reviewer names appear in `PrTooltip` instead.
 - `ReviewerLogins` is populated from GraphQL `reviewRequests(first: 10)` in `MyPrsQuery` and `ReviewRequestedQuery`, filtering out `login == "copilot"` (case-insensitive). Team slugs are included.
 - `PrTooltip` (computed property on `PrItemViewModel`) shows: `CI: {state}` + reviewer info (if `IsOwnPr`) + unresolved comments + approved state, joined by newlines.
@@ -242,7 +243,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 
 ### Version display
 - App version is defined once in `src/PrMonitor.csproj` via `<Version>`.
-- Runtime reads the assembly informational/file version and shows it in tray context menu as a disabled item: `Version x.y.z`.
+- Runtime reads the assembly informational/file version (used by `UpdateService` for version comparisons and by `AboutWindow` to display the current version).
 
 ### Update checks
 - `UpdateService` calls `gh api repos/jvanoostveen/pr-monitor/releases/latest` first (authenticated), with HTTP `GET https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest` as fallback, and parses `tag_name` + `html_url`.
@@ -320,13 +321,14 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
 
 ---
 
-## Settings Schema (`%APPDATA%/pr-bot/settings.json`)
+## Settings Schema (`%APPDATA%/pr-monitor/settings.json`)
 
 ```json
 {
   "organizations": ["org1", "org2"],
   "pollingIntervalSeconds": 120,
   "autoStartWithWindows": true,
+  "compactMode": false,
   "gitHubUsername": "your-username",
   "hotfixExpanded": true,
   "autoMergeExpanded": true,
@@ -334,12 +336,26 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "myPrsExpanded": false,
   "teamReviewExpanded": false,
   "showTeamReviewSection": true,
+  "teamReviewCountsForTrayIcon": false,
   "laterExpanded": false,
   "mainWindowVisible": false,
   "mainWindowLeft": 1440.0,
   "mainWindowTop": 120.0,
+  "mainWindowSnappedCorner": null,
+  "hiddenPrKeys": [],
+  "hiddenPrLastSeen": {},
+  "snoozedPrs": {},
+  "notifyCiFailed": true,
+  "notifyCiPassed": true,
+  "notifyCiError": true,
+  "notifyReviewRequested": true,
+  "notifyPrMergedOrClosed": true,
+  "notifyFlakinessRerun": true,
+  "notifyFlakinessRealFailure": true,
+  "notifyStartupSummary": true,
+  "notifyMentioned": true,
   "notificationMode": "Always",
-  "flakinessAnalysisEnabled": false,
+  "flakinessAnalysisEnabled": true,
   "flakinessAutoMergeOnly": false,
   "flakinessCustomHints": "",
   "flakinessMaxReruns": 3,
@@ -360,7 +376,7 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
 ```
 
 Serialized as camelCase. `AppSettings.Load()` / `settings.Save()` handle file I/O.
-On `Load()`, rerun records older than 30 days are automatically pruned.
+On `Load()`, rerun records older than 30 days are automatically pruned. Expired `snoozedPrs` entries are also pruned on load.
 
 ---
 
@@ -379,7 +395,7 @@ git commit -m "type: description"
 After every commit with `src/` file changes, restart the app so changes are visible:
 ```powershell
 Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
-Start-Process dotnet -ArgumentList "run --project .\src\PrMonitor.csproj" -WorkingDirectory "d:\Private\pr-bot" -WindowStyle Hidden
+Start-Process dotnet -ArgumentList "run --project .\src\PrMonitor.csproj" -WorkingDirectory "d:\Private\pr-monitor" -WindowStyle Hidden
 ```
 
 Full iteration sequence for `src/` changes (stop → build → commit → restart):
@@ -388,7 +404,7 @@ Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
 dotnet build .\src\PrMonitor.csproj -v q
 git add -A
 git commit -m "type: description"
-Start-Process dotnet -ArgumentList "run --project .\src\PrMonitor.csproj" -WorkingDirectory "d:\Private\pr-bot" -WindowStyle Hidden
+Start-Process dotnet -ArgumentList "run --project .\src\PrMonitor.csproj" -WorkingDirectory "d:\Private\pr-monitor" -WindowStyle Hidden
 ```
 
 For docs/workflow-only changes (no `src/` files), commit directly without build/restart.
