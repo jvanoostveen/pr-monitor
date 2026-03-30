@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-03-30
+
 ### Added
 
 - Mentions notification: toast when directly @mentioned (not via team) in a PR after app startup, scoped to configured organizations. Notifications are clickable and open the PR in the browser. Seen mentions are marked as read on GitHub so they never re-fire. Toggle in Settings → Notifications.
