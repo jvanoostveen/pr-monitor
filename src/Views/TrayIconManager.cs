@@ -181,7 +181,9 @@ public sealed class TrayIconManager : IDisposable
         int visibleReview     = snapshot.ReviewRequestedPrs.Count(p => !hidden.Contains(p.Key));
         int visibleTeamReview = snapshot.TeamReviewRequestedPrs.Count(p => !hidden.Contains(p.Key));
         int visibleHotfix     = snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key));
-        int totalVisible      = visibleAuto + visibleMyPrs + visibleReview + visibleTeamReview + visibleHotfix;
+        int totalVisible      = visibleAuto + visibleMyPrs + visibleReview
+                              + (_settings.TeamReviewCountsForTrayIcon ? visibleTeamReview : 0)
+                              + visibleHotfix;
 
         // Red: CI failures across auto-merge, hotfix and non-draft My PRs
         int failedCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure)

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Team review PRs no longer count toward the tray icon badge total when "Team review counts for tray icon" is disabled.
+
 ### Changed
 
 - Update notification link now opens a GitHub compare view (`v{current}...v{latest}`) instead of just the latest release page, so you immediately see what changed since your running version.
