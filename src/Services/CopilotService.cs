@@ -107,6 +107,11 @@ public sealed class CopilotService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.Warn($"CopilotService: GitHub Models API returned {(int)response.StatusCode}: {responseBody.Trim()}");
+                if (IsContentFilterBlock(responseBody))
+                {
+                    _logger.Warn("CopilotService: jailbreak content filter triggered by CI log — skipping analysis.");
+                    return Indeterminate("CI log content triggered the content filter.");
+                }
                 return Fallback($"API returned {(int)response.StatusCode}.");
             }
 
@@ -204,4 +209,25 @@ public sealed class CopilotService
 
     private static FlakinessAnalysisResult Fallback(string reason) =>
         new() { IsFlaky = false, Rationale = reason, SuggestedRules = [] };
+
+    private static FlakinessAnalysisResult Indeterminate(string reason) =>
+        new() { IsFlaky = false, IsIndeterminate = true, Rationale = reason, SuggestedRules = [] };
+
+    /// <summary>
+    /// Returns true when a 400 response is caused by Azure OpenAI's content management
+    /// filter (e.g. jailbreak detection triggered by raw CI log content).
+    /// </summary>
+    private static bool IsContentFilterBlock(string responseBody)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            if (doc.RootElement.TryGetProperty("error", out var error)
+                && error.TryGetProperty("code", out var code)
+                && code.GetString() == "content_filter")
+                return true;
+        }
+        catch { /* not JSON or unexpected shape — fall through */ }
+        return false;
+    }
 }

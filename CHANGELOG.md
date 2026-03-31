@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Flakiness analysis: CI log is now sanitized before being sent to the GitHub Models API to prevent Azure OpenAI's jailbreak content filter from blocking the request. When the filter still triggers, the result is treated as indeterminate (no toast, no rerun) rather than a false "real failure" notification.
+- "Request Copilot review" now uses the REST API (`gh api … --method POST`) instead of `gh pr edit --add-reviewer copilot`, which failed with a GraphQL error because the Copilot reviewer is a GitHub App bot rather than a regular user.
+
 ## [1.8.1] - 2026-03-30
 
 ### Fixed

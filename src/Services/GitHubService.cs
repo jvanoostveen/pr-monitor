@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using PrMonitor.Models;
 
 namespace PrMonitor.Services;
@@ -427,8 +428,52 @@ public sealed class GitHubService
         if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
             return "";
 
+        var sanitized = SanitizeLogForAI(output);
+
         const int MaxLength = 4000;
-        return output.Length <= MaxLength ? output : output[..MaxLength] + "\n[truncated]";
+        return sanitized.Length <= MaxLength ? sanitized : sanitized[..MaxLength] + "\n[truncated]";
+    }
+
+    /// <summary>
+    /// Removes lines from a CI log that are likely to trigger Azure OpenAI's content
+    /// filter (jailbreak detection). These lines contain prompt-injection-like phrases
+    /// or instructions that are meaningless for flakiness analysis anyway.
+    /// </summary>
+    private static string SanitizeLogForAI(string log)
+    {
+        // Patterns that trigger Azure OpenAI jailbreak detection.
+        // Matched case-insensitively against individual lines.
+        var injectionPatterns = new[]
+        {
+            @"ignore\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|prompts?|context|rules?)",
+            @"(you\s+are\s+now|act\s+as|pretend\s+(to\s+be|you\s+are)|roleplay)\b",
+            @"(system\s+prompt|initial\s+prompt|forget\s+your\s+(instructions?|training))",
+            @"(jailbreak|DAN\b|do\s+anything\s+now)",
+            @"(disregard|override|bypass|circumvent)\s+(all\s+)?(your\s+)?(safety|restrictions?|guidelines?|policies?|rules?)",
+        };
+
+        var compiled = injectionPatterns
+            .Select(p => new Regex(p, RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            .ToArray();
+
+        var lines = log.Split('\n');
+        var result = new System.Text.StringBuilder(log.Length);
+        int redacted = 0;
+
+        foreach (var line in lines)
+        {
+            if (compiled.Any(r => r.IsMatch(line)))
+            {
+                result.AppendLine("[line redacted]");
+                redacted++;
+            }
+            else
+            {
+                result.AppendLine(line);
+            }
+        }
+
+        return result.ToString();
     }
 
     /// <summary>
@@ -446,13 +491,19 @@ public sealed class GitHubService
 
     /// <summary>
     /// Requests a Copilot review for the given pull request.
+    /// Uses the REST API directly because the Copilot reviewer is a GitHub App bot,
+    /// which cannot be resolved via GraphQL requestReviewsByLogin (used by gh pr edit).
     /// Returns true on success.
     /// </summary>
     public async Task<bool> RequestCopilotReviewAsync(string owner, string repo, int prNumber)
     {
         if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo"))
             return false;
-        var (_, stderr, exitCode) = await RunGhAsync("pr", "edit", prNumber.ToString(), "--add-reviewer", "copilot", "--repo", $"{owner}/{repo}");
+        var (_, stderr, exitCode) = await RunGhAsync(
+            "api",
+            $"repos/{owner}/{repo}/pulls/{prNumber}/requested_reviewers",
+            "--method", "POST",
+            "-f", "reviewers[]=copilot-pull-request-reviewer[bot]");
         if (exitCode != 0)
             _logger.Warn($"RequestCopilotReviewAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
         return exitCode == 0;
@@ -713,7 +764,7 @@ public sealed class GitHubService
                 if (!reviewer.TryGetProperty("login", out var login)) continue;
                 var loginStr = login.GetString() ?? "";
                 if (string.IsNullOrEmpty(loginStr)) continue;
-                if (string.Equals(loginStr, "copilot", StringComparison.OrdinalIgnoreCase)) continue;
+                if (loginStr.StartsWith("copilot", StringComparison.OrdinalIgnoreCase)) continue;
                 logins.Add(loginStr);
             }
             else if (type == "Team")

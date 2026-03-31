@@ -159,6 +159,12 @@ public sealed class FlakinessService
         if (result.SuggestedRules.Count > 0)
             _settings.Save();
 
+        if (result.IsIndeterminate)
+        {
+            _logger.Info($"FlakinessService: Copilot analysis indeterminate for {prKey}: {result.Rationale}. No action taken.");
+            return;
+        }
+
         if (result.IsFlaky)
         {
             _logger.Info($"FlakinessService: Copilot says FLAKY for {prKey}: {result.Rationale}");
