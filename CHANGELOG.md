@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **In-place auto-update**: clicking the update banner now downloads the new release zip directly (no browser, no "unblock" needed), extracts the exe, and prepares it for install. A thin green progress bar appears in the footer during download.
+- **"What's new?" changelog link**: next to the update banner a "What's new?" link opens the GitHub release page for the new version in the browser.
+- After download completes, a toast notification confirms the update is ready and the banner changes to "click to restart". Clicking it performs the swap via a background launcher script and restarts the app automatically.
+- On each startup the leftover `.exe.old` backup from a previous update is deleted if present.
+
 ### Fixed
 
 - Flakiness analysis: CI log is now sanitized before being sent to the GitHub Models API to prevent Azure OpenAI's jailbreak content filter from blocking the request. When the filter still triggers, the result is treated as indeterminate (no toast, no rerun) rather than a false "real failure" notification.

@@ -63,7 +63,32 @@ public class UpdateServiceVersionTests
         Assert.True(result.IsUpdateAvailable);
         Assert.Equal("2.0.0", result.LatestVersionText);
         Assert.Equal("https://github.com/jvanoostveen/pr-monitor/compare/v1.0.0...v2.0.0", result.ReleaseUrl);
+        Assert.Equal("https://github.com/owner/repo/releases/tag/v2.0.0", result.ReleaseNotesUrl);
         Assert.Null(result.ErrorMessage);
+    }
+
+    [Fact]
+    public void ParseReleaseResult_WithBody_PopulatesReleaseNotes()
+    {
+        var json = """{"tag_name":"v2.0.0","html_url":"https://github.com/owner/repo/releases/tag/v2.0.0","body":"## What's new\n- Feature A"}""";
+        var svc = new UpdateService(new DiagnosticsLogger());
+
+        var result = svc.ParseReleaseResult(json, "1.0.0", "test");
+
+        Assert.True(result.IsUpdateAvailable);
+        Assert.Equal("## What's new\n- Feature A", result.ReleaseNotes);
+        Assert.Equal("https://github.com/owner/repo/releases/tag/v2.0.0", result.ReleaseNotesUrl);
+    }
+
+    [Fact]
+    public void ParseReleaseResult_WithoutBody_ReleaseNotesIsNull()
+    {
+        var json = """{"tag_name":"v2.0.0","html_url":"https://github.com/owner/repo/releases/tag/v2.0.0"}""";
+        var svc = new UpdateService(new DiagnosticsLogger());
+
+        var result = svc.ParseReleaseResult(json, "1.0.0", "test");
+
+        Assert.Null(result.ReleaseNotes);
     }
 
     [Fact]
@@ -110,5 +135,48 @@ public class UpdateServiceVersionTests
 
         Assert.False(result.IsUpdateAvailable);
         Assert.NotNull(result.ErrorMessage);
+    }
+
+    [Theory]
+    [InlineData(12345, "C:\\temp\\PrMonitor_new.exe", "C:\\Program Files\\PrMonitor.exe")]
+    [InlineData(99, "D:\\update\\new.exe", "C:\\tools\\PrMonitor.exe")]
+    public void BuildUpdateBatScript_ContainsExpectedPathsAndPid(int pid, string newExe, string currentExe)
+    {
+        var script = UpdateService.BuildUpdateBatScript(pid, newExe, currentExe);
+
+        Assert.Contains($"PID eq {pid}", script);
+        Assert.Contains(newExe, script);
+        Assert.Contains(currentExe, script);
+        Assert.Contains("copy /y", script);
+        Assert.Contains("del", script);
+    }
+
+    [Fact]
+    public void BuildUpdateBatScript_BacksUpOldExeBeforeCopy()
+    {
+        var script = UpdateService.BuildUpdateBatScript(1, "C:\\new.exe", "C:\\PrMonitor.exe");
+
+        // Should move old exe to .old before copying
+        Assert.Contains("move /y", script);
+        Assert.Contains(".old", script);
+    }
+
+    [Fact]
+    public void BuildUpdateBatScript_StartsNewExeAfterCopy()
+    {
+        var script = UpdateService.BuildUpdateBatScript(1, "C:\\new.exe", "C:\\PrMonitor.exe");
+
+        // start "" launches the new exe
+        Assert.Contains("start \"\"", script);
+        Assert.Contains("C:\\PrMonitor.exe", script);
+    }
+
+    [Fact]
+    public void BuildUpdateBatScript_SelfDeletes()
+    {
+        var script = UpdateService.BuildUpdateBatScript(1, "C:\\new.exe", "C:\\PrMonitor.exe");
+
+        // The (goto) 2>nul & del "%~f0" idiom self-deletes the bat
+        Assert.Contains("%~f0", script);
     }
 }

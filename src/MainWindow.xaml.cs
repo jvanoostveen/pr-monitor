@@ -1203,6 +1203,15 @@ public partial class MainWindow : Window
 
     private void UpdateBanner_Click(object sender, MouseButtonEventArgs e)
     {
-        ViewModel.OpenUpdateRelease();
+        if (ViewModel.UpdateReadyToInstall)
+            ViewModel.RestartToInstallUpdate();
+        else if (!ViewModel.IsDownloadingUpdate)
+            _ = ViewModel.DownloadAndInstallUpdateAsync();
+    }
+
+    private void WhatsNew_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        ViewModel.ViewChangelog();
     }
 }

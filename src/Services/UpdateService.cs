@@ -1,7 +1,10 @@
+using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Diagnostics;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 
 namespace PrMonitor.Services;
@@ -10,8 +13,10 @@ public sealed class UpdateService
 {
     private const string LatestReleaseUrl = "https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest";
     private const string RepoBaseUrl = "https://github.com/jvanoostveen/pr-monitor";
+    private const string ReleaseDownloadBaseUrl = "https://github.com/jvanoostveen/pr-monitor/releases/download";
 
     private static readonly HttpClient HttpClient = CreateHttpClient();
+    private static readonly HttpClient DownloadHttpClient = CreateDownloadHttpClient();
     private readonly DiagnosticsLogger _logger;
 
     public UpdateService(DiagnosticsLogger logger)
@@ -46,6 +51,8 @@ public sealed class UpdateService
                     CurrentVersion: currentVersion,
                     LatestVersionText: null,
                     ReleaseUrl: null,
+                    ReleaseNotesUrl: null,
+                    ReleaseNotes: null,
                     ErrorMessage: $"GitHub API returned {(int)response.StatusCode} ({response.ReasonPhrase}).");
             }
 
@@ -65,6 +72,8 @@ public sealed class UpdateService
                 CurrentVersion: currentVersion,
                 LatestVersionText: null,
                 ReleaseUrl: null,
+                ReleaseNotesUrl: null,
+                ReleaseNotes: null,
                 ErrorMessage: "Unable to reach GitHub releases right now. See diagnostics log for details.");
         }
     }
@@ -77,6 +86,20 @@ public sealed class UpdateService
         })
         {
             Timeout = TimeSpan.FromSeconds(8),
+        };
+        client.DefaultRequestHeaders.Add("User-Agent", "pr-monitor");
+        return client;
+    }
+
+    private static HttpClient CreateDownloadHttpClient()
+    {
+        var client = new HttpClient(new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+            AllowAutoRedirect = true,
+        })
+        {
+            Timeout = TimeSpan.FromMinutes(5),
         };
         client.DefaultRequestHeaders.Add("User-Agent", "pr-monitor");
         return client;
@@ -111,6 +134,7 @@ public sealed class UpdateService
             var root = json.RootElement;
             var tag = root.TryGetProperty("tag_name", out var tagNode) ? tagNode.GetString() : null;
             var htmlUrl = root.TryGetProperty("html_url", out var htmlNode) ? htmlNode.GetString() : null;
+            var releaseNotes = root.TryGetProperty("body", out var bodyNode) ? bodyNode.GetString() : null;
 
             if (string.IsNullOrWhiteSpace(tag) || string.IsNullOrWhiteSpace(htmlUrl))
             {
@@ -120,6 +144,8 @@ public sealed class UpdateService
                     CurrentVersion: currentVersion,
                     LatestVersionText: null,
                     ReleaseUrl: null,
+                    ReleaseNotesUrl: null,
+                    ReleaseNotes: null,
                     ErrorMessage: "Latest release data is missing required fields.");
             }
 
@@ -133,6 +159,8 @@ public sealed class UpdateService
                     CurrentVersion: currentVersion,
                     LatestVersionText: latestVersionText,
                     ReleaseUrl: htmlUrl,
+                    ReleaseNotesUrl: htmlUrl,
+                    ReleaseNotes: releaseNotes,
                     ErrorMessage: "Unable to parse version information.");
             }
 
@@ -148,6 +176,8 @@ public sealed class UpdateService
                 CurrentVersion: currentVersion,
                 LatestVersionText: latestVersionText,
                 ReleaseUrl: releaseUrl,
+                ReleaseNotesUrl: htmlUrl,
+                ReleaseNotes: releaseNotes,
                 ErrorMessage: null);
         }
         catch (JsonException ex)
@@ -158,6 +188,8 @@ public sealed class UpdateService
                 CurrentVersion: currentVersion,
                 LatestVersionText: null,
                 ReleaseUrl: null,
+                ReleaseNotesUrl: null,
+                ReleaseNotes: null,
                 ErrorMessage: "Unable to parse release information.");
         }
     }
@@ -253,6 +285,110 @@ public sealed class UpdateService
         version = new Version(numbers[0], numbers[1], numbers[2], numbers[3]);
         return true;
     }
+
+    /// <summary>
+    /// Downloads the release zip for <paramref name="version"/> to a temp folder,
+    /// extracts PrMonitor.exe, and returns the path to the extracted exe.
+    /// Reports download progress (0–100) via <paramref name="progress"/>.
+    /// </summary>
+    public async Task<string> DownloadUpdateAsync(string version, IProgress<int> progress, CancellationToken ct = default)
+    {
+        var zipFileName = $"PrMonitor-{version}-win-x64.zip";
+        var zipUrl = $"{ReleaseDownloadBaseUrl}/v{version}/{zipFileName}";
+        var tempDir = Path.Combine(Path.GetTempPath(), "PrMonitor_update");
+        Directory.CreateDirectory(tempDir);
+        var zipPath = Path.Combine(tempDir, zipFileName);
+        var extractedExePath = Path.Combine(tempDir, "PrMonitor_new.exe");
+
+        _logger.Info($"UpdateService downloading {zipUrl} → {zipPath}");
+
+        using var response = await DownloadHttpClient.GetAsync(zipUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+        response.EnsureSuccessStatusCode();
+
+        var totalBytes = response.Content.Headers.ContentLength ?? -1L;
+        await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
+        await using var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 81920, useAsync: true);
+
+        var buffer = new byte[81920];
+        long bytesRead = 0;
+        int read;
+        while ((read = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), ct)) > 0)
+        {
+            await fileStream.WriteAsync(buffer.AsMemory(0, read), ct);
+            bytesRead += read;
+            if (totalBytes > 0)
+                progress.Report((int)(bytesRead * 100 / totalBytes));
+        }
+
+        _logger.Info($"UpdateService download complete ({bytesRead} bytes). Extracting…");
+
+        if (File.Exists(extractedExePath))
+            File.Delete(extractedExePath);
+
+        using (var archive = ZipFile.OpenRead(zipPath))
+        {
+            var entry = archive.GetEntry("PrMonitor.exe")
+                ?? throw new FileNotFoundException("PrMonitor.exe not found in release zip.", zipPath);
+            entry.ExtractToFile(extractedExePath, overwrite: true);
+        }
+
+        try { File.Delete(zipPath); } catch { /* non-critical */ }
+
+        _logger.Info($"UpdateService extraction complete → {extractedExePath}");
+        return extractedExePath;
+    }
+
+    internal static string BuildUpdateBatScript(int pid, string newExePath, string currentExePath)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("@echo off");
+        sb.AppendLine("setlocal");
+        sb.AppendLine("set RETRIES=0");
+        sb.AppendLine(":WAIT");
+        sb.AppendLine("set /a RETRIES+=1");
+        sb.AppendLine($"tasklist /fi \"PID eq {pid}\" 2>nul | find /i \"PrMonitor\" >nul 2>&1");
+        sb.AppendLine("if not errorlevel 1 (");
+        sb.AppendLine("    if %RETRIES% lss 30 (");
+        sb.AppendLine("        timeout /t 1 /nobreak >nul");
+        sb.AppendLine("        goto WAIT");
+        sb.AppendLine("    )");
+        sb.AppendLine(")");
+        // Back up old exe then replace
+        sb.AppendLine($"if exist \"{currentExePath}.old\" del /f \"{currentExePath}.old\" >nul 2>&1");
+        sb.AppendLine($"move /y \"{currentExePath}\" \"{currentExePath}.old\" >nul");
+        sb.AppendLine($"copy /y \"{newExePath}\" \"{currentExePath}\" >nul");
+        sb.AppendLine($"start \"\" \"{currentExePath}\"");
+        sb.AppendLine("timeout /t 2 /nobreak >nul");
+        sb.AppendLine($"del /f \"{newExePath}\" >nul 2>&1");
+        sb.AppendLine("(goto) 2>nul & del \"%~f0\"");
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Writes a bat launcher script that waits for the current process to exit,
+    /// replaces the exe, and restarts the app. Returns without shutting down —
+    /// the caller is responsible for calling Application.Current.Shutdown().
+    /// </summary>
+    public void StartUpdateProcess(string newExePath)
+    {
+        var currentExePath = Environment.ProcessPath
+            ?? Process.GetCurrentProcess().MainModule?.FileName
+            ?? throw new InvalidOperationException("Cannot determine current executable path.");
+
+        var pid = Environment.ProcessId;
+        var batPath = Path.Combine(Path.GetTempPath(), "PrMonitor_update.bat");
+        var script = BuildUpdateBatScript(pid, newExePath, currentExePath);
+
+        File.WriteAllText(batPath, script, Encoding.ASCII);
+        _logger.Info($"UpdateService launching update script: {batPath}");
+
+        Process.Start(new ProcessStartInfo("cmd.exe")
+        {
+            ArgumentList = { "/c", batPath },
+            CreateNoWindow = true,
+            UseShellExecute = false,
+        });
+    }
 }
 
 public sealed record UpdateCheckResult(
@@ -260,4 +396,6 @@ public sealed record UpdateCheckResult(
     string CurrentVersion,
     string? LatestVersionText,
     string? ReleaseUrl,
+    string? ReleaseNotesUrl,
+    string? ReleaseNotes,
     string? ErrorMessage);

@@ -246,10 +246,18 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 - Runtime reads the assembly informational/file version (used by `UpdateService` for version comparisons and by `AboutWindow` to display the current version).
 
 ### Update checks
-- `UpdateService` calls `gh api repos/jvanoostveen/pr-monitor/releases/latest` first (authenticated), with HTTP `GET https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest` as fallback, and parses `tag_name` + `html_url`.
+- `UpdateService` calls `gh api repos/jvanoostveen/pr-monitor/releases/latest` first (authenticated), with HTTP `GET https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest` as fallback, and parses `tag_name`, `html_url`, and `body` (release notes).
+- `UpdateCheckResult` exposes `ReleaseUrl` (compare URL), `ReleaseNotesUrl` (release page), `ReleaseNotes` (markdown body), and `LatestVersionText`.
 - Current version is read from assembly metadata; tags like `v1.2.3` are normalized before semantic comparison.
 - A `System.Threading.Timer` fires 30 seconds after startup then every 24 hours; it calls `RunAutoUpdateCheckAsync()` which silently calls `MainViewModel.SetUpdateAvailable()` when a newer version is found.
-- When an update is available, the PR window footer shows a green clickable banner ("Update available: vX.Y.Z — click to download"); clicking it opens the release URL. The normal hint text is shown when no update is pending.
+- When an update is available, the PR window footer shows a green banner:
+  - **Before download**: "Update available: vX.Y.Z — click to download" + a "What's new?" link that opens the release page
+  - **Downloading**: "Downloading update… N%" with a thin green progress bar; cursor changes to `Wait`
+  - **Ready**: "vX.Y.Z ready — click to restart"; clicking triggers the in-place swap and restarts
+- **In-place update flow**: `UpdateService.DownloadUpdateAsync()` downloads the release zip to `%TEMP%\PrMonitor_update\` via `HttpClient` and extracts `PrMonitor.exe`. `UpdateService.StartUpdateProcess()` writes a `.bat` launcher script to `%TEMP%` that waits for the current PID to exit, renames the old exe to `.exe.old`, copies the new exe, starts it, and self-deletes. `MainViewModel.RestartToInstallUpdate()` calls `StartUpdateProcess` then `Application.Current.Shutdown()`.
+- On each startup, `App.CleanupOldExe()` deletes `{exePath}.old` if it exists (leftover from previous update).
+- `MainViewModel.SetUpdateAvailable(version, releaseUrl, releaseNotesUrl, releaseNotes)` now takes 4 parameters.
+- `MainViewModel` accepts `UpdateService` as a constructor parameter (injected in `App.xaml.cs`).
 - Manual checks are triggered from the **Check for updates…** button in the About dialog; the manual check still shows a MessageBox for immediate feedback and also updates the banner.
 - Update-check failures are logged to diagnostics (`pr-monitor.log`), and manual checks show the concrete error message instead of a generic failure.
 

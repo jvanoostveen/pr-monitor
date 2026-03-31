@@ -905,17 +905,50 @@
                         <TextBlock Text="Offline &#x2014; retrying…" Foreground="#8B949E" FontSize="11" VerticalAlignment="Center"/>
                     </StackPanel>
                     <!-- Update available banner, shown when update is available -->
-                    <Border Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVisibility}}"
-                            Cursor="Hand" MouseLeftButtonUp="UpdateBanner_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE74B;"
-                                       FontFamily="Segoe MDL2 Assets"
-                                       FontSize="11"
-                                       Foreground="#3FB950"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,6,0"/>
-                            <TextBlock FontSize="10" Foreground="#3FB950"
-                                       Text="{Binding LatestVersion, StringFormat='Update available: v{0}  &#x2014;  click to download'}"/>
+                    <Border Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVisibility}}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDownloadingUpdate}" Value="True">
+                                        <Setter Property="Cursor" Value="Wait"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        MouseLeftButtonUp="UpdateBanner_Click">
+                                <TextBlock Text="&#xE74B;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="11"
+                                           Foreground="#3FB950"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,6,0"/>
+                                <TextBlock FontSize="10" Foreground="#3FB950"
+                                           Text="{Binding UpdateBannerText}"/>
+                                <!-- "What's new?" changelog link -->
+                                <TextBlock Text="  What's new?"
+                                           FontSize="10" Foreground="#3FB950" Opacity="0.65"
+                                           Cursor="Hand" VerticalAlignment="Center"
+                                           MouseLeftButtonUp="WhatsNew_Click">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsDownloadingUpdate}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                            <!-- Thin download progress bar -->
+                            <ProgressBar Value="{Binding DownloadProgress}" Maximum="100"
+                                         Height="2" Margin="4,3,4,0"
+                                         Foreground="#3FB950" Background="Transparent" BorderThickness="0"
+                                         Visibility="{Binding IsDownloadingUpdate, Converter={StaticResource BoolToVisibility}}"/>
                         </StackPanel>
                     </Border>
                 </Grid>

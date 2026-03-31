@@ -16,13 +16,16 @@ public sealed class MainViewModel : INotifyPropertyChanged
 {
     private readonly AppSettings _settings;
     private readonly NotificationService _notificationService;
+    private readonly UpdateService _updateService;
     private PollingService? _polling;
     private bool _startupSummaryShown;
+    private string? _tempExePath;
 
-    public MainViewModel(AppSettings settings, NotificationService notificationService)
+    public MainViewModel(AppSettings settings, NotificationService notificationService, UpdateService updateService)
     {
         _settings = settings;
         _notificationService = notificationService;
+        _updateService = updateService;
         _hiddenCount = settings.HiddenPrKeys.Count;
     }
 
@@ -124,6 +127,64 @@ public sealed class MainViewModel : INotifyPropertyChanged
         get => _updateReleaseUrl;
         private set => SetField(ref _updateReleaseUrl, value);
     }
+
+    private string _updateReleaseNotesUrl = "";
+    public string UpdateReleaseNotesUrl
+    {
+        get => _updateReleaseNotesUrl;
+        private set => SetField(ref _updateReleaseNotesUrl, value);
+    }
+
+    private bool _isDownloadingUpdate;
+    public bool IsDownloadingUpdate
+    {
+        get => _isDownloadingUpdate;
+        private set
+        {
+            if (_isDownloadingUpdate == value) return;
+            _isDownloadingUpdate = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(UpdateBannerText));
+            OnPropertyChanged(nameof(CanClickUpdateBanner));
+        }
+    }
+
+    private int _downloadProgress;
+    public int DownloadProgress
+    {
+        get => _downloadProgress;
+        private set
+        {
+            if (_downloadProgress == value) return;
+            _downloadProgress = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(UpdateBannerText));
+        }
+    }
+
+    private bool _updateReadyToInstall;
+    public bool UpdateReadyToInstall
+    {
+        get => _updateReadyToInstall;
+        private set
+        {
+            if (_updateReadyToInstall == value) return;
+            _updateReadyToInstall = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(UpdateBannerText));
+        }
+    }
+
+    /// <summary>Dynamic text for the update banner depending on current download state.</summary>
+    public string UpdateBannerText => (_isDownloadingUpdate, _updateReadyToInstall) switch
+    {
+        (true,  _)     => $"Downloading update… {_downloadProgress}%",
+        (_,     true)  => $"v{LatestVersion} ready — click to restart",
+        _              => $"Update available: v{LatestVersion} — click to download",
+    };
+
+    /// <summary>False while a download is in progress; prevents double-clicks.</summary>
+    public bool CanClickUpdateBanner => !_isDownloadingUpdate;
 
     public bool AutoMergeExpanded
     {
@@ -338,10 +399,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void OpenReviewsInBrowser() =>
         OpenUrl("https://github.com/pulls?q=is%3Aopen+is%3Apr+review-requested%3A%40me");
 
-    public void SetUpdateAvailable(string version, string url)
+    public void SetUpdateAvailable(string version, string releaseUrl, string? releaseNotesUrl, string? releaseNotes)
     {
         LatestVersion = version;
-        UpdateReleaseUrl = url;
+        UpdateReleaseUrl = releaseUrl;
+        UpdateReleaseNotesUrl = releaseNotesUrl ?? releaseUrl;
         UpdateAvailable = true;
     }
 
@@ -351,6 +413,59 @@ public sealed class MainViewModel : INotifyPropertyChanged
             && Uri.TryCreate(UpdateReleaseUrl, UriKind.Absolute, out var uri)
             && uri.Scheme == Uri.UriSchemeHttps)
             Process.Start(new ProcessStartInfo(UpdateReleaseUrl) { UseShellExecute = true });
+    }
+
+    public void ViewChangelog()
+    {
+        var url = string.IsNullOrWhiteSpace(UpdateReleaseNotesUrl) ? UpdateReleaseUrl : UpdateReleaseNotesUrl;
+        if (!string.IsNullOrWhiteSpace(url)
+            && Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps)
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    public async Task DownloadAndInstallUpdateAsync()
+    {
+        if (_isDownloadingUpdate || _updateReadyToInstall || string.IsNullOrWhiteSpace(LatestVersion))
+            return;
+
+        IsDownloadingUpdate = true;
+        DownloadProgress = 0;
+
+        try
+        {
+            var progress = new Progress<int>(p =>
+            {
+                System.Windows.Application.Current.Dispatcher.Invoke(() => DownloadProgress = p);
+            });
+
+            _tempExePath = await _updateService.DownloadUpdateAsync(LatestVersion, progress);
+
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                IsDownloadingUpdate = false;
+                UpdateReadyToInstall = true;
+            });
+            _notificationService.Notify("Update ready", $"PR Monitor v{LatestVersion} downloaded — click the banner to restart.");
+        }
+        catch (OperationCanceledException)
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke(() => IsDownloadingUpdate = false);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke(() => IsDownloadingUpdate = false);
+            _notificationService.Notify("Update failed", $"Could not download PR Monitor v{LatestVersion}: {ex.Message}");
+        }
+    }
+
+    public void RestartToInstallUpdate()
+    {
+        if (string.IsNullOrWhiteSpace(_tempExePath) || !_updateReadyToInstall)
+            return;
+
+        _updateService.StartUpdateProcess(_tempExePath);
+        System.Windows.Application.Current.Shutdown();
     }
 
     // ── Internals ───────────────────────────────────────────────────

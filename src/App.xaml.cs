@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.IO;
+using System.Threading;
 using System.Windows;
 using PrMonitor.Services;
 using PrMonitor.Settings;
@@ -49,6 +50,9 @@ public partial class App : System.Windows.Application
         var settings = AppSettings.Load();
         _logger = new DiagnosticsLogger();
 
+        // Clean up leftover .old exe from a previous in-place update
+        CleanupOldExe(_logger);
+
         // Auto-detect username if not cached
         _github = new GitHubService(_logger);
         if (string.IsNullOrEmpty(settings.GitHubUsername))
@@ -79,7 +83,7 @@ public partial class App : System.Windows.Application
         _updates = new UpdateService(_logger);
 
         // ── View layer ─────────────────────────────────────────────
-        var mainVm = new MainViewModel(settings, _notifications!);
+        var mainVm = new MainViewModel(settings, _notifications!, _updates);
         _mainVm = mainVm;
         mainVm.Subscribe(_polling);
 
@@ -177,7 +181,9 @@ public partial class App : System.Windows.Application
             && !string.IsNullOrWhiteSpace(result.ReleaseUrl)
             && !string.IsNullOrWhiteSpace(result.LatestVersionText))
         {
-            Dispatcher.Invoke(() => _mainVm.SetUpdateAvailable(result.LatestVersionText!, result.ReleaseUrl!));
+            Dispatcher.Invoke(() => _mainVm.SetUpdateAvailable(
+                result.LatestVersionText!, result.ReleaseUrl!,
+                result.ReleaseNotesUrl, result.ReleaseNotes));
         }
     }
 
@@ -201,7 +207,8 @@ public partial class App : System.Windows.Application
 
         if (result.IsUpdateAvailable && !string.IsNullOrWhiteSpace(result.ReleaseUrl))
         {
-            _mainVm?.SetUpdateAvailable(result.LatestVersionText!, result.ReleaseUrl!);
+            _mainVm?.SetUpdateAvailable(result.LatestVersionText!, result.ReleaseUrl!,
+                result.ReleaseNotesUrl, result.ReleaseNotes);
 
             var message =
                 $"A new version of PR Monitor is available.\n\n" +
@@ -263,5 +270,25 @@ public partial class App : System.Windows.Application
             resources["PrRowRepoFontSize"] = 10.0;
         }
     }
-}
 
+    private static void CleanupOldExe(DiagnosticsLogger? logger)
+    {
+        try
+        {
+            var exePath = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(exePath))
+                return;
+
+            var oldExePath = exePath + ".old";
+            if (File.Exists(oldExePath))
+            {
+                File.Delete(oldExePath);
+                logger?.Info($"App startup: deleted leftover backup exe {oldExePath}");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger?.Warn($"App startup: failed to delete leftover backup exe. {DiagnosticsLogger.SummarizeException(ex)}");
+        }
+    }
+}
