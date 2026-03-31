@@ -57,6 +57,20 @@ public class NotificationServiceLogicTests
     }
 
     [Fact]
+    public void GetHeader_DraftPR_CIFailure_ReturnsNull()
+    {
+        var e = MakeEvent(PrChangeKind.CIStatusChanged, CIState.Failure, isDraft: true);
+        Assert.Null(NotificationService.GetHeader(e));
+    }
+
+    [Fact]
+    public void GetHeader_DraftPR_CIError_ReturnsNull()
+    {
+        var e = MakeEvent(PrChangeKind.CIStatusChanged, CIState.Error, isDraft: true);
+        Assert.Null(NotificationService.GetHeader(e));
+    }
+
+    [Fact]
     public void IsNotificationEnabled_ModeNever_AlwaysReturnsFalse()
     {
         var settings = new AppSettings { NotificationMode = NotificationMode.Never };
@@ -162,7 +176,7 @@ public class NotificationServiceLogicTests
     }
 
     private static PrChangeEventArgs MakeEvent(
-        PrChangeKind kind, CIState ciState, CIState previousCI = CIState.Unknown) =>
+        PrChangeKind kind, CIState ciState, CIState previousCI = CIState.Unknown, bool isDraft = false) =>
         new()
         {
             Kind = kind,
@@ -175,6 +189,7 @@ public class NotificationServiceLogicTests
                 Repository = "org/repo",
                 Author = "alice",
                 CIState = ciState,
+                IsDraft = isDraft,
             },
         };
 }

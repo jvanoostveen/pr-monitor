@@ -142,6 +142,8 @@ public sealed class NotificationService : IDisposable
 
     internal static string? GetHeader(PrChangeEventArgs e) => e.Kind switch
     {
+        PrChangeKind.CIStatusChanged when e.PullRequest.IsDraft && e.PullRequest.CIState == CIState.Failure           => null,
+        PrChangeKind.CIStatusChanged when e.PullRequest.IsDraft && e.PullRequest.CIState == CIState.Error             => null,
         PrChangeKind.CIStatusChanged when e.PullRequest.CIState == CIState.Failure                                    => "❌ CI Failed",
         PrChangeKind.CIStatusChanged when e.PullRequest.CIState == CIState.Success && e.PreviousCIState == CIState.Failure => "✅ CI Passed",
         PrChangeKind.CIStatusChanged when e.PullRequest.CIState == CIState.Error                                      => "⚠️ CI Error",
