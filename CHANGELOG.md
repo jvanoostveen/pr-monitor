@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-03-31
+
+### Changed
+
+- Reduced verbose window placement/snapping debug log entries. Only meaningful state-transition events (startup, snap applied/cleared, display change, position corrections) are now logged.
+
+## [1.8.1] - 2026-03-30
+
 ### Added
 
 - **In-place auto-update**: clicking the update banner now downloads the new release zip directly (no browser, no "unblock" needed), extracts the exe, and prepares it for install. A thin green progress bar appears in the footer during download.
@@ -16,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Team review PRs no longer count toward the tray icon badge total when "Team review counts for tray icon" is disabled.
 - Disabling auto-merge on an open PR no longer triggers a "PR Merged / Closed" notification. The removed-from-auto-merge notification is now suppressed when the PR is still open (i.e. it just moved to My PRs).
 - Reviewer indicator now correctly shows as assigned even after the reviewer has submitted their review. Previously, reviewers were only tracked via `reviewRequests` (pending requests), which GitHub removes once a review is submitted. The fix also reads `latestOpinionatedReviews` so reviewers who have already approved or requested changes are still counted.
 - CI failure and CI error notifications are no longer shown for draft PRs.
@@ -23,12 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Request Copilot review" now uses the REST API (`gh api … --method POST`) instead of `gh pr edit --add-reviewer copilot`, which failed with a GraphQL error because the Copilot reviewer is a GitHub App bot rather than a regular user.
 - Flakiness analysis: CI log sanitization now strips GitHub Actions ISO timestamps and ANSI escape codes from each line before sending it to the AI, recovering significant token budget and reducing content-filter exposure. Truncation now keeps the tail of the log (where actual test errors appear) instead of the head (where security-scanner output and setup steps live). XSS payloads, long base64 blobs, and HTML event-handler injection strings are also redacted. The number of redacted lines is logged.
 - Flakiness analysis: API errors, network failures, and JSON parse failures in `CopilotService` are now treated as indeterminate (no toast, no rerun consumed) rather than incorrectly firing a "real failure" notification.
-
-## [1.8.1] - 2026-03-30
-
-### Fixed
-
-- Team review PRs no longer count toward the tray icon badge total when "Team review counts for tray icon" is disabled.
 
 ### Changed
 
