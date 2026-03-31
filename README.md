@@ -125,7 +125,8 @@ Workflow: `.github/workflows/ci-build.yml`
 - Triggered on `pull_request` to `main`
 - Triggered on `push` to `main`
 - Runs restore + build for `src/PrMonitor.csproj` using .NET 10 on `windows-latest`
-- Build only (no tags, releases, or uploaded artifacts)
+- Runs `dotnet test` on `tests/PrMonitor.Tests` (xUnit)
+- Build + test validation only (no tags, releases, or uploaded artifacts)
 
 ### Release automation
 
@@ -145,6 +146,9 @@ Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
 
 # Build
 dotnet build .\src\PrMonitor.csproj
+
+# Run tests
+dotnet test .\tests\PrMonitor.Tests\PrMonitor.Tests.csproj
 
 # Run
 dotnet run --project .\src\PrMonitor.csproj

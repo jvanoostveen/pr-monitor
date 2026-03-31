@@ -40,6 +40,7 @@ See [src/AGENTS.md](src/AGENTS.md) for source-folder structure details.
 ## Key conventions
 
 - All `src/` changes must pass `dotnet build .\src\PrMonitor.csproj -v q` before committing.
+- All `src/` changes must also pass `dotnet test .\tests\PrMonitor.Tests\PrMonitor.Tests.csproj` before committing.
 - Update `CHANGELOG.md` (`[Unreleased]`) for every `src/` change — mandatory, not optional.
 - Commit message format: `feat:`, `fix:`, `refactor:`, `docs:`, `test:` etc.
 - UI text must be in **English**.

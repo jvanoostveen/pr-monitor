@@ -85,7 +85,7 @@ Example for "add a new section to the window":
 - [ ] Update model/service layer
 - [ ] Update ViewModel
 - [ ] Update XAML
-- [ ] Build and verify no errors
+- [ ] Build, run tests, and verify no errors
 - [ ] Commit and restart
 
 ### 2. Use subagents for multi-file changes
@@ -98,7 +98,7 @@ When a task touches **3 or more files** or requires independent research alongsi
 Use the main agent for: simple single-file edits, quick investigations, running terminal commands, and reviewing subagent output.
 
 ### 3. Validate before committing
-When a change includes files under `src/`, run `dotnet build .\src\PrMonitor.csproj -v q` and confirm `ExitCode: 0` before committing.
+When a change includes files under `src/`, run both `dotnet build .\src\PrMonitor.csproj -v q` and `dotnet test .\tests\PrMonitor.Tests\PrMonitor.Tests.csproj` and confirm `ExitCode: 0` before committing.
 
 ### 4. Update documentation
 After completing any user-facing change, update **both**:
@@ -113,7 +113,7 @@ Commit the documentation in the same commit as the code change.
 
 ### 5. Commit every completed step
 Do not batch unrelated work into one commit. After each completed implementation step:
-- If `src/` files changed: stop the running app, build, and confirm success (`ExitCode: 0`)
+- If `src/` files changed: stop the running app, build, run tests, and confirm all pass (`ExitCode: 0`)
 - Commit only the files for that step
 - If `src/` files changed: restart the app so changes are visible
 - Continue with the next step in a new commit
@@ -288,7 +288,7 @@ When preparing a new version, complete these steps in the same implementation se
   - Move relevant entries from `[Unreleased]` into a new version section (for example `[1.2.0]`).
   - Keep an `[Unreleased]` section at the top for future changes.
 3. Update `README.md` only if version-related behavior or release packaging changed.
-4. If `src/` files changed as part of the version prep: run build validation (`dotnet build .\src\PrMonitor.csproj -v q`).
+4. If `src/` files changed as part of the version prep: run build validation (`dotnet build .\src\PrMonitor.csproj -v q`) and tests (`dotnet test .\tests\PrMonitor.Tests\PrMonitor.Tests.csproj`).
 5. Commit version + changelog updates together.
 
 Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a version bump commit is what starts the release workflow on `main`.
@@ -388,6 +388,7 @@ Before every commit with `src/` file changes:
 ```powershell
 Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
 dotnet build .\src\PrMonitor.csproj -v q
+dotnet test .\tests\PrMonitor.Tests\PrMonitor.Tests.csproj
 git add -A
 git commit -m "type: description"
 ```
@@ -398,10 +399,11 @@ Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
 Start-Process dotnet -ArgumentList "run --project .\src\PrMonitor.csproj" -WorkingDirectory "d:\Private\pr-monitor" -WindowStyle Hidden
 ```
 
-Full iteration sequence for `src/` changes (stop → build → commit → restart):
+Full iteration sequence for `src/` changes (stop → build → test → commit → restart):
 ```powershell
 Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue
 dotnet build .\src\PrMonitor.csproj -v q
+dotnet test .\tests\PrMonitor.Tests\PrMonitor.Tests.csproj
 git add -A
 git commit -m "type: description"
 Start-Process dotnet -ArgumentList "run --project .\src\PrMonitor.csproj" -WorkingDirectory "d:\Private\pr-monitor" -WindowStyle Hidden
