@@ -48,22 +48,24 @@ public class CopilotServiceParsingTests
     }
 
     [Fact]
-    public void ParseResponse_InvalidInnerJson_ReturnsFallback()
+    public void ParseResponse_InvalidInnerJson_ReturnsIndeterminate()
     {
         var response = BuildChatResponse("this is not json");
 
         var result = _svc.ParseResponse(response);
 
         Assert.False(result.IsFlaky);
+        Assert.True(result.IsIndeterminate);
         Assert.NotEmpty(result.Rationale);
     }
 
     [Fact]
-    public void ParseResponse_MalformedOuterJson_ReturnsFallback()
+    public void ParseResponse_MalformedOuterJson_ReturnsIndeterminate()
     {
         var result = _svc.ParseResponse("totally not json");
 
         Assert.False(result.IsFlaky);
+        Assert.True(result.IsIndeterminate);
         Assert.NotEmpty(result.Rationale);
     }
 

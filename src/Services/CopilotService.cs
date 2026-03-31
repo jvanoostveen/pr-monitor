@@ -207,8 +207,10 @@ public sealed class CopilotService
         }
     }
 
+    // All error paths (API failure, exception, JSON parse error) are indeterminate:
+    // we couldn't conclude anything, so FlakinessService must not fire a "real failure" toast.
     private static FlakinessAnalysisResult Fallback(string reason) =>
-        new() { IsFlaky = false, Rationale = reason, SuggestedRules = [] };
+        new() { IsFlaky = false, IsIndeterminate = true, Rationale = reason, SuggestedRules = [] };
 
     private static FlakinessAnalysisResult Indeterminate(string reason) =>
         new() { IsFlaky = false, IsIndeterminate = true, Rationale = reason, SuggestedRules = [] };

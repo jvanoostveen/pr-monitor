@@ -418,7 +418,9 @@ public sealed class GitHubService
     }
 
     /// <summary>
-    /// Fetches the failed job log output for a workflow run (truncated to 4000 chars).
+    /// Fetches the failed job log output for a workflow run, sanitized and truncated to 4000 chars.
+    /// Truncation keeps the TAIL of the log (where actual test errors appear) and drops the head
+    /// (where setup/security-scanner output — the most likely content-filter triggers — lives).
     /// </summary>
     public async Task<string> FetchFailedLogAsync(string owner, string repo, long runId)
     {
@@ -428,31 +430,54 @@ public sealed class GitHubService
         if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
             return "";
 
-        var sanitized = SanitizeLogForAI(output);
+        var (sanitized, redacted) = SanitizeLogForAI(output);
+        if (redacted > 0)
+            _logger.Info($"FetchFailedLogAsync: redacted {redacted} line(s) from log for {owner}/{repo} run {runId}.");
 
         const int MaxLength = 4000;
-        return sanitized.Length <= MaxLength ? sanitized : sanitized[..MaxLength] + "\n[truncated]";
+        return sanitized.Length <= MaxLength
+            ? sanitized
+            : "[beginning of log omitted]\n" + sanitized[^MaxLength..];
     }
 
     /// <summary>
-    /// Removes lines from a CI log that are likely to trigger Azure OpenAI's content
-    /// filter (jailbreak detection). These lines contain prompt-injection-like phrases
-    /// or instructions that are meaningless for flakiness analysis anyway.
+    /// Removes or rewrites lines from a CI log that are likely to trigger Azure OpenAI's
+    /// content filter or are pure metadata with no flakiness-analysis value.
+    /// Returns the cleaned log and the number of lines that were redacted.
     /// </summary>
-    private static string SanitizeLogForAI(string log)
+    internal static (string Sanitized, int Redacted) SanitizeLogForAI(string log)
     {
-        // Patterns that trigger Azure OpenAI jailbreak detection.
-        // Matched case-insensitively against individual lines.
-        var injectionPatterns = new[]
+        // GitHub Actions prepends an ISO-8601 timestamp to every line, e.g.:
+        //   2026-03-31T11:52:10.1234567Z  ##[error] npm test failed
+        // Stripping it recovers ~32 chars per line within the 4000-char budget.
+        var timestampPrefix = new Regex(
+            @"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s*",
+            RegexOptions.Compiled);
+
+        // ANSI escape sequences (colors, cursor movement) used by some test runners.
+        var ansiEscape = new Regex(
+            @"\x1B(?:\[[0-9;]*[mGKHFJABCDH]|[()][0-9A-Za-z])",
+            RegexOptions.Compiled);
+
+        // Lines that have no diagnostic value but tend to trigger the Azure OpenAI
+        // jailbreak / content-filter. Matched case-insensitively against individual lines.
+        var redactPatterns = new[]
         {
+            // Explicit prompt-injection phrases
             @"ignore\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|prompts?|context|rules?)",
             @"(you\s+are\s+now|act\s+as|pretend\s+(to\s+be|you\s+are)|roleplay)\b",
             @"(system\s+prompt|initial\s+prompt|forget\s+your\s+(instructions?|training))",
             @"(jailbreak|DAN\b|do\s+anything\s+now)",
             @"(disregard|override|bypass|circumvent)\s+(all\s+)?(your\s+)?(safety|restrictions?|guidelines?|policies?|rules?)",
+            // XSS / HTML-injection payloads in test data
+            @"<script[^>]*>",
+            @"\bon(error|load|click|mouseover|focus)\s*=\s*[""'(]",
+            @"javascript\s*:\s*(void|alert|eval|document)\s*[\[(]",
+            // Long base64 / hex data blobs (≥60 contiguous encoded chars) — pure data, no analysis value
+            @"[A-Za-z0-9+/=]{60,}={0,2}(?:\s|$)",
         };
 
-        var compiled = injectionPatterns
+        var compiled = redactPatterns
             .Select(p => new Regex(p, RegexOptions.IgnoreCase | RegexOptions.Compiled))
             .ToArray();
 
@@ -460,8 +485,12 @@ public sealed class GitHubService
         var result = new System.Text.StringBuilder(log.Length);
         int redacted = 0;
 
-        foreach (var line in lines)
+        foreach (var rawLine in lines)
         {
+            // Strip metadata prefixes first (no semantic loss)
+            var line = timestampPrefix.Replace(rawLine, "");
+            line = ansiEscape.Replace(line, "");
+
             if (compiled.Any(r => r.IsMatch(line)))
             {
                 result.AppendLine("[line redacted]");
@@ -473,7 +502,7 @@ public sealed class GitHubService
             }
         }
 
-        return result.ToString();
+        return (result.ToString(), redacted);
     }
 
     /// <summary>
