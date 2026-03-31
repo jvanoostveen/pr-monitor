@@ -945,7 +945,7 @@
                                 </TextBlock>
                             </StackPanel>
                             <!-- Thin download progress bar -->
-                            <ProgressBar Value="{Binding DownloadProgress}" Maximum="100"
+                            <ProgressBar Value="{Binding DownloadProgress, Mode=OneWay}" Maximum="100"
                                          Height="2" Margin="4,3,4,0"
                                          Foreground="#3FB950" Background="Transparent" BorderThickness="0"
                                          Visibility="{Binding IsDownloadingUpdate, Converter={StaticResource BoolToVisibility}}"/>
