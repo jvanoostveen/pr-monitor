@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Disabling auto-merge on an open PR no longer triggers a "PR Merged / Closed" notification. The removed-from-auto-merge notification is now suppressed when the PR is still open (i.e. it just moved to My PRs).
 - Reviewer indicator now correctly shows as assigned even after the reviewer has submitted their review. Previously, reviewers were only tracked via `reviewRequests` (pending requests), which GitHub removes once a review is submitted. The fix also reads `latestOpinionatedReviews` so reviewers who have already approved or requested changes are still counted.
 - Flakiness analysis: CI log is now sanitized before being sent to the GitHub Models API to prevent Azure OpenAI's jailbreak content filter from blocking the request. When the filter still triggers, the result is treated as indeterminate (no toast, no rerun) rather than a false "real failure" notification.
 - "Request Copilot review" now uses the REST API (`gh api … --method POST`) instead of `gh pr edit --add-reviewer copilot`, which failed with a GraphQL error because the Copilot reviewer is a GitHub App bot rather than a regular user.

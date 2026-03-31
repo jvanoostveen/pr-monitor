@@ -85,6 +85,35 @@ public class PollingServiceDeltaTests
     }
 
     [Fact]
+    public void DetectAutoMergeChanges_RemovedPr_StillOpenInAllMyPrs_NoEvent()
+    {
+        // PR had auto-merge disabled but is still open — should not fire a merged/closed notification.
+        var svc = CreateService();
+        svc._previousAutoMerge["org/repo#1"] = PR("org/repo#1");
+
+        var events = new List<PrChangeEventArgs>();
+        svc.PrChanged += (_, e) => events.Add(e);
+        svc.DetectAutoMergeChanges([], allOpenPrKeys: ["org/repo#1"]);
+
+        Assert.Empty(events);
+    }
+
+    [Fact]
+    public void DetectAutoMergeChanges_RemovedPr_NotInAllMyPrs_RaisesRemovedEvent()
+    {
+        // PR is gone from all open PRs too — it was truly closed/merged.
+        var svc = CreateService();
+        svc._previousAutoMerge["org/repo#1"] = PR("org/repo#1");
+
+        var events = new List<PrChangeEventArgs>();
+        svc.PrChanged += (_, e) => events.Add(e);
+        svc.DetectAutoMergeChanges([], allOpenPrKeys: []);
+
+        Assert.Single(events);
+        Assert.Equal(PrChangeKind.RemovedAutoMergePr, events[0].Kind);
+    }
+
+    [Fact]
     public void DetectAutoMergeChanges_AfterCall_UpdatesPreviousDict()
     {
         var svc = CreateService();

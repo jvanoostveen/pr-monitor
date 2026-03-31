@@ -160,7 +160,8 @@ public sealed class PollingService : IDisposable
                 teamReviewPrs = [];
             }
 
-            DetectAutoMergeChanges(autoMergePrs);
+            var allOpenPrKeys = allMyPrs.Select(p => p.Key).ToHashSet();
+            DetectAutoMergeChanges(autoMergePrs, allOpenPrKeys);
             DetectReviewChanges(combinedReviewPrs);
             DetectMyPrsChanges(myPrs);
 
@@ -207,7 +208,7 @@ public sealed class PollingService : IDisposable
         }
     }
 
-    internal void DetectAutoMergeChanges(List<PullRequestInfo> current)
+    internal void DetectAutoMergeChanges(List<PullRequestInfo> current, HashSet<string>? allOpenPrKeys = null)
     {
         var currentDict = current.ToDictionary(p => p.Key);
 
@@ -227,10 +228,12 @@ public sealed class PollingService : IDisposable
             }
         }
 
-        // Removed PRs (merged or auto-merge disabled)
+        // Removed PRs: only notify when the PR is truly gone (merged/closed).
+        // If the PR is still open (present in allOpenPrKeys) it just had auto-merge
+        // disabled and will appear in My PRs — no notification needed.
         foreach (var key in _previousAutoMerge.Keys)
         {
-            if (!currentDict.ContainsKey(key))
+            if (!currentDict.ContainsKey(key) && allOpenPrKeys?.Contains(key) != true)
             {
                 RaiseChange(_previousAutoMerge[key], PrChangeKind.RemovedAutoMergePr);
             }
