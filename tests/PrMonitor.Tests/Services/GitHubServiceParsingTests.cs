@@ -234,6 +234,52 @@ public class GitHubServiceParsingTests
     }
 
     [Fact]
+    public void ParseReviewerLogins_ReviewerAlreadySubmittedReview_IsDetectedViaLatestOpinionatedReviews()
+    {
+        // Reviewer submitted their review → removed from reviewRequests, but present in latestOpinionatedReviews.
+        var json = BuildMyPrsJson(BuildPrNode(
+            number: 1,
+            reviewers: [],                      // empty: review request was consumed
+            submittedReviewers: ["alice"]));     // alice already reviewed
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseMyPrs(doc.RootElement);
+
+        Assert.Single(result);
+        Assert.Single(result[0].ReviewerLogins);
+        Assert.Equal("alice", result[0].ReviewerLogins[0]);
+    }
+
+    [Fact]
+    public void ParseReviewerLogins_SameReviewerInBothFields_IsNotDuplicated()
+    {
+        // Reviewer appears in both reviewRequests and latestOpinionatedReviews → only one entry.
+        var json = BuildMyPrsJson(BuildPrNode(
+            number: 1,
+            reviewers: [("alice", "User")],
+            submittedReviewers: ["alice"]));
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseMyPrs(doc.RootElement);
+
+        Assert.Single(result);
+        Assert.Single(result[0].ReviewerLogins);
+        Assert.Equal("alice", result[0].ReviewerLogins[0]);
+    }
+
+    [Fact]
+    public void ParseReviewerLogins_CopilotReviewerInLatestOpinionatedReviews_IsFiltered()
+    {
+        var json = BuildMyPrsJson(BuildPrNode(
+            number: 1,
+            reviewers: [],
+            submittedReviewers: ["copilot-pull-request-reviewer"]));
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseMyPrs(doc.RootElement);
+
+        Assert.Single(result);
+        Assert.Empty(result[0].ReviewerLogins);
+    }
+
+    [Fact]
     public void ParseReviewPrs_DirectUserReviewRequest_IsNotTeamOnly()
     {
         var json = BuildReviewPrsJson(BuildReviewPrNode(number: 10, reviewerName: "alice", reviewerType: "User"));
@@ -283,7 +329,8 @@ public class GitHubServiceParsingTests
         string headRef = "feature/test",
         bool isArchived = false,
         string mergeable = "MERGEABLE",
-        IEnumerable<(string name, string type)>? reviewers = null)
+        IEnumerable<(string name, string type)>? reviewers = null,
+        IEnumerable<string>? submittedReviewers = null)
     {
         var autoMerge = hasAutoMerge ? "{\"enabledAt\":\"2026-01-01T00:00:00Z\"}" : "null";
         var ciNode = ciState != null
@@ -293,8 +340,11 @@ public class GitHubServiceParsingTests
         var reviewRequestNodes = reviewers != null
             ? string.Join(",", reviewers.Select(r =>
                 r.type == "Team"
-                    ? $"{{\"requestedReviewer\":{{\"__typename\":\"Team\",\"slug\":\"{r.name}\"}}}}"
+                    ? $"{{\"requestedReviewer\":{{\"__typename\":\"Team\",\"slug\":\"{r.name}\"}}}}" 
                     : $"{{\"requestedReviewer\":{{\"__typename\":\"User\",\"login\":\"{r.name}\"}}}}"  ))
+            : "";
+        var submittedReviewNodes = submittedReviewers != null
+            ? string.Join(",", submittedReviewers.Select(login => $"{{\"author\":{{\"login\":\"{login}\"}}}}"))
             : "";
         return "{\"number\":" + number
             + ",\"title\":\"" + title + "\""
@@ -309,6 +359,7 @@ public class GitHubServiceParsingTests
             + ",\"headRefName\":\"" + headRef + "\""
             + ",\"commits\":{\"nodes\":[" + ciNode + "]}"
             + ",\"reviewRequests\":{\"nodes\":[" + reviewRequestNodes + "]}"
+            + ",\"latestOpinionatedReviews\":{\"nodes\":[" + submittedReviewNodes + "]}"
             + ",\"reviewThreads\":{\"nodes\":[]}}";
     }
 
@@ -317,7 +368,9 @@ public class GitHubServiceParsingTests
         string reviewerName = "alice",
         string reviewerType = "User")
     {
-        var reviewerJson = "{\"requestedReviewer\":{\"__typename\":\"" + reviewerType + "\",\"login\":\"" + reviewerName + "\"}}";
+        var reviewerJson = reviewerType == "Team"
+            ? "{\"requestedReviewer\":{\"__typename\":\"Team\",\"slug\":\"" + reviewerName + "\"}}"
+            : "{\"requestedReviewer\":{\"__typename\":\"User\",\"login\":\"" + reviewerName + "\"}}";
         return "{\"number\":" + number
             + ",\"title\":\"Review PR " + number + "\""
             + ",\"url\":\"https://github.com/org/repo/pull/" + number + "\""
@@ -332,6 +385,7 @@ public class GitHubServiceParsingTests
             + ",\"baseRefName\":\"main\""
             + ",\"commits\":{\"nodes\":[{\"commit\":{\"oid\":\"sha1\",\"statusCheckRollup\":null}}]}"
             + ",\"reviewThreads\":{\"nodes\":[]}"
+            + ",\"latestOpinionatedReviews\":{\"nodes\":[]}"
             + ",\"reviewRequests\":{\"nodes\":[" + reviewerJson + "]}}";
     }
 }

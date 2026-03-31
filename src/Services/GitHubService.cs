@@ -62,6 +62,11 @@ public sealed class GitHubService
                     }
                   }
                 }
+                latestOpinionatedReviews(first: 10) {
+                  nodes {
+                    author { login }
+                  }
+                }
                                 reviewThreads(first: 50) {
                                     nodes {
                                         isResolved
@@ -781,7 +786,7 @@ public sealed class GitHubService
         if (!reviewRequests.TryGetProperty("nodes", out var nodes)) return [];
         if (nodes.ValueKind != JsonValueKind.Array) return [];
 
-        var logins = new List<string>();
+        var loginsSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var requestNode in nodes.EnumerateArray())
         {
             if (!requestNode.TryGetProperty("requestedReviewer", out var reviewer)) continue;
@@ -794,17 +799,35 @@ public sealed class GitHubService
                 var loginStr = login.GetString() ?? "";
                 if (string.IsNullOrEmpty(loginStr)) continue;
                 if (loginStr.StartsWith("copilot", StringComparison.OrdinalIgnoreCase)) continue;
-                logins.Add(loginStr);
+                loginsSet.Add(loginStr);
             }
             else if (type == "Team")
             {
                 if (!reviewer.TryGetProperty("slug", out var slug)) continue;
                 var slugStr = slug.GetString() ?? "";
                 if (!string.IsNullOrEmpty(slugStr))
-                    logins.Add(slugStr);
+                    loginsSet.Add(slugStr);
             }
         }
-        return logins;
+
+        // Also include reviewers who have already submitted a review (they are removed from reviewRequests once done).
+        if (node.TryGetProperty("latestOpinionatedReviews", out var latestReviews)
+            && latestReviews.ValueKind == JsonValueKind.Object
+            && latestReviews.TryGetProperty("nodes", out var reviewNodes)
+            && reviewNodes.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var reviewNode in reviewNodes.EnumerateArray())
+            {
+                if (!reviewNode.TryGetProperty("author", out var author)) continue;
+                if (!author.TryGetProperty("login", out var login)) continue;
+                var loginStr = login.GetString() ?? "";
+                if (string.IsNullOrEmpty(loginStr)) continue;
+                if (loginStr.StartsWith("copilot", StringComparison.OrdinalIgnoreCase)) continue;
+                loginsSet.Add(loginStr);
+            }
+        }
+
+        return [.. loginsSet];
     }
 
     internal static int ParseUnresolvedReviewCommentCount(JsonElement node)
