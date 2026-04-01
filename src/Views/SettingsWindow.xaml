@@ -360,6 +360,12 @@
                                   IsChecked="{Binding CompactMode}"
                                   Content="Compact mode (smaller rows)"/>
 
+                        <CheckBox Margin="0,8,0,0"
+                                  IsChecked="{Binding VerboseLogging}"
+                                  Content="Verbose logging"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,2,0,0" TextWrapping="Wrap"
+                                   Text="Enable to write informational log entries (window placement, poll lifecycle, etc.). Errors are always logged."/>
+
                     </StackPanel>
                 </TabItem>
 

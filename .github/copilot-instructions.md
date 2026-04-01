@@ -169,7 +169,8 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - Log format includes timestamp + level (`INFO`, `WARN`, `ERROR`).
 - `GitHubService` logs GraphQL/`gh` failures (non-zero exit with stderr, GraphQL errors, JSON parse failures).
 - `PollingService` logs poll lifecycle and exceptions for intermittent "no data" investigations.
-- `MainWindow` writes structured `MainWindowPlacement` traces for startup restore, snap application, deferred `SizeChanged` branches, filtered `LocationChanged` events, display-change recovery, and persisted placement state so restart-position bugs can be reconstructed from one ordered timeline.
+- `MainWindow` writes structured `MainWindowPlacement` traces for startup restore, snap application, deferred `SizeChanged` branches, filtered `LocationChanged` events, display-change recovery, and persisted placement state so restart-position bugs can be reconstructed from one ordered timeline. These traces are only written when `VerboseLogging` is enabled in settings.
+- `DiagnosticsLogger.Info()` is silently dropped unless `VerboseLogging` is `true`. `Warn` and `Error` are always written. The flag is set at startup and updated live when settings are saved.
 
 ### Flakiness analysis and auto-rerun
 - `FlakinessService` subscribes to `PollingService.PrChanged` and handles `CIStatusChanged` events for the current user's own non-draft PRs with `CIState.Failure`.
@@ -382,7 +383,8 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   ],
   "flakinessRerunCounts": {
     "owner/repo#123": { "count": 1, "lastAttempt": "2026-03-24T00:00:00Z" }
-  }
+  },
+  "verboseLogging": false
 }
 ```
 

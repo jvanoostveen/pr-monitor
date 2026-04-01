@@ -48,7 +48,7 @@ public partial class App : System.Windows.Application
 
         // ── Settings ───────────────────────────────────────────────
         var settings = AppSettings.Load();
-        _logger = new DiagnosticsLogger();
+        _logger = new DiagnosticsLogger { VerboseLogging = settings.VerboseLogging };
 
         // Clean up leftover .old exe from a previous in-place update
         CleanupOldExe(_logger);
@@ -108,6 +108,8 @@ public partial class App : System.Windows.Application
                 // Apply new polling interval live and refresh data immediately
                 _polling.UpdateInterval(settings.PollingIntervalSeconds);
                 _ = _polling.RefreshAsync();
+                // Sync verbose-logging flag to logger without restart
+                if (_logger is not null) _logger.VerboseLogging = settings.VerboseLogging;
                 // Re-apply corner snap after WPF has processed the layout change
                 // caused by compact mode toggling (window height changes).
                 _mainWindow.Dispatcher.BeginInvoke(

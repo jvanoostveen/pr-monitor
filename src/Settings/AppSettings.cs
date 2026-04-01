@@ -151,6 +151,11 @@ public sealed class AppSettings
     /// <summary>Per-PR rerun counts. Key = "owner/repo#number".</summary>
     public Dictionary<string, RerunRecord> FlakinessRerunCounts { get; set; } = [];
 
+    // ── Diagnostics ──────────────────────────────────────────────────────
+
+    /// <summary>When true, verbose window-placement traces are written to the log.</summary>
+    public bool VerboseLogging { get; set; } = false;
+
     /// <summary>
     /// Load settings from disk, or return defaults if no file exists.
     /// </summary>

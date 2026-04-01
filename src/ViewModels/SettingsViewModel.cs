@@ -76,6 +76,12 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set { _settings.CompactMode = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompactMode))); }
     }
 
+    public bool VerboseLogging
+    {
+        get => _settings.VerboseLogging;
+        set { _settings.VerboseLogging = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VerboseLogging))); }
+    }
+
     // ── Notification toggles ─────────────────────────────────────────
 
     private bool _notifyCiFailed;

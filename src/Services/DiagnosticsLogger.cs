@@ -24,7 +24,12 @@ public sealed class DiagnosticsLogger
 
     public string LogFilePath => _logFilePath;
 
-    public void Info(string message) => Write("INFO", message);
+    /// <summary>
+    /// When false, <see cref="Info"/> calls are silently dropped. Warn/Error are always written.
+    /// </summary>
+    public bool VerboseLogging { get; set; } = false;
+
+    public void Info(string message) { if (VerboseLogging) Write("INFO", message); }
 
     public void Warn(string message) => Write("WARN", message);
 

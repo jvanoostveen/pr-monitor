@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Dependabot section**: PRs authored by `dependabot[bot]` that are awaiting your review now appear in a dedicated collapsible "Dependabot" section, displayed below "Awaiting My Review". The section is collapsed/expanded independently and its state is persisted in settings (`dependabotExpanded`).
+- **Verbose logging setting**: added a `verboseLogging` option (Settings → General → "Verbose logging") that gate-keeps all `INFO`-level log entries. Errors and warnings are always logged regardless of this setting.
 
 ## [1.8.2] - 2026-03-31
 
