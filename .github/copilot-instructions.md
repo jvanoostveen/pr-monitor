@@ -9,6 +9,21 @@ Repository license: MIT (see `LICENSE`).
 
 ---
 
+## Development Environment
+
+Development is done on **Windows** with **PowerShell**. Never use Unix/bash commands such as `tail`, `grep`, `find`, `cat`, `head`, `ls`, `rm`, or `cp`. Always use PowerShell equivalents:
+
+| Unix | PowerShell equivalent |
+|---|---|
+| `tail -n 5` | `Select-Object -Last 5` |
+| `head -n 5` | `Select-Object -First 5` |
+| `grep foo` | `Select-String foo` |
+| `cat file` | `Get-Content file` |
+| `ls` | `Get-ChildItem` |
+| `rm -rf` | `Remove-Item -Recurse -Force` |
+
+---
+
 ## Tech Stack
 
 | Concern | Choice |
