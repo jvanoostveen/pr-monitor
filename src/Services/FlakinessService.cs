@@ -137,6 +137,27 @@ public sealed class FlakinessService
         _logger.Info($"FlakinessService: no local rule matched {prKey}, calling Copilot for analysis.");
         var result = await _copilot.AnalyzeFlakiness(context, _settings.FlakinessCustomHints);
 
+        // If the full log triggered the content filter, retry once with error-lines-only excerpt.
+        if (result.IsIndeterminate)
+        {
+            var errorLinesExcerpt = GitHubService.ExtractErrorLines(log);
+            if (errorLinesExcerpt != log) // ExtractErrorLines returns the original when too few lines found
+            {
+                _logger.Info($"FlakinessService: retrying Copilot for {prKey} with error-lines-only excerpt.");
+                var retryContext = new FailureContext
+                {
+                    Repository = context.Repository,
+                    PrNumber = context.PrNumber,
+                    PrTitle = context.PrTitle,
+                    HeadBranch = context.HeadBranch,
+                    HeadCommitSha = context.HeadCommitSha,
+                    FailedCheckNames = context.FailedCheckNames,
+                    LogExcerpt = errorLinesExcerpt,
+                };
+                result = await _copilot.AnalyzeFlakiness(retryContext, _settings.FlakinessCustomHints);
+            }
+        }
+
         // Persist any suggested rules (deduplicate by pattern; validate before saving)
         foreach (var suggestion in result.SuggestedRules)
         {
@@ -162,10 +183,6 @@ public sealed class FlakinessService
         if (result.IsIndeterminate)
         {
             _logger.Info($"FlakinessService: Copilot analysis indeterminate for {prKey}: {result.Rationale}. No action taken.");
-            if (_settings.NotifyFlakinessRealFailure)
-                _notifications.Notify(
-                    $"⚠️ CI analysis skipped for #{pr.Number} ({pr.Repository})",
-                    result.Rationale);
             return;
         }
 

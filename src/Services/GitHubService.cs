@@ -511,7 +511,49 @@ public sealed class GitHubService
     }
 
     /// <summary>
-    /// Reruns failed jobs for a workflow run. Returns true on success.
+    /// Extracts only the diagnostically relevant lines from a CI log: error messages,
+    /// exception stack traces, assertion failures, and timeout/crash indicators.
+    /// Used as a fallback excerpt when the full log triggers the Azure OpenAI content filter.
+    /// Returns the original log unchanged when fewer than 3 diagnostic lines are found.
+    /// </summary>
+    internal static string ExtractErrorLines(string log, int maxLength = 2000)
+    {
+        var diagnosticPattern = new Regex(
+            @"error|fail|exception|assert|timeout|crash|abort|fatal|warning|warn|" +
+            @"unable\s+to|could\s+not|unexpected|stack\s+trace|\bat\s+\w|" +
+            @"FAILED|ERROR|WARN|ASSERT|NullReference|OutOfMemory|unhandled",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        var lines = log.Split('\n');
+        var kept = new List<string>(capacity: lines.Length / 4);
+        string? lastLine = null;
+
+        // If fewer than 3 lines match the diagnostic pattern at all, the filter cannot
+        // meaningfully reduce the log — return unchanged so the caller gets the full context.
+        var rawMatchCount = lines.Count(l => diagnosticPattern.IsMatch(l.TrimEnd('\r')));
+        if (rawMatchCount < 3)
+            return log;
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.TrimEnd('\r');
+            // Skip consecutive duplicate lines (common in test runners)
+            if (trimmed == lastLine)
+                continue;
+            if (diagnosticPattern.IsMatch(trimmed))
+            {
+                kept.Add(trimmed);
+                lastLine = trimmed;
+            }
+        }
+
+        var joined = string.Join('\n', kept);
+        return joined.Length <= maxLength
+            ? joined
+            : "[beginning of error lines omitted]\n" + joined[^maxLength..];
+    }
+
+    /// <summary>
     /// </summary>
     public async Task<bool> RerunFailedJobsAsync(string owner, string repo, long runId)
     {

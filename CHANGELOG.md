@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PRs authored by the current user that target a release branch (hotfix PRs) no longer appear in both the Hotfixes section and the My Auto-Merge PRs section simultaneously; they are now shown exclusively in Hotfixes.
 - Unit tests no longer pollute the production log (`%APPDATA%\pr-monitor\logs\pr-monitor.log`); `DiagnosticsLogger.Null` is a new static no-op instance used by all test classes to discard log output.
-- When flakiness analysis is blocked by the Azure OpenAI content filter (jailbreak detection triggered by CI log content), a "CI analysis skipped" toast is now shown instead of silently doing nothing.
+- When flakiness analysis is blocked by the Azure OpenAI content filter (jailbreak detection triggered by CI log content), the analysis is now retried once with an error-lines-only excerpt (lines containing `error|fail|exception|assert|timeout` etc.) to avoid the problematic test-data content. If the retry also fails, the failure is silently skipped.
 
 ### Added
 

@@ -469,3 +469,72 @@ public class SanitizeLogForAITests
         Assert.Equal(0, redacted);
     }
 }
+
+public class ExtractErrorLinesTests
+{
+    [Fact]
+    public void ExtractErrorLines_KeepsErrorLines()
+    {
+        var log = """
+            Step 1: Restore packages
+            Step 2: Build
+            error CS0246: The type or namespace 'Foo' could not be found
+            Step 3: Test
+            """;
+        var result = GitHubService.ExtractErrorLines(log);
+        Assert.Contains("error CS0246", result);
+    }
+
+    [Fact]
+    public void ExtractErrorLines_DropsBenignLines()
+    {
+        var log = """
+            Configuring environment
+            error: NullReferenceException at line 42
+            exception: System.Timeout
+            failed: 3 tests
+            """;
+        var result = GitHubService.ExtractErrorLines(log);
+        // Benign setup line should be dropped
+        Assert.DoesNotContain("Configuring environment", result);
+        Assert.Contains("NullReferenceException", result);
+    }
+
+    [Fact]
+    public void ExtractErrorLines_DeduplicatesConsecutiveDuplicates()
+    {
+        var log = string.Join('\n', Enumerable.Repeat("error: disk full", 10));
+        var result = GitHubService.ExtractErrorLines(log);
+        var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Single(lines);
+    }
+
+    [Fact]
+    public void ExtractErrorLines_ReturnsOriginalWhenTooFewDiagnosticLines()
+    {
+        // Only 2 diagnostic lines → fewer than 3 threshold → original returned
+        var log = "error: something\nfailed: one test\nno more errors here";
+        var result = GitHubService.ExtractErrorLines(log);
+        Assert.Equal(log, result);
+    }
+
+    [Fact]
+    public void ExtractErrorLines_TruncatesLongOutput()
+    {
+        // Build a log with many error lines to exceed maxLength=2000
+        var lines = Enumerable.Range(1, 200)
+            .Select(i => $"error: test {i} failed with assertion mismatch")
+            .ToArray();
+        var log = string.Join('\n', lines);
+        var result = GitHubService.ExtractErrorLines(log, maxLength: 2000);
+        Assert.True(result.Length <= 2000 + "[beginning of error lines omitted]\n".Length + 100); // allow for last-line overshoot
+        Assert.Contains("[beginning of error lines omitted]", result);
+    }
+
+    [Fact]
+    public void ExtractErrorLines_HandlesEmptyLog()
+    {
+        var result = GitHubService.ExtractErrorLines("");
+        Assert.Equal("", result);
+    }
+}
