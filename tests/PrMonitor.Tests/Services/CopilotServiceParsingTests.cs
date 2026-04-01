@@ -6,7 +6,7 @@ namespace PrMonitor.Tests.Services;
 
 public class CopilotServiceParsingTests
 {
-    private readonly CopilotService _svc = new(new DiagnosticsLogger());
+    private readonly CopilotService _svc = new(DiagnosticsLogger.Null);
 
     [Fact]
     public void ParseResponse_FlakyResult_ReturnsIsFlakyTrue()

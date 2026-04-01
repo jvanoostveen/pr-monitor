@@ -4,5 +4,17 @@
 			"name": "PR Monitor",
 			"path": "."
 		}
-	]
+	],
+	"settings": {
+		"chat.tools.terminal.autoApprove": {
+			"/^Stop-Process -Name PrMonitor -Force -ErrorAction SilentlyContinue; dotnet build \\.\\\\src\\\\PrMonitor\\.csproj -v q 2>&1 \\| Select-Object -Last 10$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"/^dotnet test \\.\\\\tests\\\\PrMonitor\\.Tests\\\\PrMonitor\\.Tests\\.csproj 2>&1 \\| Select-Object -Last 10$/": {
+				"approve": true,
+				"matchCommandLine": true
+			}
+		}
+	}
 }

@@ -8,7 +8,7 @@ namespace PrMonitor.Tests.Services;
 public class PollingServiceDeltaTests
 {
     private static PollingService CreateService() =>
-        new(new GitHubService(new DiagnosticsLogger()), new AppSettings(), new DiagnosticsLogger());
+        new(new GitHubService(DiagnosticsLogger.Null), new AppSettings(), DiagnosticsLogger.Null);
 
     private static PullRequestInfo PR(string repoAndNumber, CIState ci = CIState.Unknown)
     {

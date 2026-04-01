@@ -1,4 +1,4 @@
-﻿using PrMonitor.Services;
+using PrMonitor.Services;
 using Xunit;
 
 namespace PrMonitor.Tests.Services;
@@ -56,7 +56,7 @@ public class UpdateServiceVersionTests
     public void ParseReleaseResult_NewerVersion_ReturnsUpdateAvailable()
     {
         var json = """{"tag_name":"v2.0.0","html_url":"https://github.com/owner/repo/releases/tag/v2.0.0"}""";
-        var svc = new UpdateService(new DiagnosticsLogger());
+        var svc = new UpdateService(DiagnosticsLogger.Null);
 
         var result = svc.ParseReleaseResult(json, "1.0.0", "test");
 
@@ -71,7 +71,7 @@ public class UpdateServiceVersionTests
     public void ParseReleaseResult_WithBody_PopulatesReleaseNotes()
     {
         var json = """{"tag_name":"v2.0.0","html_url":"https://github.com/owner/repo/releases/tag/v2.0.0","body":"## What's new\n- Feature A"}""";
-        var svc = new UpdateService(new DiagnosticsLogger());
+        var svc = new UpdateService(DiagnosticsLogger.Null);
 
         var result = svc.ParseReleaseResult(json, "1.0.0", "test");
 
@@ -84,7 +84,7 @@ public class UpdateServiceVersionTests
     public void ParseReleaseResult_WithoutBody_ReleaseNotesIsNull()
     {
         var json = """{"tag_name":"v2.0.0","html_url":"https://github.com/owner/repo/releases/tag/v2.0.0"}""";
-        var svc = new UpdateService(new DiagnosticsLogger());
+        var svc = new UpdateService(DiagnosticsLogger.Null);
 
         var result = svc.ParseReleaseResult(json, "1.0.0", "test");
 
@@ -95,7 +95,7 @@ public class UpdateServiceVersionTests
     public void ParseReleaseResult_SameVersion_NoUpdateAvailable()
     {
         var json = """{"tag_name":"v1.6.1","html_url":"https://example.com/release"}""";
-        var svc = new UpdateService(new DiagnosticsLogger());
+        var svc = new UpdateService(DiagnosticsLogger.Null);
 
         var result = svc.ParseReleaseResult(json, "1.6.1", "test");
 
@@ -107,7 +107,7 @@ public class UpdateServiceVersionTests
     public void ParseReleaseResult_OlderRemoteVersion_NoUpdateAvailable()
     {
         var json = """{"tag_name":"v1.0.0","html_url":"https://example.com/release"}""";
-        var svc = new UpdateService(new DiagnosticsLogger());
+        var svc = new UpdateService(DiagnosticsLogger.Null);
 
         var result = svc.ParseReleaseResult(json, "1.6.1", "test");
 
@@ -117,7 +117,7 @@ public class UpdateServiceVersionTests
     [Fact]
     public void ParseReleaseResult_InvalidJson_ReturnsError()
     {
-        var svc = new UpdateService(new DiagnosticsLogger());
+        var svc = new UpdateService(DiagnosticsLogger.Null);
 
         var result = svc.ParseReleaseResult("not-json", "1.0.0", "test");
 
@@ -129,7 +129,7 @@ public class UpdateServiceVersionTests
     public void ParseReleaseResult_MissingRequiredFields_ReturnsError()
     {
         var json = """{"some_field":"value"}""";
-        var svc = new UpdateService(new DiagnosticsLogger());
+        var svc = new UpdateService(DiagnosticsLogger.Null);
 
         var result = svc.ParseReleaseResult(json, "1.0.0", "test");
 

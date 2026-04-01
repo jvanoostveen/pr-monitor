@@ -162,6 +162,10 @@ public sealed class FlakinessService
         if (result.IsIndeterminate)
         {
             _logger.Info($"FlakinessService: Copilot analysis indeterminate for {prKey}: {result.Rationale}. No action taken.");
+            if (_settings.NotifyFlakinessRealFailure)
+                _notifications.Notify(
+                    $"⚠️ CI analysis skipped for #{pr.Number} ({pr.Repository})",
+                    result.Rationale);
             return;
         }
 

@@ -12,7 +12,12 @@ public sealed class DiagnosticsLogger
     private const int MaxArchivedLogFiles = 3;
 
     private readonly object _sync = new();
-    private readonly string _logFilePath;
+    private readonly string? _logFilePath;
+
+    /// <summary>
+    /// A no-op logger that discards all output. Use in unit tests to avoid writing to the real log file.
+    /// </summary>
+    public static readonly DiagnosticsLogger Null = new(logFilePath: null);
 
     public DiagnosticsLogger()
     {
@@ -22,7 +27,12 @@ public sealed class DiagnosticsLogger
         _logFilePath = System.IO.Path.Combine(logsDirectory, "pr-monitor.log");
     }
 
-    public string LogFilePath => _logFilePath;
+    private DiagnosticsLogger(string? logFilePath)
+    {
+        _logFilePath = logFilePath;
+    }
+
+    public string? LogFilePath => _logFilePath;
 
     /// <summary>
     /// When false, <see cref="Info"/> calls are silently dropped. Warn/Error are always written.
@@ -58,6 +68,8 @@ public sealed class DiagnosticsLogger
 
     private void Write(string level, string message)
     {
+        if (_logFilePath is null)
+            return;
         try
         {
             var line = $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff zzz} [{level}] {message}{Environment.NewLine}";
@@ -75,7 +87,7 @@ public sealed class DiagnosticsLogger
 
     private void RotateIfNeeded()
     {
-        if (!System.IO.File.Exists(_logFilePath))
+        if (_logFilePath is null || !System.IO.File.Exists(_logFilePath))
         {
             return;
         }
