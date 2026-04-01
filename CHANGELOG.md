@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Dependabot section**: PRs authored by `dependabot[bot]` that are awaiting your review now appear in a dedicated collapsible "Dependabot" section, displayed below "Awaiting My Review". The section is collapsed/expanded independently and its state is persisted in settings (`dependabotExpanded`).
+
 ## [1.8.2] - 2026-03-31
 
 ### Changed
