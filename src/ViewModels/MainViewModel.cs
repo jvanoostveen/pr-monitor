@@ -34,6 +34,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<PrItemViewModel> ReviewRequestedPrs { get; } = [];
     public ObservableCollection<PrItemViewModel> TeamReviewRequestedPrs { get; } = [];
     public ObservableCollection<PrItemViewModel> HotfixPrs { get; } = [];
+    public ObservableCollection<PrItemViewModel> DependabotPrs { get; } = [];
     public ObservableCollection<PrItemViewModel> HiddenPrs { get; } = [];
 
     private int _autoMergeCount;
@@ -76,6 +77,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         get => _hiddenCount;
         private set => SetField(ref _hiddenCount, value);
+    }
+
+    private int _dependabotCount;
+    public int DependabotCount
+    {
+        get => _dependabotCount;
+        private set => SetField(ref _dependabotCount, value);
     }
 
     private string _lastUpdated = "—";
@@ -258,6 +266,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool DependabotExpanded
+    {
+        get => _settings.DependabotExpanded;
+        set
+        {
+            if (_settings.DependabotExpanded == value) return;
+            _settings.DependabotExpanded = value;
+            _settings.Save();
+            OnPropertyChanged();
+        }
+    }
+
     public bool ShowTeamReviewSection
     {
         get => _settings.ShowTeamReviewSection;
@@ -279,6 +299,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void ToggleMyPrsExpanded() => MyPrsExpanded = !MyPrsExpanded;
     public void ToggleLaterExpanded() => LaterExpanded = !LaterExpanded;
     public void ToggleTeamReviewExpanded() => TeamReviewExpanded = !TeamReviewExpanded;
+    public void ToggleDependabotExpanded() => DependabotExpanded = !DependabotExpanded;
 
     private static readonly TimeSpan StaleCooldown = TimeSpan.FromDays(14);
 
@@ -294,7 +315,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 ?? FindAndRemove(AutoMergePrs, key)
                 ?? FindAndRemove(MyPrs, key)
                 ?? FindAndRemove(ReviewRequestedPrs, key)
-                ?? FindAndRemove(TeamReviewRequestedPrs, key);
+                ?? FindAndRemove(TeamReviewRequestedPrs, key)
+                ?? FindAndRemove(DependabotPrs, key);
         if (item is not null)
         {
             var wasEmpty = HiddenPrs.Count == 0;
@@ -342,6 +364,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
             {
                 TeamReviewRequestedPrs.Add(item);
                 TeamReviewCount = TeamReviewRequestedPrs.Count;
+            }
+            else if (item.IsDependabotPr)
+            {
+                DependabotPrs.Add(item);
+                DependabotCount = DependabotPrs.Count;
             }
             else
             {
@@ -478,6 +505,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             .Concat(snapshot.ReviewRequestedPrs.Select(p => p.Key))
             .Concat(snapshot.TeamReviewRequestedPrs.Select(p => p.Key))
             .Concat(snapshot.HotfixPrs.Select(p => p.Key))
+            .Concat(snapshot.DependabotPrs.Select(p => p.Key))
             .ToHashSet();
 
         // Guard: if the poll returned nothing at all (network failure / auth error),
@@ -554,6 +582,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 TeamReviewRequestedPrs.Add(PrItemViewModel.From(pr, isTeamReview: true));
         }
 
+        DependabotPrs.Clear();
+        foreach (var pr in snapshot.DependabotPrs)
+        {
+            if (!hidden.Contains(pr.Key))
+                DependabotPrs.Add(PrItemViewModel.From(pr, isDependabot: true));
+        }
+
         HotfixPrs.Clear();
         foreach (var pr in snapshot.HotfixPrs)
         {
@@ -563,15 +598,16 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         // Rebuild hidden list from all PRs in this snapshot
         HiddenPrs.Clear();
-        foreach (var x in snapshot.AutoMergePrs.Select(p => (pr: p, isAm: true, isMyPr: false, isHotfix: false, isTeamReview: false))
-                     .Concat(snapshot.MyPrs.Select(p => (pr: p, isAm: false, isMyPr: true, isHotfix: false, isTeamReview: false)))
-                     .Concat(snapshot.ReviewRequestedPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: false, isTeamReview: false)))
-                     .Concat(snapshot.TeamReviewRequestedPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: false, isTeamReview: true)))
-                     .Concat(snapshot.HotfixPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: true, isTeamReview: false)))
+        foreach (var x in snapshot.AutoMergePrs.Select(p => (pr: p, isAm: true, isMyPr: false, isHotfix: false, isTeamReview: false, isDependabot: false))
+                     .Concat(snapshot.MyPrs.Select(p => (pr: p, isAm: false, isMyPr: true, isHotfix: false, isTeamReview: false, isDependabot: false)))
+                     .Concat(snapshot.ReviewRequestedPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: false, isTeamReview: false, isDependabot: false)))
+                     .Concat(snapshot.TeamReviewRequestedPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: false, isTeamReview: true, isDependabot: false)))
+                     .Concat(snapshot.HotfixPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: true, isTeamReview: false, isDependabot: false)))
+                     .Concat(snapshot.DependabotPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: false, isTeamReview: false, isDependabot: true)))
                      .DistinctBy(x => x.pr.Key)
                      .Where(x => hidden.Contains(x.pr.Key)))
         {
-            HiddenPrs.Add(PrItemViewModel.From(x.pr, isAutoMerge: x.isAm, isMyPr: x.isMyPr, isHotfix: x.isHotfix, isTeamReview: x.isTeamReview,
+            HiddenPrs.Add(PrItemViewModel.From(x.pr, isAutoMerge: x.isAm, isMyPr: x.isMyPr, isHotfix: x.isHotfix, isTeamReview: x.isTeamReview, isDependabot: x.isDependabot,
                 snoozedUntilText: FormatSnoozedUntil(_settings.SnoozedPrs.GetValueOrDefault(x.pr.Key, DateTimeOffset.MaxValue))));
         }
 
@@ -580,6 +616,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         ReviewCount = ReviewRequestedPrs.Count;
         TeamReviewCount = TeamReviewRequestedPrs.Count;
         HotfixCount = HotfixPrs.Count;
+        DependabotCount = DependabotPrs.Count;
         HiddenCount = HiddenPrs.Count;
         LastUpdated = DateTime.Now.ToString("HH:mm:ss");
     }
@@ -654,6 +691,7 @@ public sealed class PrItemViewModel
     public bool IsMyPr { get; init; }
     public bool IsHotfixPr { get; init; }
     public bool IsTeamReviewPr { get; init; }
+    public bool IsDependabotPr { get; init; }
     public bool IsDraft { get; init; }
     public string HeadRefName { get; init; } = "";
     public string HeadCommitSha { get; init; } = "";
@@ -702,7 +740,7 @@ public sealed class PrItemViewModel
             Process.Start(new ProcessStartInfo(Url) { UseShellExecute = true });
     }
 
-    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, string snoozedUntilText = "") => new()
+    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, bool isDependabot = false, string snoozedUntilText = "") => new()
     {
         Key = pr.Key,
         Repository = pr.Repository,
@@ -716,6 +754,7 @@ public sealed class PrItemViewModel
         IsMyPr = isMyPr,
         IsHotfixPr = isHotfix,
         IsTeamReviewPr = isTeamReview,
+        IsDependabotPr = isDependabot,
         IsDraft = pr.IsDraft,
         HeadRefName = pr.HeadRefName,
         HeadCommitSha = pr.HeadCommitSha,

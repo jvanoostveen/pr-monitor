@@ -33,6 +33,7 @@ public sealed class PollSnapshot
     public IReadOnlyList<PullRequestInfo> ReviewRequestedPrs { get; init; } = [];
     public IReadOnlyList<PullRequestInfo> TeamReviewRequestedPrs { get; init; } = [];
     public IReadOnlyList<PullRequestInfo> HotfixPrs { get; init; } = [];
+    public IReadOnlyList<PullRequestInfo> DependabotPrs { get; init; } = [];
     public int FailedCICount => AutoMergePrs.Count(p => p.CIState == CIState.Failure);
     public int PendingCICount => AutoMergePrs.Count(p => p.CIState is CIState.Pending or CIState.Unknown);
     public int TotalCount => AutoMergePrs.Count + ReviewRequestedPrs.Count;
@@ -142,9 +143,18 @@ public sealed class PollingService : IDisposable
             var directReviewPrs = reviewPrs.Where(p => !p.IsTeamReviewRequested).ToList();
             var teamOnlyPrs     = reviewPrs.Where(p => p.IsTeamReviewRequested).ToList();
 
-            // Direct review list + assignee-only PRs (not authored by current user)
+            // Split off dependabot PRs from direct review list
+            var dependabotPrs = directReviewPrs
+                .Where(p => p.Author.Equals("dependabot[bot]", StringComparison.OrdinalIgnoreCase)
+                          || p.Author.Equals("dependabot", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            var dependabotKeys = dependabotPrs.Select(p => p.Key).ToHashSet();
+
+            // Direct review list + assignee-only PRs (not authored by current user), excluding dependabot
             var combinedReviewPrs = directReviewPrs
-                .Concat(assignedPrs.Where(p => !myPrKeys.Contains(p.Key)))
+                .Where(p => !dependabotKeys.Contains(p.Key))
+                .Concat(assignedPrs.Where(p => !myPrKeys.Contains(p.Key) && !dependabotKeys.Contains(p.Key)))
                 .DistinctBy(p => p.Key)
                 .ToList();
 
@@ -172,6 +182,7 @@ public sealed class PollingService : IDisposable
                 ReviewRequestedPrs     = combinedReviewPrs,
                 TeamReviewRequestedPrs = teamReviewPrs,
                 HotfixPrs              = hotfixPrs,
+                DependabotPrs          = dependabotPrs,
             };
 
             LatestSnapshot = snapshot;
@@ -193,7 +204,7 @@ public sealed class PollingService : IDisposable
                 }
             }
 
-            _logger.Info($"PollingService poll finished. AutoMerge={autoMergePrs.Count}, MyPrs={myPrs.Count}, AwaitingReview={combinedReviewPrs.Count}, TeamReview={teamReviewPrs.Count} (reviewRequested={reviewPrs.Count}, assigned={assignedPrs.Count(p => !myPrKeys.Contains(p.Key))}), Hotfixes={hotfixPrs.Count}.");
+            _logger.Info($"PollingService poll finished. AutoMerge={autoMergePrs.Count}, MyPrs={myPrs.Count}, AwaitingReview={combinedReviewPrs.Count}, TeamReview={teamReviewPrs.Count} (reviewRequested={reviewPrs.Count}, assigned={assignedPrs.Count(p => !myPrKeys.Contains(p.Key))}), Hotfixes={hotfixPrs.Count}, Dependabot={dependabotPrs.Count}.");
         }
         catch (Exception ex)
         {

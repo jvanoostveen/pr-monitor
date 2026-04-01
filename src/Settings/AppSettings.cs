@@ -63,6 +63,9 @@ public sealed class AppSettings
     /// <summary>Whether the "Team Review Requests" section is expanded in the window.</summary>
     public bool TeamReviewExpanded { get; set; } = false;
 
+    /// <summary>Whether the "Dependabot" section is expanded in the window.</summary>
+    public bool DependabotExpanded { get; set; } = true;
+
     /// <summary>Whether to show a separate "Team Review Requests" section (versus folding into Awaiting My Review).</summary>
     public bool ShowTeamReviewSection { get; set; } = true;
 

@@ -888,6 +888,12 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void DependabotHeader_Click(object sender, MouseButtonEventArgs e)
+    {
+        ViewModel.ToggleDependabotExpanded();
+        e.Handled = true;
+    }
+
     private void HotfixHeader_Click(object sender, MouseButtonEventArgs e)
     {
         ViewModel.ToggleHotfixExpanded();

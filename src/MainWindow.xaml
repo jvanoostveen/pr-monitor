@@ -596,6 +596,99 @@
                         <Border Height="1" Background="#21262D" Margin="0,4,0,8"/>
                     </StackPanel>
 
+                    <!-- Section: Dependabot -->
+                    <StackPanel Visibility="{Binding DependabotCount, Converter={StaticResource NonZeroToVisibleConverter}}">
+                        <Border MouseLeftButtonUp="DependabotHeader_Click" Cursor="Hand"
+                                Background="Transparent" Margin="0,0,0,6">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
+                                           FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
+                                           Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
+                                    <TextBlock.RenderTransform>
+                                        <RotateTransform Angle="{Binding DependabotExpanded,
+                                            Converter={StaticResource BoolToAngleConverter}}"/>
+                                    </TextBlock.RenderTransform>
+                                </TextBlock>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE72E;" FontFamily="Segoe Fluent Icons"
+                                               FontSize="12" Foreground="#3FB950"
+                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
+                                               VerticalAlignment="Center">
+                                        <Run Text="Dependabot "/>
+                                        <Run Text="{Binding DependabotCount, StringFormat='({0})', Mode=OneWay}"
+                                             Foreground="#8B949E"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
+                        <StackPanel Visibility="{Binding DependabotExpanded, Converter={StaticResource BoolToVisibility}}">
+                            <ItemsControl ItemsSource="{Binding DependabotPrs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource PrRow}"
+                                                MouseLeftButtonUp="PrItem_Click"
+                                                ToolTip="{Binding PrTooltip}"
+                                                Tag="{Binding}">
+                                            <Border.ContextMenu>
+                                                <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
+                                                    <MenuItem Header="Copy PR URL" Tag="{Binding}"
+                                                              Click="PrRow_CopyUrl_Click"/>
+                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
+                                                              Click="PrRow_CopyBranch_Click"/>
+                                                    <Separator/>
+                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
+                                                              Click="PrRow_RerunFailedJobs_Click"
+                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
+                                                    <MenuItem Header="Request Copilot review" Tag="{Binding}"
+                                                              Click="PrRow_RequestCopilotReview_Click"
+                                                              IsEnabled="{Binding CanRequestCopilotReview}"/>
+                                                    <MenuItem Header="Move to later" Tag="{Binding}"
+                                                              Click="PrRow_Hide_Click"/>
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                    <Ellipse Width="10" Height="10"
+                                                             Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                             VerticalAlignment="Center"/>
+                                                    <TextBlock Text="&#xE8BD;"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="11"
+                                                               Foreground="#8B949E"
+                                                               VerticalAlignment="Center"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Style="{StaticResource RepoText}">
+                                                        <Run Text="{Binding Repository, Mode=OneWay}"/>
+                                                        <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
+                                                        <Run Text=" by "/>
+                                                        <Run Text="{Binding Author, Mode=OneWay}"/>
+                                                    </TextBlock>
+                                                    <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Style="{StaticResource MetaText}"
+                                                           Text="{Binding TimeAgo}" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- Separator after Dependabot -->
+                        <Border Height="1" Background="#21262D" Margin="0,4,0,8"/>
+                    </StackPanel>
+
                     <!-- Section: My PRs (non-auto-merge, collapsed by default) -->
                     <StackPanel Visibility="{Binding MyPrsCount, Converter={StaticResource NonZeroToVisibleConverter}}">
                         <Border MouseLeftButtonUp="MyPrsHeader_Click" Cursor="Hand"
