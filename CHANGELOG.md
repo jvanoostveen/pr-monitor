@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- PRs authored by the current user that target a release branch (hotfix PRs) no longer appear in both the Hotfixes section and the My Auto-Merge PRs section simultaneously; they are now shown exclusively in Hotfixes.
+
 ### Added
 
 - **Dependabot section**: PRs authored by `dependabot[bot]` that are awaiting your review now appear in a dedicated collapsible "Dependabot" section, displayed below "Awaiting My Review". The section is collapsed/expanded independently and its state is persisted in settings (`dependabotExpanded`).
