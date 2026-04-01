@@ -119,7 +119,6 @@ public sealed class PollingService : IDisposable
             return; // another poll is already in progress — skip
         try
         {
-        _logger.Info("PollingService poll started.");
         try
         {
             // Fetch all my PRs in a single API call, then split by auto-merge flag
@@ -204,7 +203,6 @@ public sealed class PollingService : IDisposable
                 }
             }
 
-            _logger.Info($"PollingService poll finished. AutoMerge={autoMergePrs.Count}, MyPrs={myPrs.Count}, AwaitingReview={combinedReviewPrs.Count}, TeamReview={teamReviewPrs.Count} (reviewRequested={reviewPrs.Count}, assigned={assignedPrs.Count(p => !myPrKeys.Contains(p.Key))}), Hotfixes={hotfixPrs.Count}, Dependabot={dependabotPrs.Count}.");
         }
         catch (Exception ex)
         {
