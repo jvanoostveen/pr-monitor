@@ -185,10 +185,10 @@ public sealed class TrayIconManager : IDisposable
                               + (_settings.TeamReviewCountsForTrayIcon ? visibleTeamReview : 0)
                               + visibleHotfix;
 
-        // Red: CI failures across auto-merge, hotfix and non-draft My PRs
-        int failedCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure)
-                     + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Failure)
-                     + snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && !p.IsDraft && p.CIState == CIState.Failure);
+        // Red: CI failures (incl. merge conflicts) across auto-merge, hotfix and non-draft My PRs
+        int failedCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && (p.CIState == CIState.Failure || p.HasConflicts))
+                     + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && (p.CIState == CIState.Failure || p.HasConflicts))
+                     + snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && !p.IsDraft && (p.CIState == CIState.Failure || p.HasConflicts));
 
         // Amber: reviews requested on me + unresolved comments on My PRs
         int unresolvedOnMyPrs = snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && p.UnresolvedReviewCommentCount > 0);

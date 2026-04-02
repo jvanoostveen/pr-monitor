@@ -361,7 +361,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                     <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                              VerticalAlignment="Center"/>
                                                     <TextBlock Text="&#xE8BD;"
                                                                FontFamily="Segoe MDL2 Assets"
@@ -465,7 +465,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                     <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                              VerticalAlignment="Center"/>
                                                     <TextBlock Text="&#xE8BD;"
                                                                FontFamily="Segoe MDL2 Assets"
@@ -563,7 +563,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                     <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                              VerticalAlignment="Center"/>
                                                     <TextBlock Text="&#xE8BD;"
                                                                FontFamily="Segoe MDL2 Assets"
@@ -656,7 +656,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                     <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                              VerticalAlignment="Center"/>
                                                     <TextBlock Text="&#xE8BD;"
                                                                FontFamily="Segoe MDL2 Assets"
@@ -747,7 +747,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <!-- EffectiveCIState is grey for draft PRs -->
+                                                <!-- EffectiveCIState is grey for draft PRs, red for conflicting PRs -->
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
@@ -848,7 +848,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                     <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                              VerticalAlignment="Center"/>
                                                     <TextBlock Text="&#xE8BD;"
                                                                FontFamily="Segoe MDL2 Assets"
@@ -941,7 +941,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
                                                 <Ellipse Width="10" Height="10"
-                                                         Fill="{Binding CIState, Converter={StaticResource CIStateToBrush}}"
+                                                         Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                          VerticalAlignment="Center"/>
                                                 <TextBlock Text="&#xE8BD;"
                                                            FontFamily="Segoe MDL2 Assets"

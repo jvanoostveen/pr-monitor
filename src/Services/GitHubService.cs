@@ -699,9 +699,8 @@ public sealed class GitHubService
                 }
             }
 
-            if (node.TryGetProperty("mergeable", out var mergeableMyPr)
-                && mergeableMyPr.GetString() == "CONFLICTING")
-                ciState = CIState.Failure;
+            bool hasConflictsMyPr = node.TryGetProperty("mergeable", out var mergeableMyPr)
+                && mergeableMyPr.GetString() == "CONFLICTING";
 
             result.Add(new PullRequestInfo
             {
@@ -721,6 +720,7 @@ public sealed class GitHubService
                     : "",
                 HeadCommitSha = GetCommitOid(node),
                 CIState = ciState,
+                HasConflicts = hasConflictsMyPr,
                 IsApproved = node.TryGetProperty("reviewDecision", out var rd1)
                     && rd1.GetString() == "APPROVED",
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
@@ -765,9 +765,8 @@ public sealed class GitHubService
                 }
             }
 
-            if (node.TryGetProperty("mergeable", out var mergeableReview)
-                && mergeableReview.GetString() == "CONFLICTING")
-                ciState = CIState.Failure;
+            bool hasConflictsReview = node.TryGetProperty("mergeable", out var mergeableReview)
+                && mergeableReview.GetString() == "CONFLICTING";
 
             // Classify as team-only when the current user has no direct User-type review request.
             // Other User-type reviewers (different people) do NOT make this a direct request for us.
@@ -810,6 +809,7 @@ public sealed class GitHubService
                     : "",
                 HeadCommitSha = GetCommitOid(node),
                 CIState = ciState,
+                HasConflicts = hasConflictsReview,
                 IsApproved = node.TryGetProperty("reviewDecision", out var rd2)
                     && rd2.GetString() == "APPROVED",
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),

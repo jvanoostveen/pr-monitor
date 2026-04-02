@@ -698,6 +698,7 @@ public sealed class PrItemViewModel
     public string CreatedAtFormatted { get; init; } = "";
     public required string CIIcon { get; init; }
     public required CIState CIState { get; init; }
+    public bool HasConflicts { get; init; }
     public int UnresolvedReviewCommentCount { get; init; }
     public bool HasUnresolvedReviewComments => UnresolvedReviewCommentCount > 0;
     public string UnresolvedReviewCommentsToolTip => UnresolvedReviewCommentCount == 1
@@ -727,6 +728,8 @@ public sealed class PrItemViewModel
             var parts = new System.Collections.Generic.List<string>();
             parts.Add($"Opened: {CreatedAtFormatted}");
             parts.Add($"CI: {CIState}");
+            if (HasConflicts)
+                parts.Add("Merge conflicts");
             if (IsOwnPr)
                 parts.Add(HasNonCopilotReviewer
                     ? $"Reviewers: {string.Join(", ", ReviewerLogins)}"
@@ -747,9 +750,9 @@ public sealed class PrItemViewModel
     public bool ShowApprovedIcon => IsApproved && !HasUnresolvedReviewComments;
 
     /// <summary>
-    /// CI state used for the indicator: always Unknown (grey) for draft PRs.
+    /// CI state used for the indicator: always Unknown (grey) for draft PRs; Failure when PR has merge conflicts.
     /// </summary>
-    public CIState EffectiveCIState => IsDraft ? CIState.Unknown : CIState;
+    public CIState EffectiveCIState => HasConflicts ? CIState.Failure : IsDraft ? CIState.Unknown : CIState;
 
     public void OpenInBrowser()
     {
@@ -766,6 +769,7 @@ public sealed class PrItemViewModel
         Author = pr.Author,
         Number = pr.Number,
         CIState = pr.CIState,
+        HasConflicts = pr.HasConflicts,
         UnresolvedReviewCommentCount = pr.UnresolvedReviewCommentCount,
         IsAutoMergePr = isAutoMerge,
         IsMyPr = isMyPr,

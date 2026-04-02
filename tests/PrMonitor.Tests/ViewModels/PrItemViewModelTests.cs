@@ -57,6 +57,16 @@ public class PrItemViewModelTests
     }
 
     [Theory]
+    [InlineData(CIState.Success, false, CIState.Failure)] // conflict overrides CI
+    [InlineData(CIState.Success, true,  CIState.Failure)] // conflict overrides draft-grey too
+    public void EffectiveCIState_WithConflicts_AlwaysFailure(
+        CIState ciState, bool isDraft, CIState expected)
+    {
+        var vm = MakeVm(ciState: ciState, isDraft: isDraft, hasConflicts: true);
+        Assert.Equal(expected, vm.EffectiveCIState);
+    }
+
+    [Theory]
     [InlineData(CIState.Failure, false, "sha123", true)]
     [InlineData(CIState.Success, false, "sha123", false)]
     [InlineData(CIState.Failure, true,  "sha123", false)]
@@ -167,6 +177,14 @@ public class PrItemViewModelTests
         Assert.Contains("Approved", vm.PrTooltip);
     }
 
+    [Fact]
+    public void PrTooltip_WithConflicts_IncludesMergeConflictsAndPreservesRealCIState()
+    {
+        var vm = MakeVm(ciState: CIState.Success, hasConflicts: true);
+        Assert.Contains("Merge conflicts", vm.PrTooltip);
+        Assert.Contains("CI: Success", vm.PrTooltip);
+    }
+
     [Theory]
     [InlineData(true,  0, true)]
     [InlineData(true,  2, false)]
@@ -226,7 +244,8 @@ public class PrItemViewModelTests
         IEnumerable<string>? reviewerLogins = null,
         bool isMyPr = false,
         bool isAutoMerge = false,
-        bool isHotfix = false) =>
+        bool isHotfix = false,
+        bool hasConflicts = false) =>
         new()
         {
             Key = "org/repo#1",
@@ -238,6 +257,7 @@ public class PrItemViewModelTests
             CIIcon = "❔",
             Number = 1,
             CIState = ciState,
+            HasConflicts = hasConflicts,
             IsDraft = isDraft,
             HeadCommitSha = headCommitSha,
             IsApproved = isApproved,

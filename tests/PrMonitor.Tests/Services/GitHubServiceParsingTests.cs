@@ -163,13 +163,24 @@ public class GitHubServiceParsingTests
     }
 
     [Fact]
-    public void ParseMyPrs_ConflictingMergeable_OverridesCIStateWithFailure()
+    public void ParseMyPrs_ConflictingMergeable_SetsHasConflictsAndPreservesCIState()
     {
         var json = BuildMyPrsJson(BuildPrNode(number: 7, ciState: "SUCCESS", mergeable: "CONFLICTING"));
         using var doc = JsonDocument.Parse(json);
         var result = GitHubService.ParseMyPrs(doc.RootElement);
 
-        Assert.Equal(CIState.Failure, result[0].CIState);
+        Assert.True(result[0].HasConflicts);
+        Assert.Equal(CIState.Success, result[0].CIState);
+    }
+
+    [Fact]
+    public void ParseMyPrs_MergeableNotConflicting_HasConflictsFalse()
+    {
+        var json = BuildMyPrsJson(BuildPrNode(number: 7, ciState: "SUCCESS", mergeable: "MERGEABLE"));
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseMyPrs(doc.RootElement);
+
+        Assert.False(result[0].HasConflicts);
     }
 
     [Fact]
