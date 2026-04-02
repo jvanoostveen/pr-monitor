@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.4] - 2026-04-02
+
 ### Fixed
 
 - Auto-update banner text now reliably refreshes when a new version is detected, so the version number is shown consistently and the post-download restart state is no longer hidden behind stale footer text.
