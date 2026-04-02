@@ -151,6 +151,17 @@ public sealed class AppSettings
     /// <summary>Per-PR rerun counts. Key = "owner/repo#number".</summary>
     public Dictionary<string, RerunRecord> FlakinessRerunCounts { get; set; } = [];
 
+    // ── Reviewer assignment ──────────────────────────────────────────────
+
+    /// <summary>Recently picked reviewers, most-recent first. Limited to 10 entries.</summary>
+    public List<string> RecentReviewers { get; set; } = [];
+
+    /// <summary>Cached org-member list for the reviewer search dialog.</summary>
+    public List<OrgMemberEntry> OrgMembersCache { get; set; } = [];
+
+    /// <summary>When the org-member cache was last fetched. Null means never fetched.</summary>
+    public DateTimeOffset? OrgMembersCachedAt { get; set; }
+
     // ── Diagnostics ──────────────────────────────────────────────────────
 
     /// <summary>When true, verbose window-placement traces are written to the log.</summary>

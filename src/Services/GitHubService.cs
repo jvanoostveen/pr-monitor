@@ -566,6 +566,202 @@ public sealed class GitHubService
     }
 
     /// <summary>
+    /// Fetches all members of the given organizations via GraphQL (includes display name).
+    /// Returns a deduplicated list of (Login, Name) pairs — unfiltered.
+    /// Intended to be called once by the caller and cached; use <see cref="FilterOrgMembers"/> to search.
+    /// </summary>
+    public async Task<List<(string Login, string? Name)>> FetchOrgMembersAsync(IReadOnlyList<string> orgs)
+    {
+        var results = new List<(string Login, string? Name)>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        const string OrgMembersQuery = """
+            query($org: String!, $cursor: String) {
+              organization(login: $org) {
+                membersWithRole(first: 100, after: $cursor) {
+                  pageInfo { hasNextPage endCursor }
+                  nodes { login name }
+                }
+              }
+            }
+            """;
+
+        foreach (var org in orgs)
+        {
+            if (!ValidateSlug(org, "org"))
+                continue;
+
+            string? cursor = null;
+            while (true)
+            {
+                var ghArgs = cursor is null
+                    ? new[] { "api", "graphql", "-f", $"query={OrgMembersQuery}", "-f", $"org={org}" }
+                    : new[] { "api", "graphql", "-f", $"query={OrgMembersQuery}", "-f", $"org={org}", "-f", $"cursor={cursor}" };
+
+                var (stdout, stderr, exitCode) = await RunGhAsync(ghArgs);
+                if (exitCode != 0)
+                {
+                    _logger.Warn($"FetchOrgMembersAsync: GraphQL failed for '{org}' (exit={exitCode}): {stderr?.Trim()}");
+                    break;
+                }
+                if (string.IsNullOrWhiteSpace(stdout))
+                    break;
+
+                bool hasNextPage = false;
+                try
+                {
+                    using var doc = JsonDocument.Parse(stdout);
+                    var root = doc.RootElement;
+                    if (!root.TryGetProperty("data", out var data)
+                        || !data.TryGetProperty("organization", out var orgEl)
+                        || orgEl.ValueKind == JsonValueKind.Null
+                        || !orgEl.TryGetProperty("membersWithRole", out var members))
+                    {
+                        if (root.TryGetProperty("errors", out var errs))
+                            _logger.Warn($"FetchOrgMembersAsync: GraphQL errors for org '{org}': {errs}");
+                        break;
+                    }
+
+                    if (members.TryGetProperty("pageInfo", out var pageInfo))
+                    {
+                        hasNextPage = pageInfo.TryGetProperty("hasNextPage", out var hnp) && hnp.GetBoolean();
+                        cursor = pageInfo.TryGetProperty("endCursor", out var ec) ? ec.GetString() : null;
+                    }
+
+                    if (members.TryGetProperty("nodes", out var nodes))
+                    {
+                        foreach (var node in nodes.EnumerateArray())
+                        {
+                            var login = node.TryGetProperty("login", out var lp) ? lp.GetString() : null;
+                            var name = node.TryGetProperty("name", out var np) && np.ValueKind != JsonValueKind.Null
+                                ? np.GetString() : null;
+                            if (!string.IsNullOrWhiteSpace(login) && seen.Add(login!))
+                                results.Add((login!, name));
+                        }
+                    }
+
+                    if (!hasNextPage || cursor is null)
+                        break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn($"FetchOrgMembersAsync: failed to parse response for '{org}': {ex.Message}");
+                    break;
+                }
+            }
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Filters a pre-fetched member list client-side against <paramref name="query"/>.
+    /// Matches on login and display name (case-insensitive). Returns up to 10 results.
+    /// </summary>
+    public static List<(string Login, string? Name)> FilterOrgMembers(
+        IReadOnlyList<(string Login, string? Name)> members, string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return [];
+        var q = query.Trim();
+        return members
+            .Where(m => m.Login.Contains(q, StringComparison.OrdinalIgnoreCase)
+                     || (m.Name is not null && m.Name.Contains(q, StringComparison.OrdinalIgnoreCase)))
+            .Take(10)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Searches GitHub users matching <paramref name="query"/> within the given organizations.
+    /// For org-scoped searches, prefer <see cref="FetchOrgMembersAsync"/> + <see cref="FilterOrgMembers"/>
+    /// to avoid re-fetching on every keystroke.
+    /// When no orgs are configured, falls back to the GitHub global user search API.
+    /// Returns up to 10 deduplicated (Login, Name) pairs.
+    /// </summary>
+    public async Task<List<(string Login, string? Name)>> SearchUsersAsync(string query, IReadOnlyList<string> orgs)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return [];
+
+        if (orgs.Count > 0)
+        {
+            var all = await FetchOrgMembersAsync(orgs);
+            return FilterOrgMembers(all, query);
+        }
+
+        // No org configured: use GitHub's global user search
+        var safeQuery = System.Text.RegularExpressions.Regex.Replace(query.Trim(), @"[^\w\-.]", "");
+        if (string.IsNullOrEmpty(safeQuery))
+            return [];
+
+        var results = new List<(string Login, string? Name)>();
+        var (stdout, stderr, exitCode) = await RunGhAsync(
+            "api", $"search/users?q={safeQuery}&per_page=10",
+            "-q", "[.items[] | {login, name}]");
+        if (exitCode != 0)
+        {
+            _logger.Warn($"SearchUsersAsync: global search failed (exit={exitCode}): {stderr?.Trim()}");
+            return results;
+        }
+        if (!string.IsNullOrWhiteSpace(stdout))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(stdout);
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var el in doc.RootElement.EnumerateArray())
+                {
+                    var login = el.TryGetProperty("login", out var lp) ? lp.GetString() : null;
+                    var name = el.TryGetProperty("name", out var np) ? np.GetString() : null;
+                    if (!string.IsNullOrWhiteSpace(login) && seen.Add(login!))
+                        results.Add((login!, name));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn($"SearchUsersAsync: failed to parse global search response: {ex.Message}");
+            }
+        }
+        return results.Take(10).ToList();
+    }
+
+    /// <summary>
+    /// Requests review from the given GitHub login for a pull request.
+    /// Returns true on success.
+    /// </summary>
+    public async Task<bool> RequestReviewerAsync(string owner, string repo, int prNumber, string login)
+    {
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo") || !ValidateSlug(login, "login"))
+            return false;
+        var (_, stderr, exitCode) = await RunGhAsync(
+            "api",
+            $"repos/{owner}/{repo}/pulls/{prNumber}/requested_reviewers",
+            "--method", "POST",
+            "-f", $"reviewers[]={login}");
+        if (exitCode != 0)
+            _logger.Warn($"RequestReviewerAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber} reviewer={login}: {stderr?.Trim()}");
+        return exitCode == 0;
+    }
+
+    /// <summary>
+    /// Removes a review request from the given GitHub login for a pull request.
+    /// Returns true on success.
+    /// </summary>
+    public async Task<bool> RemoveReviewerAsync(string owner, string repo, int prNumber, string login)
+    {
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo") || !ValidateSlug(login, "login"))
+            return false;
+        var (_, stderr, exitCode) = await RunGhAsync(
+            "api",
+            $"repos/{owner}/{repo}/pulls/{prNumber}/requested_reviewers",
+            "--method", "DELETE",
+            "-f", $"reviewers[]={login}");
+        if (exitCode != 0)
+            _logger.Warn($"RemoveReviewerAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber} reviewer={login}: {stderr?.Trim()}");
+        return exitCode == 0;
+    }
+
+    /// <summary>
     /// Requests a Copilot review for the given pull request.
     /// Uses the REST API directly because the Copilot reviewer is a GitHub App bot,
     /// which cannot be resolved via GraphQL requestReviewsByLogin (used by gh pr edit).

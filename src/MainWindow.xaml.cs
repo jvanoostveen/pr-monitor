@@ -67,6 +67,7 @@ public partial class MainWindow : Window
     private const uint MF_STRING       = 0x0000;
     private const uint MF_SEPARATOR    = 0x0800;
     private const uint MF_GRAYED       = 0x0001;
+    private const uint MF_CHECKED      = 0x0008;
     private const uint MF_POPUP        = 0x0010;
     private const uint TPM_BOTTOMALIGN = 0x0020;
     private const uint TPM_RETURNCMD   = 0x0100;
@@ -84,6 +85,11 @@ public partial class MainWindow : Window
     private const uint ID_SNOOZE_TOMORROW    = 1010;
     private const uint ID_SNOOZE_1W          = 1011;
     private const uint ID_SNOOZE_INDEFINITELY= 1012;
+
+    // Assign-reviewer submenu — 2000..2009 assigned, 2010..2019 recent, 2020 search
+    private const uint ID_PR_ASSIGN_BASE     = 2000;
+    private const uint ID_PR_RECENT_BASE     = 2010;
+    private const uint ID_PR_REVIEWER_SEARCH = 2020;
 
     public MainWindow(MainViewModel viewModel, AppSettings settings, GitHubService github, NotificationService notifications, DiagnosticsLogger logger)
     {
@@ -775,6 +781,13 @@ public partial class MainWindow : Window
         if (hMenu == IntPtr.Zero)
             return;
 
+        // Collect assigned/recent logins for submenu ID mapping
+        var assignedLogins = vm.ReviewerLogins.Take(10).ToArray();
+        var recentLogins = _settings.RecentReviewers
+            .Where(r => !assignedLogins.Contains(r, StringComparer.OrdinalIgnoreCase))
+            .Take(10)
+            .ToArray();
+
         try
         {
             var isHidden = _settings.HiddenPrKeys.Contains(vm.Key);
@@ -787,6 +800,29 @@ public partial class MainWindow : Window
             AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
             AppendMenuW(hMenu, rerunFlags, (UIntPtr)ID_PR_RERUN_FAILED, "Rerun failed jobs");
             AppendMenuW(hMenu, copilotFlags, (UIntPtr)ID_PR_COPILOT, "Request Copilot review");
+
+            // "Assign reviewer" submenu — only for own non-draft PRs
+            if (vm.IsOwnPr && !vm.IsDraft)
+            {
+                var assignMenu = CreatePopupMenu();
+                // Assigned reviewers (checked — click removes)
+                for (int i = 0; i < assignedLogins.Length; i++)
+                    AppendMenuW(assignMenu, MF_STRING | MF_CHECKED, (UIntPtr)(ID_PR_ASSIGN_BASE + (uint)i), assignedLogins[i]);
+                // Recent reviewers not yet assigned
+                if (recentLogins.Length > 0)
+                {
+                    if (assignedLogins.Length > 0)
+                        AppendMenuW(assignMenu, MF_SEPARATOR, UIntPtr.Zero, null);
+                    for (int i = 0; i < recentLogins.Length; i++)
+                        AppendMenuW(assignMenu, MF_STRING, (UIntPtr)(ID_PR_RECENT_BASE + (uint)i), recentLogins[i]);
+                }
+                // Only add separator before Search… when there are items above it
+                if (assignedLogins.Length > 0 || recentLogins.Length > 0)
+                    AppendMenuW(assignMenu, MF_SEPARATOR, UIntPtr.Zero, null);
+                AppendMenuW(assignMenu, MF_STRING, (UIntPtr)ID_PR_REVIEWER_SEARCH, "Search…");
+                AppendMenuW(hMenu, MF_POPUP, (UIntPtr)(ulong)assignMenu.ToInt64(), "Assign reviewer");
+            }
+
             if (isHidden)
             {
                 AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_MOVE_RESTORE, "Restore");
@@ -840,6 +876,9 @@ public partial class MainWindow : Window
                     if (vm.CanRequestCopilotReview)
                         _ = RequestCopilotReviewAsync(vm);
                     break;
+                case ID_PR_REVIEWER_SEARCH:
+                    _ = SearchAndAssignReviewerAsync(vm);
+                    break;
                 case ID_PR_MOVE_RESTORE:
                     ViewModel.RestoreItem(vm.Key);
                     break;
@@ -868,6 +907,20 @@ public partial class MainWindow : Window
                 case ID_DRAFT_CONVERT:
                     if (vm.CanConvertToDraft)
                         _ = SetPrDraftAsync(vm);
+                    break;
+                default:
+                    // Assigned reviewer range: remove reviewer
+                    if (cmd >= ID_PR_ASSIGN_BASE && cmd < ID_PR_ASSIGN_BASE + (uint)assignedLogins.Length)
+                    {
+                        var login = assignedLogins[cmd - ID_PR_ASSIGN_BASE];
+                        _ = RemoveReviewerAsync(vm, login);
+                    }
+                    // Recent reviewer range: assign reviewer
+                    else if (cmd >= ID_PR_RECENT_BASE && cmd < ID_PR_RECENT_BASE + (uint)recentLogins.Length)
+                    {
+                        var login = recentLogins[cmd - ID_PR_RECENT_BASE];
+                        _ = AssignReviewerAsync(vm, login);
+                    }
                     break;
             }
         }
@@ -1059,6 +1112,109 @@ public partial class MainWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         }
+    }
+
+    private async Task AssignReviewerAsync(PrItemViewModel vm, string login)
+    {
+        if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
+            return;
+        try
+        {
+            var success = await _github.RequestReviewerAsync(owner, repo, vm.Number, login);
+            if (success)
+            {
+                UpdateRecentReviewers(login);
+                _notifications.Notify("Reviewer assigned", $"{login} → {vm.Repository} #{vm.Number}");
+                await ViewModel.RefreshAsync();
+            }
+            else
+            {
+                System.Windows.MessageBox.Show(
+                    $"Could not assign {login} as reviewer.",
+                    "Assign reviewer",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Could not assign reviewer.\n\nDetails: {ex.Message}",
+                "Assign reviewer",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private async Task RemoveReviewerAsync(PrItemViewModel vm, string login)
+    {
+        if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
+            return;
+        try
+        {
+            var success = await _github.RemoveReviewerAsync(owner, repo, vm.Number, login);
+            if (success)
+                await ViewModel.RefreshAsync();
+            else
+                System.Windows.MessageBox.Show(
+                    $"Could not remove {login} as reviewer.",
+                    "Remove reviewer",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Could not remove reviewer.\n\nDetails: {ex.Message}",
+                "Remove reviewer",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private async Task SearchAndAssignReviewerAsync(PrItemViewModel vm)
+    {
+        if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
+            return;
+        var dialog = new AssignReviewerSearchWindow(_github, _settings) { Owner = this };
+        if (dialog.ShowDialog() != true || dialog.SelectedLogin is not { } login)
+            return;
+        try
+        {
+            var success = await _github.RequestReviewerAsync(owner, repo, vm.Number, login);
+            if (success)
+            {
+                UpdateRecentReviewers(login);
+                _notifications.Notify("Reviewer assigned", $"{login} → {vm.Repository} #{vm.Number}");
+                await ViewModel.RefreshAsync();
+            }
+            else
+            {
+                System.Windows.MessageBox.Show(
+                    $"Could not assign {login} as reviewer.",
+                    "Assign reviewer",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Could not assign reviewer.\n\nDetails: {ex.Message}",
+                "Assign reviewer",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private void UpdateRecentReviewers(string login)
+    {
+        _settings.RecentReviewers.RemoveAll(r =>
+            string.Equals(r, login, StringComparison.OrdinalIgnoreCase));
+        _settings.RecentReviewers.Insert(0, login);
+        if (_settings.RecentReviewers.Count > 10)
+            _settings.RecentReviewers.RemoveRange(10, _settings.RecentReviewers.Count - 10);
+        _settings.Save();
     }
 
     private async Task SetPrReadyAsync(PrItemViewModel vm)

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Assign reviewer** submenu on own-PR context menu rows (My Auto-Merge PRs, My PRs, Hotfixes, own PRs in Later). Only shown for non-draft PRs.
+  - Currently assigned reviewers appear at the top with a checkmark; clicking them removes the reviewer.
+  - Up to 10 recently used reviewers are listed below for one-click assignment; persisted in `settings.json` (`recentReviewers`).
+  - **Search…** opens a dialog that searches all org members by login or display name, with instant client-side filtering once the member list is loaded.
+  - The org member list is fetched via GraphQL (`organization.membersWithRole`) and persisted to `settings.json` (`orgMembersCache`, `orgMembersCachedAt`). It is reused across restarts and only re-fetched after 30 days or when the user clicks the ↺ refresh button in the dialog.
+  - The search dialog shows a recents panel when the search box is empty (with ✕ per-item remove and Delete-key support), supports keyboard navigation (↑/↓ between search box and results), and matches the app's dark theme including a custom scrollbar style.
+
 ### Fixed
 
 - PRs with merge conflicts no longer flicker between green and red: the CI indicator and tray icon now correctly show red (Failure) whenever `mergeable == CONFLICTING`, independent of the actual CI result. The tooltip now shows the real CI state (e.g. "CI: Success") plus a separate "Merge conflicts" line, instead of the misleading "CI: Failure" that was shown before. All sections (Awaiting My Review, Auto-Merge, Dependabot, etc.) use the same indicator logic.
