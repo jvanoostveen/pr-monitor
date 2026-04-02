@@ -12,6 +12,7 @@ namespace PrMonitor.Services;
 public sealed class UpdateService
 {
     private const string LatestReleaseUrl = "https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest";
+    private const string RawChangelogUrl = "https://raw.githubusercontent.com/jvanoostveen/pr-monitor/main/CHANGELOG.md";
     private const string RepoBaseUrl = "https://github.com/jvanoostveen/pr-monitor";
     private const string ReleaseDownloadBaseUrl = "https://github.com/jvanoostveen/pr-monitor/releases/download";
 
@@ -22,6 +23,43 @@ public sealed class UpdateService
     public UpdateService(DiagnosticsLogger logger)
     {
         _logger = logger;
+    }
+
+    public async Task<UpdateChangelogResult?> GetRelevantChangelogAsync(
+        string currentVersion,
+        string latestVersion,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, RawChangelogUrl);
+            request.Headers.Add("Accept", "text/plain");
+
+            using var response = await HttpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.Warn($"UpdateService changelog fetch returned {(int)response.StatusCode} ({response.ReasonPhrase}).");
+                return null;
+            }
+
+            var markdown = await response.Content.ReadAsStringAsync(cancellationToken);
+            var result = ExtractRelevantChangelog(markdown, currentVersion, latestVersion);
+            if (result is not null)
+                return result;
+
+            _logger.Warn($"UpdateService could not extract changelog range. Current='{currentVersion}', Latest='{latestVersion}'.");
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Warn("UpdateService changelog fetch canceled.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn($"UpdateService changelog fetch failed. {DiagnosticsLogger.SummarizeException(ex)}");
+            return null;
+        }
     }
 
     public async Task<UpdateCheckResult> CheckForUpdatesAsync(CancellationToken cancellationToken = default)
@@ -229,6 +267,8 @@ public sealed class UpdateService
         }
     }
 
+    public static string GetCurrentAppVersionText() => GetCurrentAppVersion();
+
     private static string GetCurrentAppVersion()
     {
         var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
@@ -284,6 +324,120 @@ public sealed class UpdateService
 
         version = new Version(numbers[0], numbers[1], numbers[2], numbers[3]);
         return true;
+    }
+
+    public static UpdateChangelogResult? ExtractRelevantChangelog(
+        string markdownText,
+        string currentVersion,
+        string latestVersion)
+    {
+        if (string.IsNullOrWhiteSpace(markdownText)
+            || !TryParseSemanticVersion(latestVersion, out var latestParsed))
+        {
+            return null;
+        }
+
+        var hasCurrentVersion = TryParseSemanticVersion(currentVersion, out var currentParsed);
+        var sections = ParseChangelogSections(markdownText);
+        if (sections.Count == 0)
+            return null;
+
+        var relevantSections = sections
+            .Where(section => section.Version <= latestParsed
+                && (!hasCurrentVersion || section.Version > currentParsed))
+            .ToList();
+
+        if (relevantSections.Count == 0)
+        {
+            relevantSections = sections
+                .Where(section => section.Version == latestParsed)
+                .ToList();
+        }
+
+        if (relevantSections.Count == 0)
+            return null;
+
+        var normalizedCurrent = NormalizeVersionText(currentVersion);
+        var normalizedLatest = NormalizeVersionText(latestVersion);
+        var title = relevantSections.Count == 1
+            ? $"Changelog for v{relevantSections[0].VersionText}"
+            : hasCurrentVersion
+                ? $"Changelog from v{normalizedCurrent} to v{normalizedLatest}"
+                : $"Changelog through v{normalizedLatest}";
+
+        var content = string.Join(
+            Environment.NewLine + Environment.NewLine,
+            relevantSections.Select(section => section.Markdown.Trim()));
+
+        return new UpdateChangelogResult(title, content);
+    }
+
+    public static bool TryExtractRelevantChangelog(
+        string markdownText,
+        string currentVersion,
+        string latestVersion,
+        out UpdateChangelogResult? result)
+    {
+        result = ExtractRelevantChangelog(markdownText, currentVersion, latestVersion);
+        return result is not null;
+    }
+
+    private static List<ParsedChangelogSection> ParseChangelogSections(string markdownText)
+    {
+        var sections = new List<ParsedChangelogSection>();
+        string? currentVersionText = null;
+        Version? currentVersion = null;
+        var buffer = new StringBuilder();
+
+        foreach (var rawLine in markdownText.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        {
+            var line = rawLine.TrimEnd();
+            if (TryParseChangelogVersionHeading(line, out var parsedVersionText, out var parsedVersion))
+            {
+                AddParsedChangelogSection(sections, currentVersionText, currentVersion, buffer);
+                currentVersionText = parsedVersionText;
+                currentVersion = parsedVersion;
+                buffer.Clear();
+            }
+
+            if (currentVersion is not null)
+                buffer.AppendLine(line);
+        }
+
+        AddParsedChangelogSection(sections, currentVersionText, currentVersion, buffer);
+        return sections;
+    }
+
+    private static bool TryParseChangelogVersionHeading(string line, out string versionText, out Version version)
+    {
+        versionText = string.Empty;
+        version = new Version(0, 0, 0, 0);
+
+        if (!line.StartsWith("## [", StringComparison.Ordinal))
+            return false;
+
+        var closingBracket = line.IndexOf(']');
+        if (closingBracket < 0)
+            return false;
+
+        var candidate = line[4..closingBracket].Trim();
+        if (!TryParseSemanticVersion(candidate, out version))
+            return false;
+
+        versionText = NormalizeVersionText(candidate);
+        return true;
+    }
+
+    private static void AddParsedChangelogSection(
+        ICollection<ParsedChangelogSection> sections,
+        string? versionText,
+        Version? version,
+        StringBuilder buffer)
+    {
+        if (string.IsNullOrWhiteSpace(versionText) || version is null || buffer.Length == 0)
+            return;
+
+        sections.Add(new ParsedChangelogSection(versionText, version, buffer.ToString().Trim()));
     }
 
     /// <summary>
@@ -390,6 +544,10 @@ public sealed class UpdateService
         });
     }
 }
+
+public sealed record UpdateChangelogResult(string Title, string Markdown);
+
+internal sealed record ParsedChangelogSection(string VersionText, Version Version, string Markdown);
 
 public sealed record UpdateCheckResult(
     bool IsUpdateAvailable,

@@ -32,7 +32,7 @@ Click the tray icon to toggle the window. Right-click for a context menu with **
 
 Windows toast notifications are shown under the app name **PR Monitor**.
 
-The app automatically checks for a new release ~30 seconds after startup and again every 24 hours. When a newer version is available, a green clickable banner appears at the bottom of the PR window — click it to open the latest release page. A manual check is also available from **About… → Check for updates…**.
+The app automatically checks for a new release ~30 seconds after startup and again every 24 hours. When a newer version is available, a green clickable banner appears at the bottom of the PR window showing the target version. Click the banner to download the update, and once it is ready the banner switches to a restart action. The adjacent **What's new?** link opens an in-app changelog view sourced from `CHANGELOG.md`, filtered to the versions between your current build and the latest release. A manual check is also available from **About… → Check for updates…**.
 
 Right-clicking a PR row shows a context menu with:
 - **Copy PR URL** — copies the PR URL to the clipboard

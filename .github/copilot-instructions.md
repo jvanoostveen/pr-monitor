@@ -266,12 +266,14 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 ### Update checks
 - `UpdateService` calls `gh api repos/jvanoostveen/pr-monitor/releases/latest` first (authenticated), with HTTP `GET https://api.github.com/repos/jvanoostveen/pr-monitor/releases/latest` as fallback, and parses `tag_name`, `html_url`, and `body` (release notes).
 - `UpdateCheckResult` exposes `ReleaseUrl` (compare URL), `ReleaseNotesUrl` (release page), `ReleaseNotes` (markdown body), and `LatestVersionText`.
+- `UpdateService.GetRelevantChangelogAsync(currentVersion, latestVersion)` fetches the raw repository `CHANGELOG.md` from GitHub and extracts only the released sections newer than the running version and up to the latest available release.
 - Current version is read from assembly metadata; tags like `v1.2.3` are normalized before semantic comparison.
 - A `System.Threading.Timer` fires 30 seconds after startup then every 24 hours; it calls `RunAutoUpdateCheckAsync()` which silently calls `MainViewModel.SetUpdateAvailable()` when a newer version is found.
 - When an update is available, the PR window footer shows a green banner:
-  - **Before download**: "Update available: vX.Y.Z — click to download" + a "What's new?" link that opens the release page
+  - **Before download**: "Update available: vX.Y.Z — click to download" + a "What's new?" link that opens an in-app changelog dialog for the relevant version range
   - **Downloading**: "Downloading update… N%" with a thin green progress bar; cursor changes to `Wait`
   - **Ready**: "vX.Y.Z ready — click to restart"; clicking triggers the in-place swap and restarts
+- Manual **Check for updates…** also offers to open that same filtered changelog dialog instead of the GitHub compare/commit view.
 - **In-place update flow**: `UpdateService.DownloadUpdateAsync()` downloads the release zip to `%TEMP%\PrMonitor_update\` via `HttpClient` and extracts `PrMonitor.exe`. `UpdateService.StartUpdateProcess()` writes a `.bat` launcher script to `%TEMP%` that waits for the current PID to exit, renames the old exe to `.exe.old`, copies the new exe, starts it, and self-deletes. `MainViewModel.RestartToInstallUpdate()` calls `StartUpdateProcess` then `Application.Current.Shutdown()`.
 - On each startup, `App.CleanupOldExe()` deletes `{exePath}.old` if it exists (leftover from previous update).
 - `MainViewModel.SetUpdateAvailable(version, releaseUrl, releaseNotesUrl, releaseNotes)` now takes 4 parameters.

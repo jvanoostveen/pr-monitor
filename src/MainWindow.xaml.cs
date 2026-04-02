@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using PrMonitor.Services;
 using PrMonitor.Settings;
 using PrMonitor.ViewModels;
+using PrMonitor.Views;
 using WinForms = System.Windows.Forms;
 
 namespace PrMonitor;
@@ -1155,9 +1156,23 @@ public partial class MainWindow : Window
             _ = ViewModel.DownloadAndInstallUpdateAsync();
     }
 
-    private void WhatsNew_Click(object sender, MouseButtonEventArgs e)
+    private async void WhatsNew_Click(object sender, MouseButtonEventArgs e)
     {
         e.Handled = true;
+
+        try
+        {
+            var changelog = await ViewModel.GetUpdateChangelogAsync();
+            if (changelog is not null)
+            {
+                ChangelogWindow.ShowForOwner(this, changelog, ViewModel.UpdateReleaseNotesUrl);
+                return;
+            }
+        }
+        catch
+        {
+        }
+
         ViewModel.ViewChangelog();
     }
 }

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Auto-update banner text now reliably refreshes when a new version is detected, so the version number is shown consistently and the post-download restart state is no longer hidden behind stale footer text.
+- Manual **Check for updates…** and the footer **What's new?** link now show a filtered view of `CHANGELOG.md` for the relevant version range instead of opening the GitHub compare page with raw commit history.
+
 ## [1.8.3] - 2026-04-02
 
 ### Fixed

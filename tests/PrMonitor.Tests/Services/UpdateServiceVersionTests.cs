@@ -81,6 +81,68 @@ public class UpdateServiceVersionTests
     }
 
     [Fact]
+    public void TryExtractRelevantChangelog_ReturnsVersionsBetweenCurrentAndLatest()
+    {
+        var markdown = """
+# Changelog
+
+## [Unreleased]
+
+## [1.8.3] - 2026-04-02
+
+### Fixed
+
+- Fixed latest update banner text.
+
+## [1.8.2] - 2026-03-31
+
+### Changed
+
+- Reduced verbose logging.
+
+## [1.8.1] - 2026-03-30
+
+### Added
+
+- Added in-place auto-update.
+""";
+
+        var result = UpdateService.ExtractRelevantChangelog(markdown, "1.8.1", "1.8.3");
+
+        Assert.NotNull(result);
+        Assert.Equal("Changelog from v1.8.1 to v1.8.3", result!.Title);
+        Assert.Contains("## [1.8.3] - 2026-04-02", result.Markdown);
+        Assert.Contains("## [1.8.2] - 2026-03-31", result.Markdown);
+        Assert.DoesNotContain("## [1.8.1] - 2026-03-30", result.Markdown);
+        Assert.DoesNotContain("## [Unreleased]", result.Markdown);
+    }
+
+    [Fact]
+    public void TryExtractRelevantChangelog_FallsBackToLatestSection()
+    {
+        var markdown = """
+## [1.8.3] - 2026-04-02
+
+### Fixed
+
+- Fixed latest update banner text.
+
+## [1.8.2] - 2026-03-31
+
+### Changed
+
+- Reduced verbose logging.
+""";
+
+        var result = UpdateService.ExtractRelevantChangelog(markdown, "not-a-version", "1.8.3");
+
+        Assert.NotNull(result);
+        Assert.Equal("Changelog through v1.8.3", result!.Title);
+        Assert.Contains("## [1.8.3] - 2026-04-02", result.Markdown);
+        Assert.Contains("## [1.8.2] - 2026-03-31", result.Markdown);
+    }
+
+    [Fact]
     public void ParseReleaseResult_WithoutBody_ReleaseNotesIsNull()
     {
         var json = """{"tag_name":"v2.0.0","html_url":"https://github.com/owner/repo/releases/tag/v2.0.0"}""";
@@ -90,6 +152,7 @@ public class UpdateServiceVersionTests
 
         Assert.Null(result.ReleaseNotes);
     }
+
 
     [Fact]
     public void ParseReleaseResult_SameVersion_NoUpdateAvailable()

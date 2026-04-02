@@ -126,7 +126,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string LatestVersion
     {
         get => _latestVersion;
-        private set => SetField(ref _latestVersion, value);
+        private set
+        {
+            if (_latestVersion == value) return;
+            _latestVersion = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(UpdateBannerText));
+        }
     }
 
     private string _updateReleaseUrl = "";
@@ -449,6 +455,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
             && Uri.TryCreate(url, UriKind.Absolute, out var uri)
             && uri.Scheme == Uri.UriSchemeHttps)
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    public Task<UpdateChangelogResult?> GetUpdateChangelogAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(LatestVersion))
+            return Task.FromResult<UpdateChangelogResult?>(null);
+
+        return _updateService.GetRelevantChangelogAsync(
+            UpdateService.GetCurrentAppVersionText(),
+            LatestVersion,
+            cancellationToken);
     }
 
     public async Task DownloadAndInstallUpdateAsync()

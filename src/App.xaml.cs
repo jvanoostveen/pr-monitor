@@ -207,7 +207,9 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        if (result.IsUpdateAvailable && !string.IsNullOrWhiteSpace(result.ReleaseUrl))
+        if (result.IsUpdateAvailable
+            && !string.IsNullOrWhiteSpace(result.ReleaseUrl)
+            && !string.IsNullOrWhiteSpace(result.LatestVersionText))
         {
             _mainVm?.SetUpdateAvailable(result.LatestVersionText!, result.ReleaseUrl!,
                 result.ReleaseNotesUrl, result.ReleaseNotes);
@@ -216,7 +218,7 @@ public partial class App : System.Windows.Application
                 $"A new version of PR Monitor is available.\n\n" +
                 $"Current version: {result.CurrentVersion}\n" +
                 $"Latest version: {result.LatestVersionText}\n\n" +
-                "Do you want to see what changed since your current version?";
+                "Do you want to view the changelog for the versions you're missing?";
 
             var answer = System.Windows.MessageBox.Show(
                 message,
@@ -225,7 +227,12 @@ public partial class App : System.Windows.Application
                 MessageBoxImage.Information);
 
             if (answer == MessageBoxResult.Yes)
-                OpenInBrowser(result.ReleaseUrl);
+            {
+                await ShowRelevantChangelogAsync(
+                    result.CurrentVersion,
+                    result.LatestVersionText!,
+                    result.ReleaseNotesUrl ?? result.ReleaseUrl);
+            }
 
             return;
         }
@@ -241,6 +248,34 @@ public partial class App : System.Windows.Application
     {
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    private async Task ShowRelevantChangelogAsync(string currentVersion, string latestVersion, string? fallbackUrl)
+    {
+        if (_updates is null)
+        {
+            if (!string.IsNullOrWhiteSpace(fallbackUrl))
+                OpenInBrowser(fallbackUrl);
+            return;
+        }
+
+        try
+        {
+            var changelog = await _updates.GetRelevantChangelogAsync(currentVersion, latestVersion);
+            if (changelog is not null)
+            {
+                Dispatcher.Invoke(() =>
+                    ChangelogWindow.ShowForOwner(_mainWindow?.IsVisible == true ? _mainWindow : null, changelog, fallbackUrl));
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.Warn($"Unable to show update changelog. {DiagnosticsLogger.SummarizeException(ex)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(fallbackUrl))
+            OpenInBrowser(fallbackUrl);
     }
 
     // Tells Windows to render native Win32 menus (and other controls) in
