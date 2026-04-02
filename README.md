@@ -13,8 +13,9 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 | **Hotfixes** | Open PRs targeting a `release/*` branch that you are involved in |
 | **My Auto-Merge PRs** | Your own PRs with auto-merge enabled, including their CI status |
 | **Awaiting My Review** | PRs where your review has been requested directly (including assignee-only PRs) |
-| **My PRs** | Your own open PRs without auto-merge (collapsed by default); draft PRs show a grey CI indicator |
+| **My PRs** | Your own open non-draft PRs without auto-merge (collapsed by default) |
 | **Team Review Requests** | PRs where a review was requested from a team you belong to (collapsed by default; can be disabled in Settings) |
+| **My Draft PRs** | Your own draft PRs (collapsed by default) |
 | **Later** | PRs you've snoozed with "Move to later" |
 
 Each PR row keeps its CI status circle and also shows a message icon when unresolved review comments exist; hovering the icon shows the unresolved comment count.

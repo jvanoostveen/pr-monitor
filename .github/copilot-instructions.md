@@ -226,7 +226,9 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - All screen coordinates go through `ScreenRectToWpf()` (device → WPF units via `PresentationSource.TransformFromDevice`) to handle mixed-DPI setups.
 
 ### Collapsible sections
-Six collapsible sections in order: Hotfixes, My Auto-Merge PRs, Awaiting My Review, Dependabot, My PRs, Team Review Requests, Later. State persisted in `AppSettings` (`HotfixExpanded`, `AutoMergeExpanded`, `ReviewExpanded`, `DependabotExpanded`, `MyPrsExpanded`, `TeamReviewExpanded`, `LaterExpanded`). `BoolToAngleConverter` rotates chevron (0° = expanded, -90° = collapsed). Hotfixes is only shown when `HotfixCount > 0`; Dependabot only when `DependabotCount > 0`; Team Review Requests only when `TeamReviewCount > 0` (which is 0 when `ShowTeamReviewSection` is false); all other sections likewise hide when their count is zero.
+Seven collapsible sections in order: Hotfixes, My Auto-Merge PRs, Awaiting My Review, Dependabot, My PRs, Team Review Requests, My Draft PRs, Later. State persisted in `AppSettings` (`HotfixExpanded`, `AutoMergeExpanded`, `ReviewExpanded`, `DependabotExpanded`, `MyPrsExpanded`, `TeamReviewExpanded`, `DraftExpanded`, `LaterExpanded`). `BoolToAngleConverter` rotates chevron (0° = expanded, -90° = collapsed). Hotfixes is only shown when `HotfixCount > 0`; Dependabot only when `DependabotCount > 0`; Team Review Requests only when `TeamReviewCount > 0` (which is 0 when `ShowTeamReviewSection` is false); My Draft PRs only when `DraftPrsCount > 0`; all other sections likewise hide when their count is zero.
+
+Draft PRs (own, non-hotfix, non-auto-merge) are carved out from "My PRs" in `PollingService.PollAsync` and placed in a separate `DraftPrs` list in `PollSnapshot`. `MyPrs` contains only non-draft own PRs. `PrItemViewModel.IsDraftSectionPr` flags items belonging to this section; `IsOwnPr` includes `IsDraftSectionPr`.
 
 Dependabot PRs are identified by `Author` being `"dependabot[bot]"` or `"dependabot"` (case-insensitive). They are split out of the "Awaiting My Review" list during polling and placed in their own `DependabotPrs` collection.
 
@@ -364,6 +366,7 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "myPrsExpanded": false,
   "teamReviewExpanded": false,
   "dependabotExpanded": true,
+  "draftExpanded": false,
   "showTeamReviewSection": true,
   "teamReviewCountsForTrayIcon": false,
   "laterExpanded": false,

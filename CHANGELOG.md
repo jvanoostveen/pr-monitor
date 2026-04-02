@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **My Draft PRs** section: own draft PRs are carved out from "My PRs" into a dedicated collapsible section placed above "Later". Section is hidden when empty; collapse state persisted in settings (`draftExpanded`).
 - **Assign reviewer** submenu on own-PR context menu rows (My Auto-Merge PRs, My PRs, Hotfixes, own PRs in Later). Only shown for non-draft PRs.
   - Currently assigned reviewers appear at the top with a checkmark; clicking them removes the reviewer.
   - Up to 10 recently used reviewers are listed below for one-click assignment; persisted in `settings.json` (`recentReviewers`).
