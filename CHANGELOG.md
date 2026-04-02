@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.3] - 2026-04-02
+
 ### Fixed
 
 - PRs authored by the current user that target a release branch (hotfix PRs) no longer appear in both the Hotfixes section and the My Auto-Merge PRs section simultaneously; they are now shown exclusively in Hotfixes.
