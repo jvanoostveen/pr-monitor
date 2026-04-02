@@ -30,6 +30,7 @@ public sealed class PollSnapshot
 {
     public IReadOnlyList<PullRequestInfo> AutoMergePrs { get; init; } = [];
     public IReadOnlyList<PullRequestInfo> MyPrs { get; init; } = [];
+    public IReadOnlyList<PullRequestInfo> DraftPrs { get; init; } = [];
     public IReadOnlyList<PullRequestInfo> ReviewRequestedPrs { get; init; } = [];
     public IReadOnlyList<PullRequestInfo> TeamReviewRequestedPrs { get; init; } = [];
     public IReadOnlyList<PullRequestInfo> HotfixPrs { get; init; } = [];
@@ -134,7 +135,8 @@ public sealed class PollingService : IDisposable
             // Exclude hotfix PRs (release/* targets) from My PRs and Auto-Merge PRs to avoid duplication
             var hotfixKeys   = hotfixPrs.Select(p => p.Key).ToHashSet();
             var autoMergePrs = allMyPrs.Where(p => p.HasAutoMerge && !hotfixKeys.Contains(p.Key)).ToList();
-            var myPrs        = allMyPrs.Where(p => !p.HasAutoMerge && !hotfixKeys.Contains(p.Key)).ToList();
+            var myPrs        = allMyPrs.Where(p => !p.HasAutoMerge && !hotfixKeys.Contains(p.Key) && !p.IsDraft).ToList();
+            var draftPrs     = allMyPrs.Where(p => !p.HasAutoMerge && !hotfixKeys.Contains(p.Key) && p.IsDraft).ToList();
 
             var myPrKeys = allMyPrs.Select(p => p.Key).ToHashSet();
 
@@ -172,12 +174,13 @@ public sealed class PollingService : IDisposable
             var allOpenPrKeys = allMyPrs.Select(p => p.Key).ToHashSet();
             DetectAutoMergeChanges(autoMergePrs, allOpenPrKeys);
             DetectReviewChanges(combinedReviewPrs);
-            DetectMyPrsChanges(myPrs);
+            DetectMyPrsChanges(myPrs.Concat(draftPrs).ToList());
 
             var snapshot = new PollSnapshot
             {
                 AutoMergePrs           = autoMergePrs,
                 MyPrs                  = myPrs,
+                DraftPrs               = draftPrs,
                 ReviewRequestedPrs     = combinedReviewPrs,
                 TeamReviewRequestedPrs = teamReviewPrs,
                 HotfixPrs              = hotfixPrs,

@@ -881,6 +881,100 @@
                         <Border Height="1" Background="#21262D" Margin="0,4,0,8"/>
                     </StackPanel>
 
+                    <!-- Section: My Draft PRs (collapsed by default) -->
+                    <StackPanel Visibility="{Binding DraftPrsCount, Converter={StaticResource NonZeroToVisibleConverter}}">
+                        <Border MouseLeftButtonUp="DraftPrsHeader_Click" Cursor="Hand"
+                                Background="Transparent" Margin="0,0,0,6">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
+                                           FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
+                                           Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
+                                    <TextBlock.RenderTransform>
+                                        <RotateTransform Angle="{Binding DraftExpanded,
+                                            Converter={StaticResource BoolToAngleConverter}}"/>
+                                    </TextBlock.RenderTransform>
+                                </TextBlock>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons"
+                                               FontSize="12" Foreground="#8B949E"
+                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#C9D1D9"
+                                               VerticalAlignment="Center">
+                                        <Run Text="My Draft PRs "/>
+                                        <Run Text="{Binding DraftPrsCount, StringFormat='({0})', Mode=OneWay}"
+                                             Foreground="#8B949E"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
+                        <StackPanel Visibility="{Binding DraftExpanded, Converter={StaticResource BoolToVisibility}}">
+                            <ItemsControl ItemsSource="{Binding DraftPrs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource PrRow}"
+                                                MouseLeftButtonUp="PrItem_Click"
+                                                ToolTip="{Binding PrTooltip}"
+                                                Tag="{Binding}">
+                                            <Border.ContextMenu>
+                                                <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
+                                                    <MenuItem Header="Copy PR URL" Tag="{Binding}"
+                                                              Click="PrRow_CopyUrl_Click"/>
+                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
+                                                              Click="PrRow_CopyBranch_Click"/>
+                                                    <Separator/>
+                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
+                                                              Click="PrRow_RerunFailedJobs_Click"
+                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
+                                                    <MenuItem Header="Move to later" Tag="{Binding}"
+                                                              Click="PrRow_Hide_Click"/>
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                    <Ellipse Width="10" Height="10"
+                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                                                             VerticalAlignment="Center"/>
+                                                    <TextBlock Text="&#xE8BD;"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="11"
+                                                               Foreground="#8B949E"
+                                                               VerticalAlignment="Center"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Text="&#xE748;"
+                                                               FontFamily="Segoe Fluent Icons"
+                                                               FontSize="11"
+                                                               Foreground="#D29922"
+                                                               VerticalAlignment="Center"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Style="{StaticResource RepoText}">
+                                                        <Run Text="{Binding Repository, Mode=OneWay}"/>
+                                                        <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
+                                                    </TextBlock>
+                                                    <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Style="{StaticResource MetaText}"
+                                                           Text="{Binding TimeAgo}" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- Separator after My Draft PRs -->
+                        <Border Height="1" Background="#21262D" Margin="0,4,0,8"/>
+                    </StackPanel>
+
                     <!-- Section: Later -->
                     <StackPanel Visibility="{Binding HiddenCount, Converter={StaticResource NonZeroToVisibleConverter}}">
                         <Border MouseLeftButtonUp="LaterHeader_Click" Cursor="Hand"

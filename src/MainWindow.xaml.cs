@@ -972,6 +972,12 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void DraftPrsHeader_Click(object sender, MouseButtonEventArgs e)
+    {
+        ViewModel.ToggleDraftExpanded();
+        e.Handled = true;
+    }
+
     private void PrRow_Hide_Click(object sender, RoutedEventArgs e)
     {
         if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
