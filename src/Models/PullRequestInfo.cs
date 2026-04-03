@@ -37,7 +37,10 @@ public sealed class PullRequestInfo
     public CIState CIState { get; init; } = CIState.Unknown;
 
     /// <summary>Whether the PR has merge conflicts (mergeable == CONFLICTING).</summary>
-    public bool HasConflicts { get; init; }
+    public bool HasConflicts { get; set; }
+
+    /// <summary>Whether GitHub returned "UNKNOWN" for mergeability (lazily computed, not yet resolved).</summary>
+    public bool IsMergeabilityUnknown { get; init; }
 
     /// <summary>Number of unresolved review comments across unresolved review threads.</summary>
     public int UnresolvedReviewCommentCount { get; init; }
@@ -69,5 +72,5 @@ public sealed class PullRequestInfo
     public string Key => $"{Repository}#{Number}";
 
     public override string ToString() =>
-        $"{Repository}#{Number}: {Title} [{CIState}{(HasConflicts ? " CONFLICTING" : "")}]";
+        $"{Repository}#{Number}: {Title} [{CIState}{(HasConflicts ? " CONFLICTING" : "")}{(IsMergeabilityUnknown ? " UNKNOWN_MERGEABLE" : "")}]";
 }

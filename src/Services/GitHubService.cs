@@ -895,8 +895,11 @@ public sealed class GitHubService
                 }
             }
 
-            bool hasConflictsMyPr = node.TryGetProperty("mergeable", out var mergeableMyPr)
-                && mergeableMyPr.GetString() == "CONFLICTING";
+            string? mergeableValueMyPr = node.TryGetProperty("mergeable", out var mergeableMyPr)
+                ? mergeableMyPr.GetString()
+                : null;
+            bool hasConflictsMyPr = mergeableValueMyPr == "CONFLICTING";
+            bool isMergeabilityUnknownMyPr = mergeableValueMyPr == "UNKNOWN";
 
             result.Add(new PullRequestInfo
             {
@@ -917,6 +920,7 @@ public sealed class GitHubService
                 HeadCommitSha = GetCommitOid(node),
                 CIState = ciState,
                 HasConflicts = hasConflictsMyPr,
+                IsMergeabilityUnknown = isMergeabilityUnknownMyPr,
                 IsApproved = node.TryGetProperty("reviewDecision", out var rd1)
                     && rd1.GetString() == "APPROVED",
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
@@ -961,8 +965,11 @@ public sealed class GitHubService
                 }
             }
 
-            bool hasConflictsReview = node.TryGetProperty("mergeable", out var mergeableReview)
-                && mergeableReview.GetString() == "CONFLICTING";
+            string? mergeableValueReview = node.TryGetProperty("mergeable", out var mergeableReview)
+                ? mergeableReview.GetString()
+                : null;
+            bool hasConflictsReview = mergeableValueReview == "CONFLICTING";
+            bool isMergeabilityUnknownReview = mergeableValueReview == "UNKNOWN";
 
             // Classify as team-only when the current user has no direct User-type review request.
             // Other User-type reviewers (different people) do NOT make this a direct request for us.
@@ -1006,6 +1013,7 @@ public sealed class GitHubService
                 HeadCommitSha = GetCommitOid(node),
                 CIState = ciState,
                 HasConflicts = hasConflictsReview,
+                IsMergeabilityUnknown = isMergeabilityUnknownReview,
                 IsApproved = node.TryGetProperty("reviewDecision", out var rd2)
                     && rd2.GetString() == "APPROVED",
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),

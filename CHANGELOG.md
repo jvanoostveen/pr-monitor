@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - PRs with merge conflicts no longer flicker between green and red: the CI indicator and tray icon now correctly show red (Failure) whenever `mergeable == CONFLICTING`, independent of the actual CI result. The tooltip now shows the real CI state (e.g. "CI: Success") plus a separate "Merge conflicts" line, instead of the misleading "CI: Failure" that was shown before. All sections (Awaiting My Review, Auto-Merge, Dependabot, etc.) use the same indicator logic.
+- **Conflict dot consistency**: PRs with merge conflicts no longer briefly show a green dot when GitHub temporarily returns `"UNKNOWN"` for mergeability (a lazily-computed value after the base branch receives commits). The last confirmed conflict state is now preserved per PR+commit until GitHub returns a definitive answer.
 
 ## [1.8.4] - 2026-04-02
 

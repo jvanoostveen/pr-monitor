@@ -55,6 +55,10 @@ public sealed class PollingService : IDisposable
     internal Dictionary<string, PullRequestInfo> _previousReviews = new();
     internal Dictionary<string, PullRequestInfo> _previousMyPrs = new();
 
+    // Cache of last known definitive conflict state per PR+commit.
+    // Key: "{prKey}:{headCommitSha}". Used to preserve conflict state when GitHub returns "UNKNOWN".
+    private readonly Dictionary<string, bool> _conflictCache = new();
+
     private readonly DateTimeOffset _startedAt = DateTimeOffset.UtcNow;
 
     public PollingService(GitHubService github, AppSettings settings, DiagnosticsLogger logger)
@@ -171,6 +175,15 @@ public sealed class PollingService : IDisposable
                 teamReviewPrs = [];
             }
 
+            // Resolve "UNKNOWN" mergeability using sticky cache
+            autoMergePrs      = ResolveConflicts(autoMergePrs);
+            myPrs             = ResolveConflicts(myPrs);
+            draftPrs          = ResolveConflicts(draftPrs);
+            combinedReviewPrs = ResolveConflicts(combinedReviewPrs);
+            teamReviewPrs     = ResolveConflicts(teamReviewPrs);
+            hotfixPrs         = ResolveConflicts(hotfixPrs);
+            dependabotPrs     = ResolveConflicts(dependabotPrs);
+
             var allOpenPrKeys = allMyPrs.Select(p => p.Key).ToHashSet();
             DetectAutoMergeChanges(autoMergePrs, allOpenPrKeys);
             DetectReviewChanges(combinedReviewPrs);
@@ -218,6 +231,32 @@ public sealed class PollingService : IDisposable
         {
             _pollLock.Release();
         }
+    }
+
+    /// <summary>
+    /// For any PR where GitHub returned "UNKNOWN" for mergeability, substitutes the last known
+    /// cached conflict state (keyed by PR key + head commit SHA). Definitive states update the cache.
+    /// </summary>
+    private List<PullRequestInfo> ResolveConflicts(IEnumerable<PullRequestInfo> prs)
+    {
+        var result = new List<PullRequestInfo>();
+        foreach (var pr in prs)
+        {
+            var cacheKey = $"{pr.Key}:{pr.HeadCommitSha}";
+            if (!pr.IsMergeabilityUnknown)
+            {
+                // Definitive state — update cache and keep as-is
+                _conflictCache[cacheKey] = pr.HasConflicts;
+            }
+            else if (_conflictCache.TryGetValue(cacheKey, out var cached))
+            {
+                // UNKNOWN but we have a cached value — apply it
+                pr.HasConflicts = cached;
+            }
+            // else: UNKNOWN with no cache entry — keep HasConflicts = false (default)
+            result.Add(pr);
+        }
+        return result;
     }
 
     internal void DetectAutoMergeChanges(List<PullRequestInfo> current, HashSet<string>? allOpenPrKeys = null)
