@@ -7,11 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- **Icons**: replaced all Segoe Fluent Icons and Segoe MDL2 Assets glyphs with [Material Symbols Rounded](https://fonts.google.com/icons) (bundled `.ttf`). New icon set covers all section headers (fire, merge, rate_review, smart_toy, list, group, draft, schedule), chevrons, header buttons (refresh, close), PR row status icons (comment, check_circle, person_alert), and the update banner (download). A shared `IconText` style in `App.xaml` provides the `FontFamily` and `VerticalAlignment` for all icon `TextBlock`s.
+## [1.8.5] - 2026-04-03
 
 ### Added
-- **My Draft PRs** section: own draft PRs are carved out from "My PRs" into a dedicated collapsible section placed above "Later". Section is hidden when empty; collapse state persisted in settings (`draftExpanded`).
 - **Assign reviewer** submenu on own-PR context menu rows (My Auto-Merge PRs, My PRs, Hotfixes, own PRs in Later). Only shown for non-draft PRs.
   - Currently assigned reviewers appear at the top with a checkmark; clicking them removes the reviewer.
   - Up to 10 recently used reviewers are listed below for one-click assignment; persisted in `settings.json` (`recentReviewers`).
@@ -22,7 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - PRs with merge conflicts no longer flicker between green and red: the CI indicator and tray icon now correctly show red (Failure) whenever `mergeable == CONFLICTING`, independent of the actual CI result. The tooltip now shows the real CI state (e.g. "CI: Success") plus a separate "Merge conflicts" line, instead of the misleading "CI: Failure" that was shown before. All sections (Awaiting My Review, Auto-Merge, Dependabot, etc.) use the same indicator logic.
-- **Conflict dot consistency**: PRs with merge conflicts no longer briefly show a green dot when GitHub temporarily returns `"UNKNOWN"` for mergeability (a lazily-computed value after the base branch receives commits). The last confirmed conflict state is now preserved per PR+commit until GitHub returns a definitive answer.
 
 ## [1.8.4] - 2026-04-02
 
