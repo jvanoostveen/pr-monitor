@@ -16,6 +16,13 @@
         <sys:Double x:Key="PrRowFontSize">12</sys:Double>
         <sys:Double x:Key="PrRowRepoFontSize">10</sys:Double>
 
+        <!-- Material Symbols Rounded (bundled font) -->
+        <FontFamily x:Key="MaterialSymbols">pack://application:,,,/Assets/Fonts/#Material Symbols Rounded</FontFamily>
+        <Style x:Key="IconText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource MaterialSymbols}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
         <!-- Dark-themed tooltips to match the app's GitHub-dark palette -->
         <Style TargetType="ToolTip">
             <Setter Property="Background" Value="#21262D"/>

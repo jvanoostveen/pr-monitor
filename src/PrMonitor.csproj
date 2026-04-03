@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Resource Include="Assets\logo_256.png" />
+    <Resource Include="Assets\Fonts\MaterialSymbolsRounded-Regular.ttf" />
   </ItemGroup>
 
 </Project>

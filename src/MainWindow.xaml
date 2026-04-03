@@ -251,11 +251,10 @@
                                 </Style>
                             </Border.Style>
                             <TextBlock x:Name="RefreshIcon"
-                                       Text="&#xE72C;"
-                                       FontFamily="Segoe Fluent Icons"
+                                       Style="{StaticResource IconText}"
+                                       Text="&#xE5D5;"
                                        FontSize="12"
                                        Foreground="#6E7681"
-                                       VerticalAlignment="Center"
                                        RenderTransformOrigin="0.5,0.5">
                                 <TextBlock.RenderTransform>
                                     <RotateTransform x:Name="RefreshRotate" Angle="0"/>
@@ -276,11 +275,10 @@
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
-                            <TextBlock Text="&#xE711;"
-                                       FontFamily="Segoe Fluent Icons"
+                            <TextBlock Style="{StaticResource IconText}"
+                                       Text="&#xE5CD;"
                                        FontSize="12"
-                                       Foreground="#8B949E"
-                                       VerticalAlignment="Center"/>
+                                       Foreground="#8B949E"/>
                         </Border>
                     </StackPanel>
                     <!-- Drag handle: entire left area -->
@@ -306,8 +304,8 @@
                         <Border MouseLeftButtonUp="HotfixHeader_Click" Cursor="Hand"
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
-                                           FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
+                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
+                                           FontSize="10" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding HotfixExpanded,
@@ -315,9 +313,9 @@
                                     </TextBlock.RenderTransform>
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="&#xE90F;" FontFamily="Segoe Fluent Icons"
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEF55;"
                                                FontSize="12" Foreground="#F85149"
-                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                               Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
                                                VerticalAlignment="Center">
                                         <Run Text="Hotfixes "/>
@@ -363,19 +361,17 @@
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                              VerticalAlignment="Center"/>
-                                                    <TextBlock Text="&#xE8BD;"
-                                                               FontFamily="Segoe MDL2 Assets"
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE24C;"
                                                                FontSize="11"
                                                                Foreground="#8B949E"
-                                                               VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Text="&#xE748;"
-                                                               FontFamily="Segoe Fluent Icons"
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xF567;"
                                                                FontSize="11"
                                                                Foreground="#D29922"
-                                                               VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
@@ -408,10 +404,10 @@
                             <DockPanel>
                                 <!-- Chevron -->
                                 <TextBlock DockPanel.Dock="Left"
-                                           Text="&#xE70D;"
-                                           FontFamily="Segoe Fluent Icons"
+                                           Style="{StaticResource IconText}"
+                                           Text="&#xE5CC;"
                                            FontSize="10" Foreground="#6E7681"
-                                           VerticalAlignment="Center" Margin="0,0,6,0"
+                                           Margin="0,0,6,0"
                                            RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding AutoMergeExpanded, 
@@ -419,9 +415,9 @@
                                     </TextBlock.RenderTransform>
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="&#xE72C;" FontFamily="Segoe Fluent Icons"
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEB98;"
                                                FontSize="12" Foreground="#58A6FF"
-                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                               Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
                                                VerticalAlignment="Center">
                                         <Run Text="My Auto-Merge PRs "/>
@@ -467,19 +463,17 @@
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                              VerticalAlignment="Center"/>
-                                                    <TextBlock Text="&#xE8BD;"
-                                                               FontFamily="Segoe MDL2 Assets"
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE24C;"
                                                                FontSize="11"
                                                                Foreground="#8B949E"
-                                                               VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Text="&#xE748;"
-                                                               FontFamily="Segoe Fluent Icons"
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xF567;"
                                                                FontSize="11"
                                                                Foreground="#D29922"
-                                                               VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
@@ -508,8 +502,8 @@
                         <Border MouseLeftButtonUp="ReviewHeader_Click" Cursor="Hand"
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
-                                           FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
+                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
+                                           FontSize="10" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding ReviewExpanded,
@@ -517,9 +511,9 @@
                                     </TextBlock.RenderTransform>
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="&#xE7EE;" FontFamily="Segoe Fluent Icons"
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE560;"
                                                FontSize="12" Foreground="#D29922"
-                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                               Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
                                                VerticalAlignment="Center">
                                         <Run Text="Awaiting My Review "/>
@@ -565,14 +559,13 @@
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                              VerticalAlignment="Center"/>
-                                                    <TextBlock Text="&#xE8BD;"
-                                                               FontFamily="Segoe MDL2 Assets"
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE24C;"
                                                                FontSize="11"
                                                                Foreground="#8B949E"
-                                                               VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -601,8 +594,8 @@
                         <Border MouseLeftButtonUp="DependabotHeader_Click" Cursor="Hand"
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
-                                           FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
+                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
+                                           FontSize="10" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding DependabotExpanded,
@@ -610,9 +603,9 @@
                                     </TextBlock.RenderTransform>
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="&#xE72E;" FontFamily="Segoe Fluent Icons"
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF06C;"
                                                FontSize="12" Foreground="#3FB950"
-                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                               Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
                                                VerticalAlignment="Center">
                                         <Run Text="Dependabot "/>
@@ -658,14 +651,13 @@
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                              VerticalAlignment="Center"/>
-                                                    <TextBlock Text="&#xE8BD;"
-                                                               FontFamily="Segoe MDL2 Assets"
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE24C;"
                                                                FontSize="11"
                                                                Foreground="#8B949E"
-                                                               VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -694,8 +686,8 @@
                         <Border MouseLeftButtonUp="MyPrsHeader_Click" Cursor="Hand"
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
-                                           FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
+                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
+                                           FontSize="10" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding MyPrsExpanded,
@@ -703,9 +695,9 @@
                                     </TextBlock.RenderTransform>
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="&#xE8A5;" FontFamily="Segoe Fluent Icons"
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE896;"
                                                FontSize="12" Foreground="#8B949E"
-                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                               Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#C9D1D9"
                                                VerticalAlignment="Center">
                                         <Run Text="My PRs "/>
@@ -752,19 +744,17 @@
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                              VerticalAlignment="Center"/>
-                                                    <TextBlock Text="&#xE8BD;"
-                                                               FontFamily="Segoe MDL2 Assets"
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE24C;"
                                                                FontSize="11"
                                                                Foreground="#8B949E"
-                                                               VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Text="&#xE748;"
-                                                               FontFamily="Segoe Fluent Icons"
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xF567;"
                                                                FontSize="11"
                                                                Foreground="#D29922"
-                                                               VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
@@ -793,8 +783,8 @@
                         <Border MouseLeftButtonUp="TeamReviewHeader_Click" Cursor="Hand"
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
-                                           FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
+                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
+                                           FontSize="10" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding TeamReviewExpanded,
@@ -802,9 +792,9 @@
                                     </TextBlock.RenderTransform>
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="&#xE902;" FontFamily="Segoe Fluent Icons"
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEA21;"
                                                FontSize="12" Foreground="#8B949E"
-                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                               Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#C9D1D9"
                                                VerticalAlignment="Center">
                                         <Run Text="Team Review Requests "/>
@@ -850,14 +840,13 @@
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                              VerticalAlignment="Center"/>
-                                                    <TextBlock Text="&#xE8BD;"
-                                                               FontFamily="Segoe MDL2 Assets"
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE24C;"
                                                                FontSize="11"
                                                                Foreground="#8B949E"
-                                                               VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -886,8 +875,8 @@
                         <Border MouseLeftButtonUp="DraftPrsHeader_Click" Cursor="Hand"
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
-                                           FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
+                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
+                                           FontSize="10" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding DraftExpanded,
@@ -895,9 +884,9 @@
                                     </TextBlock.RenderTransform>
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons"
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE66D;"
                                                FontSize="12" Foreground="#8B949E"
-                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                               Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#C9D1D9"
                                                VerticalAlignment="Center">
                                         <Run Text="My Draft PRs "/>
@@ -940,18 +929,16 @@
                                                     <Ellipse Width="10" Height="10"
                                                              Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                              VerticalAlignment="Center"/>
-                                                    <TextBlock Text="&#xE8BD;"
-                                                               FontFamily="Segoe MDL2 Assets"
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE24C;"
                                                                FontSize="11"
                                                                Foreground="#8B949E"
-                                                               VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Text="&#xE748;"
-                                                               FontFamily="Segoe Fluent Icons"
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xF567;"
                                                                FontSize="11"
                                                                Foreground="#D29922"
-                                                               VerticalAlignment="Center"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
@@ -980,8 +967,8 @@
                         <Border MouseLeftButtonUp="LaterHeader_Click" Cursor="Hand"
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Left" Text="&#xE70D;" FontFamily="Segoe Fluent Icons"
-                                           FontSize="10" Foreground="#6E7681" VerticalAlignment="Center"
+                                <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
+                                           FontSize="10" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding LaterExpanded,
@@ -989,9 +976,9 @@
                                     </TextBlock.RenderTransform>
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="&#xE823;" FontFamily="Segoe Fluent Icons"
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEFD6;"
                                                FontSize="12" Foreground="#6E7681"
-                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                               Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#6E7681"
                                                VerticalAlignment="Center">
                                         <Run Text="Later "/>
@@ -1037,19 +1024,17 @@
                                                 <Ellipse Width="10" Height="10"
                                                          Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
                                                          VerticalAlignment="Center"/>
-                                                <TextBlock Text="&#xE8BD;"
-                                                           FontFamily="Segoe MDL2 Assets"
+                                                <TextBlock Style="{StaticResource IconText}"
+                                                           Text="&#xE24C;"
                                                            FontSize="11"
                                                            Foreground="#8B949E"
-                                                           VerticalAlignment="Center"
                                                            Margin="5,0,0,0"
                                                            Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#3FB950" VerticalAlignment="Center" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                <TextBlock Text="&#xE748;"
-                                                           FontFamily="Segoe Fluent Icons"
+                                                <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                <TextBlock Style="{StaticResource IconText}"
+                                                           Text="&#xF567;"
                                                            FontSize="11"
                                                            Foreground="#D29922"
-                                                           VerticalAlignment="Center"
                                                            Margin="5,0,0,0"
                                                            Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
                                             </StackPanel>
@@ -1106,11 +1091,10 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
                                         MouseLeftButtonUp="UpdateBanner_Click">
-                                <TextBlock Text="&#xE74B;"
-                                           FontFamily="Segoe MDL2 Assets"
+                                <TextBlock Style="{StaticResource IconText}"
+                                           Text="&#xF090;"
                                            FontSize="11"
                                            Foreground="#3FB950"
-                                           VerticalAlignment="Center"
                                            Margin="0,0,6,0"/>
                                 <TextBlock FontSize="10" Foreground="#3FB950"
                                            Text="{Binding UpdateBannerText}"/>

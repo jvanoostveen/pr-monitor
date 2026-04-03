@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Icons**: replaced all Segoe Fluent Icons and Segoe MDL2 Assets glyphs with [Material Symbols Rounded](https://fonts.google.com/icons) (bundled `.ttf`). New icon set covers all section headers (fire, merge, rate_review, smart_toy, list, group, draft, schedule), chevrons, header buttons (refresh, close), PR row status icons (comment, check_circle, person_alert), and the update banner (download). A shared `IconText` style in `App.xaml` provides the `FontFamily` and `VerticalAlignment` for all icon `TextBlock`s.
+
 ### Added
 - **My Draft PRs** section: own draft PRs are carved out from "My PRs" into a dedicated collapsible section placed above "Later". Section is hidden when empty; collapse state persisted in settings (`draftExpanded`).
 - **Assign reviewer** submenu on own-PR context menu rows (My Auto-Merge PRs, My PRs, Hotfixes, own PRs in Later). Only shown for non-draft PRs.
