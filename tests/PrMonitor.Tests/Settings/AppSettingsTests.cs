@@ -205,6 +205,64 @@ public class AppSettingsTests
         finally { File.Delete(path); }
     }
 
+    // ── New fields (reviewer assignment) ────────────────────────────────
+
+    [Fact]
+    public void SaveTo_LoadFrom_RoundTrip_RecentReviewers()
+    {
+        var path = TempPath();
+        try
+        {
+            var settings = new AppSettings
+            {
+                RecentReviewers = ["alice", "bob", "carol"],
+            };
+            settings.SaveTo(path);
+            var loaded = AppSettings.LoadFrom(path);
+
+            Assert.Equal(new[] { "alice", "bob", "carol" }, loaded.RecentReviewers);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void SaveTo_LoadFrom_RoundTrip_OrgMembersCache()
+    {
+        var path = TempPath();
+        try
+        {
+            var now = new DateTimeOffset(2026, 4, 1, 12, 0, 0, TimeSpan.Zero);
+            var settings = new AppSettings
+            {
+                OrgMembersCache =
+                [
+                    new OrgMemberEntry { Login = "alice", Name = "Alice Smith" },
+                    new OrgMemberEntry { Login = "bob",   Name = null },
+                ],
+                OrgMembersCachedAt = now,
+            };
+            settings.SaveTo(path);
+            var loaded = AppSettings.LoadFrom(path);
+
+            Assert.Equal(2, loaded.OrgMembersCache.Count);
+            Assert.Equal("alice", loaded.OrgMembersCache[0].Login);
+            Assert.Equal("Alice Smith", loaded.OrgMembersCache[0].Name);
+            Assert.Equal("bob", loaded.OrgMembersCache[1].Login);
+            Assert.Null(loaded.OrgMembersCache[1].Name);
+            Assert.Equal(now, loaded.OrgMembersCachedAt);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void DefaultSettings_DraftExpandedFalse_DependabotExpandedTrue()
+    {
+        var settings = new AppSettings();
+
+        Assert.False(settings.DraftExpanded);
+        Assert.True(settings.DependabotExpanded);
+    }
+
     private static string TempPath() =>
         Path.Combine(Path.GetTempPath(), $"prtests_{Guid.NewGuid()}.json");
 }

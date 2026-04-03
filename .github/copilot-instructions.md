@@ -58,10 +58,11 @@ pr-monitor/
 │   │   └── CIStateToBrushConverter.cs     # CIState → hex color brush
 │   ├── Models/
 │   │   ├── CIState.cs                  # Enum: Unknown/Pending/Success/Failure/Error
-│   │   ├── PullRequestInfo.cs          # PR data model (includes HeadCommitSha)
+│   │   ├── PullRequestInfo.cs          # PR data model (includes HeadCommitSha, HasConflicts)
 │   │   ├── FailureContext.cs           # Context passed to flakiness AI analysis
 │   │   ├── FlakinessAnalysisResult.cs  # AI analysis result + suggested rules
 │   │   ├── FlakinessRule.cs            # Persisted flakiness regex rule
+│   │   ├── OrgMemberEntry.cs           # Cached org member (login + display name)
 │   │   └── RerunRecord.cs              # Per-PR rerun count + timestamp
 │   ├── Services/
 │   │   ├── GitHubService.cs            # GraphQL via `gh api graphql` + workflow run helpers
@@ -79,6 +80,8 @@ pr-monitor/
 │       ├── TrayIconManager.cs          # NotifyIcon + context menu
 │       ├── IconGenerator.cs            # Generates 16×16 icon with colored badge
 │       ├── AboutWindow.xaml / .cs      # About dialog (version/repo/update check)
+│       ├── ChangelogWindow.xaml / .cs  # In-app changelog view (filtered version range)
+│       ├── AssignReviewerSearchWindow.xaml / .cs  # Org-member search dialog for reviewer assignment
 │       ├── FlakinessRulesWindow.xaml / .cs  # Resizable/scrollable window for managing flakiness rules
 │       └── SettingsWindow.xaml / .cs   # Settings dialog
 └── tests/
@@ -182,6 +185,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 ### Diagnostics logging
 - `DiagnosticsLogger` writes thread-safe entries to `%APPDATA%/pr-monitor/logs/pr-monitor.log` with automatic size-based rotation.
 - Log format includes timestamp + level (`INFO`, `WARN`, `ERROR`).
+- `DiagnosticsLogger.Null` is a static no-op instance used in all test classes so tests do not write to the production log.
 - `GitHubService` logs GraphQL/`gh` failures (non-zero exit with stderr, GraphQL errors, JSON parse failures).
 - `PollingService` logs poll lifecycle and exceptions for intermittent "no data" investigations.
 - `MainWindow` writes structured `MainWindowPlacement` traces for startup restore, snap application, deferred `SizeChanged` branches, filtered `LocationChanged` events, display-change recovery, and persisted placement state so restart-position bugs can be reconstructed from one ordered timeline. These traces are only written when `VerboseLogging` is enabled in settings.
@@ -190,7 +194,8 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 ### Flakiness analysis and auto-rerun
 - `FlakinessService` subscribes to `PollingService.PrChanged` and handles `CIStatusChanged` events for the current user's own non-draft PRs with `CIState.Failure`.
 - **Local rule check first**: enabled `FlakinessRules` (regex patterns) are matched against the log excerpt. If a rule matches, the CI run is immediately retried without calling the AI.
-- **Copilot analysis**: if no rule matches, `CopilotService` calls the GitHub Models API (`gpt-4o-mini`, endpoint `https://models.inference.ai.azure.com`) with a compact `FailureContext` object (PR metadata + failed check names + ≤4000 char log excerpt). The Bearer token is obtained via `gh auth token`. The system prompt treats E2E/browser tests (Playwright, Cypress, Selenium) as flaky by default. If `FlakinessCustomHints` is non-empty, it is appended to the system prompt as additional project-specific context to guide the AI classification.
+- **Copilot analysis**: if no rule matches, `CopilotService` calls the GitHub Models API (`gpt-4o-mini`, endpoint `https://models.inference.ai.azure.com`) with a compact `FailureContext` object (PR metadata + failed check names + ≤4000 char log excerpt). The CI log is sanitized before sending: GitHub Actions ISO timestamps, ANSI escape codes, XSS payloads, base64 blobs, and HTML injection strings are stripped/redacted. Truncation keeps the tail of the log (where test errors appear). The Bearer token is obtained via `gh auth token`. The system prompt treats E2E/browser tests (Playwright, Cypress, Selenium) as flaky by default. If `FlakinessCustomHints` is non-empty, it is appended to the system prompt as additional project-specific context to guide the AI classification.
+- **Content-filter retry**: if the Azure OpenAI content filter blocks the request (jailbreak detection triggered by CI log content), the analysis is retried once with an error-lines-only excerpt (lines containing `error|fail|exception|assert|timeout`). If the retry also fails, the result is treated as indeterminate (no toast, no rerun consumed).
 - **Auto-rerun**: `gh run rerun {runId} --failed --repo {owner}/{repo}` is invoked. Max reruns per PR is configurable in Settings (default 3), counter persisted in `settings.json` and pruned after 30 days.
 - **Suggested rules**: after each Copilot analysis, any suggested `.NET regex` patterns are persisted to `FlakinessRules` (auto-enabled) and reused in future without calling the AI.
 - **Real failure toast**: when Copilot concludes the failure is not flaky, a toast is shown with the one-sentence rationale.
@@ -226,7 +231,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - All screen coordinates go through `ScreenRectToWpf()` (device → WPF units via `PresentationSource.TransformFromDevice`) to handle mixed-DPI setups.
 
 ### Collapsible sections
-Seven collapsible sections in order: Hotfixes, My Auto-Merge PRs, Awaiting My Review, Dependabot, My PRs, Team Review Requests, My Draft PRs, Later. State persisted in `AppSettings` (`HotfixExpanded`, `AutoMergeExpanded`, `ReviewExpanded`, `DependabotExpanded`, `MyPrsExpanded`, `TeamReviewExpanded`, `DraftExpanded`, `LaterExpanded`). `BoolToAngleConverter` rotates chevron (0° = expanded, -90° = collapsed). Hotfixes is only shown when `HotfixCount > 0`; Dependabot only when `DependabotCount > 0`; Team Review Requests only when `TeamReviewCount > 0` (which is 0 when `ShowTeamReviewSection` is false); My Draft PRs only when `DraftPrsCount > 0`; all other sections likewise hide when their count is zero.
+Eight collapsible sections in order: Hotfixes, My Auto-Merge PRs, Awaiting My Review, Dependabot, My PRs, Team Review Requests, My Draft PRs, Later. State persisted in `AppSettings` (`HotfixExpanded`, `AutoMergeExpanded`, `ReviewExpanded`, `DependabotExpanded`, `MyPrsExpanded`, `TeamReviewExpanded`, `DraftExpanded`, `LaterExpanded`). `BoolToAngleConverter` rotates chevron (0° = expanded, -90° = collapsed). Hotfixes is only shown when `HotfixCount > 0`; Dependabot only when `DependabotCount > 0`; Team Review Requests only when `TeamReviewCount > 0` (which is 0 when `ShowTeamReviewSection` is false); My Draft PRs only when `DraftPrsCount > 0`; all other sections likewise hide when their count is zero.
 
 Draft PRs (own, non-hotfix, non-auto-merge) are carved out from "My PRs" in `PollingService.PollAsync` and placed in a separate `DraftPrs` list in `PollSnapshot`. `MyPrs` contains only non-draft own PRs. `PrItemViewModel.IsDraftSectionPr` flags items belonging to this section; `IsOwnPr` includes `IsDraftSectionPr`.
 
@@ -240,7 +245,7 @@ Each PR row shows a colored 10×10 `Ellipse`:
 - `#F0883E` orange — Error
 - `#484F58` gray — Unknown
 
-For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CIState` — draft PRs always return `CIState.Unknown` so their indicator is grey regardless of actual build state.
+For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CIState` — draft PRs always return `CIState.Unknown` so their indicator is grey regardless of actual build state. When `HasConflicts` is true, `EffectiveCIState` returns `CIState.Failure` regardless of the actual CI state. The tray icon also counts `HasConflicts` PRs as failed CI. The PR tooltip preserves the real CI state (e.g. `CI: Success`) and appends a separate `Merge conflicts` line when `HasConflicts` is true.
 
 ### Unresolved review comments indicator
 - PR rows keep the CI circle unchanged and can show an additional message icon (`Segoe MDL2 Assets`, `E8BD`) when unresolved review comments are present.
@@ -252,6 +257,13 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 - No icon is shown when a non-Copilot reviewer has been assigned — reviewer names appear in `PrTooltip` instead.
 - `ReviewerLogins` is populated from GraphQL `reviewRequests(first: 10)` in `MyPrsQuery` and `ReviewRequestedQuery`, filtering out logins that start with `"copilot"` (case-insensitive, covers both `copilot` and `copilot-pull-request-reviewer[bot]`). Team slugs are included.
 - `PrTooltip` (computed property on `PrItemViewModel`) shows: `CI: {state}` + reviewer info (if `IsOwnPr`) + unresolved comments + approved state, joined by newlines.
+
+### Assign reviewer submenu
+- Own non-draft PR rows (My Auto-Merge PRs, My PRs, Hotfixes, own PRs in Later) show an **Assign reviewer** submenu in their right-click context menus.
+- **Currently assigned reviewers** appear at the top with a checkmark; clicking them removes the reviewer via the GraphQL `requestReviewsById` mutation.
+- **Up to 10 recently used reviewers** (`RecentReviewers` in settings) are listed below for one-click assignment; the list is updated on every successful assign/remove.
+- **Search…** opens `AssignReviewerSearchWindow` — a modal search dialog with instant client-side filtering of org members once loaded. It shows a recents panel when the search box is empty, with per-item remove (✕ or Delete key). Keyboard navigation (↑/↓) works between the search box and results.
+- The org-member list is fetched via GraphQL (`organization.membersWithRole`) and cached in `OrgMembersCache` / `OrgMembersCachedAt` in settings. The cache is reused across restarts and only re-fetched after 30 days or when the user clicks the ↺ refresh button in the dialog.
 
 ### Tray icon colors
 - Red `#F85149` — CI failures present
@@ -290,7 +302,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
   - `push` to `main`
 - Behavior:
   - Restores and builds the full solution (`pr-monitor.slnx`) in `Release` with .NET 10 on `windows-latest`
-  - Runs `dotnet test` on `tests/PrMonitor.Tests` (149 xUnit tests)
+  - Runs `dotnet test` on `tests/PrMonitor.Tests` (305 xUnit tests)
   - Build + test validation only (no tag/release/upload steps)
 
 - Release workflow: `.github/workflows/release-on-version-change.yml`
@@ -404,6 +416,11 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "flakinessRerunCounts": {
     "owner/repo#123": { "count": 1, "lastAttempt": "2026-03-24T00:00:00Z" }
   },
+  "recentReviewers": ["alice", "bob"],
+  "orgMembersCache": [
+    { "login": "alice", "name": "Alice Smith" }
+  ],
+  "orgMembersCachedAt": "2026-04-01T12:00:00Z",
   "verboseLogging": false
 }
 ```

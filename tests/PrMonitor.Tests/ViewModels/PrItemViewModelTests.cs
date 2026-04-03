@@ -209,6 +209,20 @@ public class PrItemViewModelTests
         Assert.Equal("3 unresolved review comments", vm.UnresolvedReviewCommentsToolTip);
     }
 
+    [Fact]
+    public void IsOwnPr_IsDraftSectionPr_ReturnsTrue()
+    {
+        var vm = MakeVm(isDraftSection: true);
+        Assert.True(vm.IsOwnPr);
+    }
+
+    [Fact]
+    public void ShowNoReviewerWarning_IsDraftSectionPr_TrueWhenNoReviewer()
+    {
+        var vm = MakeVm(isDraftSection: true, reviewerLogins: []);
+        Assert.True(vm.ShowNoReviewerWarning);
+    }
+
     // ── CanMarkAsReady ───────────────────────────────────────────────
 
     [Theory]
@@ -245,7 +259,8 @@ public class PrItemViewModelTests
         bool isMyPr = false,
         bool isAutoMerge = false,
         bool isHotfix = false,
-        bool hasConflicts = false) =>
+        bool hasConflicts = false,
+        bool isDraftSection = false) =>
         new()
         {
             Key = "org/repo#1",
@@ -266,5 +281,6 @@ public class PrItemViewModelTests
             IsMyPr = isMyPr,
             IsAutoMergePr = isAutoMerge,
             IsHotfixPr = isHotfix,
+            IsDraftSectionPr = isDraftSection,
         };
 }

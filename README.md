@@ -13,6 +13,7 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 | **Hotfixes** | Open PRs targeting a `release/*` branch that you are involved in |
 | **My Auto-Merge PRs** | Your own PRs with auto-merge enabled, including their CI status |
 | **Awaiting My Review** | PRs where your review has been requested directly (including assignee-only PRs) |
+| **Dependabot** | Dependabot PRs awaiting your review (collapsed by default) |
 | **My PRs** | Your own open non-draft PRs without auto-merge (collapsed by default) |
 | **Team Review Requests** | PRs where a review was requested from a team you belong to (collapsed by default; can be disabled in Settings) |
 | **My Draft PRs** | Your own draft PRs (collapsed by default) |
@@ -40,6 +41,7 @@ Right-clicking a PR row shows a context menu with:
 - **Copy branch name** — copies the head branch name to the clipboard
 - **Rerun failed jobs** — retriggers failed CI runs for the PR (enabled for failed, non-draft PRs)
 - **Request Copilot review** — requests (or re-requests) a Copilot review for the PR
+- **Assign reviewer** (submenu, shown for own non-draft PRs) — currently assigned reviewers appear with a checkmark (click to remove); up to 10 recently used reviewers are listed for one-click assignment; **Search…** opens a dialog to find any org member by login or display name
 - **Move to later** (submenu: 1 hour / 4 hours / Tomorrow morning / 1 week / Indefinitely) — snoozes the PR into the Later section
 - **Restore** — moves the PR back from the Later section
 - **Mark as ready** / **Convert to draft** — toggles the PR’s draft state (shown when applicable)

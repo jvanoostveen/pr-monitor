@@ -130,6 +130,18 @@ public class PollingServiceSnapshotTests
         Assert.Equal(1, snapshot.TotalCount);
     }
 
+    [Fact]
+    public void TotalCount_DoesNotIncludeDraftPrsOrDependabotPrs()
+    {
+        var snapshot = new PollSnapshot
+        {
+            AutoMergePrs   = [MakePr()],
+            DraftPrs       = [MakePr(), MakePr()],
+            DependabotPrs  = [MakePr()],
+        };
+        Assert.Equal(1, snapshot.TotalCount);
+    }
+
     private static PullRequestInfo MakePr(CIState ciState = CIState.Success) =>
         new()
         {
