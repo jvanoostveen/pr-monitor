@@ -253,7 +253,7 @@
                             <TextBlock x:Name="RefreshIcon"
                                        Style="{StaticResource IconText}"
                                        Text="&#xE5D5;"
-                                       FontSize="12"
+                                       FontSize="16"
                                        Foreground="#6E7681"
                                        RenderTransformOrigin="0.5,0.5">
                                 <TextBlock.RenderTransform>
@@ -277,7 +277,7 @@
                             </Border.Style>
                             <TextBlock Style="{StaticResource IconText}"
                                        Text="&#xE5CD;"
-                                       FontSize="12"
+                                       FontSize="16"
                                        Foreground="#8B949E"/>
                         </Border>
                     </StackPanel>
@@ -305,7 +305,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="10" Foreground="#6E7681"
+                                           FontSize="13" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding HotfixExpanded,
@@ -314,7 +314,7 @@
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xEF55;"
-                                               FontSize="12" Foreground="#F85149"
+                                               FontSize="16" Foreground="#F85149"
                                                Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
                                                VerticalAlignment="Center">
@@ -363,14 +363,14 @@
                                                              VerticalAlignment="Center"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
-                                                               FontSize="11"
+                                                               FontSize="14"
                                                                Foreground="#8B949E"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xF567;"
-                                                               FontSize="11"
+                                                               FontSize="14"
                                                                Foreground="#D29922"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
@@ -406,7 +406,7 @@
                                 <TextBlock DockPanel.Dock="Left"
                                            Style="{StaticResource IconText}"
                                            Text="&#xE5CC;"
-                                           FontSize="10" Foreground="#6E7681"
+                                           FontSize="13" Foreground="#6E7681"
                                            Margin="0,0,6,0"
                                            RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
@@ -416,7 +416,7 @@
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xEB98;"
-                                               FontSize="12" Foreground="#58A6FF"
+                                               FontSize="16" Foreground="#58A6FF"
                                                Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
                                                VerticalAlignment="Center">
@@ -465,14 +465,14 @@
                                                              VerticalAlignment="Center"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
-                                                               FontSize="11"
+                                                               FontSize="14"
                                                                Foreground="#8B949E"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xF567;"
-                                                               FontSize="11"
+                                                               FontSize="14"
                                                                Foreground="#D29922"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
@@ -503,7 +503,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="10" Foreground="#6E7681"
+                                           FontSize="13" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding ReviewExpanded,
@@ -512,7 +512,7 @@
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xE560;"
-                                               FontSize="12" Foreground="#D29922"
+                                               FontSize="16" Foreground="#D29922"
                                                Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
                                                VerticalAlignment="Center">
@@ -561,11 +561,11 @@
                                                              VerticalAlignment="Center"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
-                                                               FontSize="11"
+                                                               FontSize="14"
                                                                Foreground="#8B949E"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -595,7 +595,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="10" Foreground="#6E7681"
+                                           FontSize="13" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding DependabotExpanded,
@@ -604,7 +604,7 @@
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xF06C;"
-                                               FontSize="12" Foreground="#3FB950"
+                                               FontSize="16" Foreground="#3FB950"
                                                Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3"
                                                VerticalAlignment="Center">
@@ -653,11 +653,11 @@
                                                              VerticalAlignment="Center"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
-                                                               FontSize="11"
+                                                               FontSize="14"
                                                                Foreground="#8B949E"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -687,7 +687,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="10" Foreground="#6E7681"
+                                           FontSize="13" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding MyPrsExpanded,
@@ -696,7 +696,7 @@
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xE896;"
-                                               FontSize="12" Foreground="#8B949E"
+                                               FontSize="16" Foreground="#8B949E"
                                                Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#C9D1D9"
                                                VerticalAlignment="Center">
@@ -746,14 +746,14 @@
                                                              VerticalAlignment="Center"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
-                                                               FontSize="11"
+                                                               FontSize="14"
                                                                Foreground="#8B949E"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xF567;"
-                                                               FontSize="11"
+                                                               FontSize="14"
                                                                Foreground="#D29922"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
@@ -784,7 +784,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="10" Foreground="#6E7681"
+                                           FontSize="13" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding TeamReviewExpanded,
@@ -793,7 +793,7 @@
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xEA21;"
-                                               FontSize="12" Foreground="#8B949E"
+                                               FontSize="16" Foreground="#8B949E"
                                                Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#C9D1D9"
                                                VerticalAlignment="Center">
@@ -842,11 +842,11 @@
                                                              VerticalAlignment="Center"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
-                                                               FontSize="11"
+                                                               FontSize="14"
                                                                Foreground="#8B949E"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -876,7 +876,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="10" Foreground="#6E7681"
+                                           FontSize="13" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding DraftExpanded,
@@ -885,7 +885,7 @@
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xE66D;"
-                                               FontSize="12" Foreground="#8B949E"
+                                               FontSize="16" Foreground="#8B949E"
                                                Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#C9D1D9"
                                                VerticalAlignment="Center">
@@ -931,13 +931,13 @@
                                                              VerticalAlignment="Center"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
-                                                               FontSize="11"
+                                                               FontSize="14"
                                                                Foreground="#8B949E"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xF567;"
-                                                               FontSize="11"
+                                                               FontSize="14"
                                                                Foreground="#D29922"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
@@ -968,7 +968,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="10" Foreground="#6E7681"
+                                           FontSize="13" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding LaterExpanded,
@@ -977,7 +977,7 @@
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xEFD6;"
-                                               FontSize="12" Foreground="#6E7681"
+                                               FontSize="16" Foreground="#6E7681"
                                                Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#6E7681"
                                                VerticalAlignment="Center">
@@ -1026,14 +1026,14 @@
                                                          VerticalAlignment="Center"/>
                                                 <TextBlock Style="{StaticResource IconText}"
                                                            Text="&#xE24C;"
-                                                           FontSize="11"
+                                                           FontSize="14"
                                                            Foreground="#8B949E"
                                                            Margin="5,0,0,0"
                                                            Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="11" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 <TextBlock Style="{StaticResource IconText}"
                                                            Text="&#xF567;"
-                                                           FontSize="11"
+                                                           FontSize="14"
                                                            Foreground="#D29922"
                                                            Margin="5,0,0,0"
                                                            Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
@@ -1093,7 +1093,7 @@
                                         MouseLeftButtonUp="UpdateBanner_Click">
                                 <TextBlock Style="{StaticResource IconText}"
                                            Text="&#xF090;"
-                                           FontSize="11"
+                                           FontSize="14"
                                            Foreground="#3FB950"
                                            Margin="0,0,6,0"/>
                                 <TextBlock FontSize="10" Foreground="#3FB950"

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Icon sizes**: increased icon font sizes to compensate for Material Symbols' larger built-in padding — section header icons `12→16`, chevrons `10→13`, PR row icons `11→14`, header buttons `12→16`, update banner icon `11→14`. Row heights are unchanged.
+
 ### Fixed
 
 - PRs that appear via multiple channels (e.g., directly review-requested AND via a team review request, or assigned as assignee AND team review requested) no longer show up in two separate sections. The "Awaiting My Review" section (direct request or assignee) now takes priority: any PR already present there is excluded from "Team Review Requests".
