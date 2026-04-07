@@ -305,7 +305,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="13" Foreground="#6E7681"
+                                           FontSize="16" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding HotfixExpanded,
@@ -406,7 +406,7 @@
                                 <TextBlock DockPanel.Dock="Left"
                                            Style="{StaticResource IconText}"
                                            Text="&#xE5CC;"
-                                           FontSize="13" Foreground="#6E7681"
+                                           FontSize="16" Foreground="#6E7681"
                                            Margin="0,0,6,0"
                                            RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
@@ -503,7 +503,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="13" Foreground="#6E7681"
+                                           FontSize="16" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding ReviewExpanded,
@@ -595,7 +595,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="13" Foreground="#6E7681"
+                                           FontSize="16" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding DependabotExpanded,
@@ -687,7 +687,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="13" Foreground="#6E7681"
+                                           FontSize="16" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding MyPrsExpanded,
@@ -784,7 +784,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="13" Foreground="#6E7681"
+                                           FontSize="16" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding TeamReviewExpanded,
@@ -876,7 +876,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="13" Foreground="#6E7681"
+                                           FontSize="16" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding DraftExpanded,
@@ -968,7 +968,7 @@
                                 Background="Transparent" Margin="0,0,0,6">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource IconText}" Text="&#xE5CC;"
-                                           FontSize="13" Foreground="#6E7681"
+                                           FontSize="16" Foreground="#6E7681"
                                            Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="{Binding LaterExpanded,
