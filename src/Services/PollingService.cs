@@ -164,10 +164,13 @@ public sealed class PollingService : IDisposable
                 .ToList();
 
             // Team section: only when enabled; otherwise drop team PRs entirely (not shown anywhere)
+            // Also deduplicate: if the same PR is already in combinedReviewPrs (via direct review
+            // request or assignee), don't show it again in team review requests.
             List<PullRequestInfo> teamReviewPrs;
             if (showTeamSection)
             {
-                teamReviewPrs = teamOnlyPrs;
+                var combinedKeys = combinedReviewPrs.Select(p => p.Key).ToHashSet();
+                teamReviewPrs = teamOnlyPrs.Where(p => !combinedKeys.Contains(p.Key)).ToList();
             }
             else
             {

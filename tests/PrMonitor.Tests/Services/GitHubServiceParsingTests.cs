@@ -323,6 +323,21 @@ public class GitHubServiceParsingTests
         Assert.True(result[0].IsTeamReviewRequested);
     }
 
+    [Fact]
+    public void ParseReviewPrs_BothDirectAndTeamReview_DirectTakesPriority()
+    {
+        // PR has both a direct review request for the current user AND a team review request.
+        // It should be classified as a direct (non-team-only) review request.
+        var reviewerNodes = "{\"requestedReviewer\":{\"__typename\":\"User\",\"login\":\"alice\"}},"
+                          + "{\"requestedReviewer\":{\"__typename\":\"Team\",\"slug\":\"my-team\"}}";
+        var prNode = BuildReviewPrNodeWithNodes(number: 13, reviewerNodes: reviewerNodes);
+        using var doc = JsonDocument.Parse(BuildReviewPrsJson(prNode));
+        var result = GitHubService.ParseReviewPrs(doc.RootElement, "alice");
+
+        Assert.Single(result);
+        Assert.False(result[0].IsTeamReviewRequested);
+    }
+
     private static string BuildMyPrsJson(string prNode) =>
         "{\"data\":{\"search\":{\"nodes\":[" + prNode + "]}}}";
 
@@ -382,6 +397,11 @@ public class GitHubServiceParsingTests
         var reviewerJson = reviewerType == "Team"
             ? "{\"requestedReviewer\":{\"__typename\":\"Team\",\"slug\":\"" + reviewerName + "\"}}"
             : "{\"requestedReviewer\":{\"__typename\":\"User\",\"login\":\"" + reviewerName + "\"}}";
+        return BuildReviewPrNodeWithNodes(number, reviewerJson);
+    }
+
+    private static string BuildReviewPrNodeWithNodes(int number = 1, string reviewerNodes = "")
+    {
         return "{\"number\":" + number
             + ",\"title\":\"Review PR " + number + "\""
             + ",\"url\":\"https://github.com/org/repo/pull/" + number + "\""
@@ -397,7 +417,7 @@ public class GitHubServiceParsingTests
             + ",\"commits\":{\"nodes\":[{\"commit\":{\"oid\":\"sha1\",\"statusCheckRollup\":null}}]}"
             + ",\"reviewThreads\":{\"nodes\":[]}"
             + ",\"latestOpinionatedReviews\":{\"nodes\":[]}"
-            + ",\"reviewRequests\":{\"nodes\":[" + reviewerJson + "]}}";
+            + ",\"reviewRequests\":{\"nodes\":[" + reviewerNodes + "]}}";
     }
 }
 
