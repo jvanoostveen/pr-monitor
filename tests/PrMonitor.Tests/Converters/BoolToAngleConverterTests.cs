@@ -9,8 +9,8 @@ public class BoolToAngleConverterTests
     private readonly BoolToAngleConverter _converter = new();
 
     [Theory]
-    [InlineData(true, 0.0)]
-    [InlineData(false, -90.0)]
+    [InlineData(true, 90.0)]
+    [InlineData(false, 0.0)]
     public void Convert_BoolInput_ReturnsExpectedAngle(bool input, double expectedAngle)
     {
         var result = _converter.Convert(input, typeof(double), null!, CultureInfo.InvariantCulture);
@@ -20,10 +20,10 @@ public class BoolToAngleConverterTests
     [Theory]
     [InlineData("not a bool")]
     [InlineData(42)]
-    public void Convert_NonBoolInput_ReturnsMinus90(object input)
+    public void Convert_NonBoolInput_ReturnsZero(object input)
     {
         var result = _converter.Convert(input, typeof(double), null!, CultureInfo.InvariantCulture);
-        Assert.Equal(-90.0, result);
+        Assert.Equal(0.0, result);
     }
 
     [Fact]
