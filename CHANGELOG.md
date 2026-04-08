@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Enable auto-merge** context menu option on own non-draft PR rows (My PRs, My Auto-Merge PRs, Hotfixes, own PRs in Later). Enabled only when auto-merge is not already active; grayed out otherwise. Uses `gh pr merge --auto` under the hood and refreshes the PR list on success.
+- **Auto-merge method** setting in Settings → General: choose between Merge commit (default), Squash and merge, or Rebase and merge. This controls the strategy used by the Enable auto-merge action.
+
 ### Changed
 - **Icon sizes**: increased icon font sizes to compensate for Material Symbols' larger built-in padding — section header icons `12→16`, chevrons `10→13`, PR row icons `11→14`, header buttons `12→16`, update banner icon `11→14`. Row heights are unchanged.
 

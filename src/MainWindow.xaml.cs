@@ -85,6 +85,7 @@ public partial class MainWindow : Window
     private const uint ID_SNOOZE_TOMORROW    = 1010;
     private const uint ID_SNOOZE_1W          = 1011;
     private const uint ID_SNOOZE_INDEFINITELY= 1012;
+    private const uint ID_PR_ENABLE_AUTOMERGE= 1013;
 
     // Assign-reviewer submenu — 2000..2009 assigned, 2010..2019 recent, 2020 search
     private const uint ID_PR_ASSIGN_BASE     = 2000;
@@ -804,6 +805,10 @@ public partial class MainWindow : Window
             // "Assign reviewer" submenu — only for own non-draft PRs
             if (vm.IsOwnPr && !vm.IsDraft)
             {
+                AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
+                var autoMergeFlags = vm.CanEnableAutoMerge ? MF_STRING : MF_STRING | MF_GRAYED;
+                AppendMenuW(hMenu, autoMergeFlags, (UIntPtr)ID_PR_ENABLE_AUTOMERGE, "Enable auto-merge");
+
                 var assignMenu = CreatePopupMenu();
                 // Assigned reviewers (checked — click removes)
                 for (int i = 0; i < assignedLogins.Length; i++)
@@ -875,6 +880,10 @@ public partial class MainWindow : Window
                 case ID_PR_COPILOT:
                     if (vm.CanRequestCopilotReview)
                         _ = RequestCopilotReviewAsync(vm);
+                    break;
+                case ID_PR_ENABLE_AUTOMERGE:
+                    if (vm.CanEnableAutoMerge)
+                        _ = EnableAutoMergeAsync(vm);
                     break;
                 case ID_PR_REVIEWER_SEARCH:
                     _ = SearchAndAssignReviewerAsync(vm);
@@ -1292,6 +1301,43 @@ public partial class MainWindow : Window
             System.Windows.MessageBox.Show(
                 $"Could not convert PR to draft.\n\nDetails: {ex.Message}",
                 "Convert to draft",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private async Task EnableAutoMergeAsync(PrItemViewModel vm)
+    {
+        if (!vm.CanEnableAutoMerge)
+            return;
+
+        if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
+        {
+            System.Windows.MessageBox.Show(
+                "Could not determine owner/repository for this PR.",
+                "Enable auto-merge",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            var success = await _github.EnableAutoMergeAsync(owner, repo, vm.Number, _settings.AutoMergeMergeMethod);
+            if (success)
+                await ViewModel.RefreshAsync();
+            else
+                System.Windows.MessageBox.Show(
+                    "Could not enable auto-merge for this pull request.\n\nMake sure branch protection requires at least one check and auto-merge is allowed on this repository.",
+                    "Enable auto-merge",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Could not enable auto-merge.\n\nDetails: {ex.Message}",
+                "Enable auto-merge",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         }

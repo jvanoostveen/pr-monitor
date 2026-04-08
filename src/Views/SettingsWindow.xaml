@@ -366,6 +366,14 @@
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,2,0,0" TextWrapping="Wrap"
                                    Text="Enable to write informational log entries (window placement, poll lifecycle, etc.). Errors are always logged."/>
 
+                        <!-- Auto-merge merge method -->
+                        <TextBlock Text="AUTO-MERGE METHOD" Style="{StaticResource SectionLabel}" Margin="0,16,0,6"/>
+                        <RadioButton Margin="0,0,0,6" IsChecked="{Binding AutoMergeMethodMerge}"   Content="Merge commit"/>
+                        <RadioButton Margin="0,0,0,6" IsChecked="{Binding AutoMergeMethodSquash}"  Content="Squash and merge"/>
+                        <RadioButton Margin="0,0,0,0" IsChecked="{Binding AutoMergeMethodRebase}"  Content="Rebase and merge"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="Merge strategy used when enabling auto-merge from the PR context menu."/>
+
                     </StackPanel>
                 </TabItem>
 

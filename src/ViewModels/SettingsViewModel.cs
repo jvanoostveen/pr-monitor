@@ -40,6 +40,12 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _flakinessAutoMergeOnly = settings.FlakinessAutoMergeOnly;
         _flakinessMaxReruns = Math.Clamp(settings.FlakinessMaxReruns, 1, 10);
         _flakinessCustomHints = settings.FlakinessCustomHints;
+        _autoMergeMergeMethod = settings.AutoMergeMergeMethod switch
+        {
+            "squash" => "squash",
+            "rebase" => "rebase",
+            _        => "merge",
+        };
         foreach (var rule in settings.FlakinessRules)
             FlakinessRules.Add(new FlakinessRuleViewModel(rule));
     }
@@ -226,6 +232,35 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
     public ObservableCollection<FlakinessRuleViewModel> FlakinessRules { get; } = [];
 
+    // ── Auto-merge merge method ────────────────────────────────────────────
+
+    private string _autoMergeMergeMethod;
+
+    public bool AutoMergeMethodMerge
+    {
+        get => _autoMergeMergeMethod == "merge";
+        set { if (value) { _autoMergeMergeMethod = "merge"; OnAutoMergeMethodChanged(); } }
+    }
+
+    public bool AutoMergeMethodSquash
+    {
+        get => _autoMergeMergeMethod == "squash";
+        set { if (value) { _autoMergeMergeMethod = "squash"; OnAutoMergeMethodChanged(); } }
+    }
+
+    public bool AutoMergeMethodRebase
+    {
+        get => _autoMergeMergeMethod == "rebase";
+        set { if (value) { _autoMergeMergeMethod = "rebase"; OnAutoMergeMethodChanged(); } }
+    }
+
+    private void OnAutoMergeMethodChanged()
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutoMergeMethodMerge)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutoMergeMethodSquash)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutoMergeMethodRebase)));
+    }
+
     public void DeleteRule(string id)
     {
         var vm = FlakinessRules.FirstOrDefault(r => r.Id == id);
@@ -262,6 +297,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.FlakinessAutoMergeOnly = _flakinessAutoMergeOnly;
         _settings.FlakinessMaxReruns = _flakinessMaxReruns;
         _settings.FlakinessCustomHints = _flakinessCustomHints;
+        _settings.AutoMergeMergeMethod = _autoMergeMergeMethod;
         _settings.FlakinessRules = FlakinessRules.Select(vm => new FlakinessRule
         {
             Id = vm.Id,

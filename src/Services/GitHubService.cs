@@ -807,6 +807,25 @@ public sealed class GitHubService
         return exitCode == 0;
     }
 
+    /// <summary>
+    /// Enables auto-merge (squash) on a PR. Returns true on success.
+    /// </summary>
+    public async Task<bool> EnableAutoMergeAsync(string owner, string repo, int prNumber, string mergeMethod = "merge")
+    {
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo"))
+            return false;
+        var methodFlag = mergeMethod switch
+        {
+            "squash" => "--squash",
+            "rebase" => "--rebase",
+            _        => "--merge",
+        };
+        var (_, stderr, exitCode) = await RunGhAsync("pr", "merge", prNumber.ToString(), "--auto", methodFlag, "--repo", $"{owner}/{repo}");
+        if (exitCode != 0)
+            _logger.Warn($"EnableAutoMergeAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
+        return exitCode == 0;
+    }
+
     // ── Internal helpers ────────────────────────────────────────────────
 
     internal static List<string> BuildSearchQueries(string baseQuery, IReadOnlyList<string> orgs)

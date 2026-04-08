@@ -752,6 +752,7 @@ public sealed class PrItemViewModel
     public bool IsDraft { get; init; }
     public string HeadRefName { get; init; } = "";
     public string HeadCommitSha { get; init; } = "";
+    public bool HasAutoMerge { get; init; }
     public bool IsApproved { get; init; }
     public IReadOnlyList<string> ReviewerLogins { get; init; } = [];
     public bool HasNonCopilotReviewer => ReviewerLogins.Count > 0;
@@ -784,6 +785,7 @@ public sealed class PrItemViewModel
     public bool CanRequestCopilotReview => !IsDraft;
     public bool CanMarkAsReady => IsOwnPr && IsDraft;
     public bool CanConvertToDraft => IsOwnPr && !IsDraft;
+    public bool CanEnableAutoMerge => IsOwnPr && !IsDraft && !HasAutoMerge;
 
     /// <summary>Show the approved checkmark icon: PR is approved but has no unresolved review comments (comments take priority).</summary>
     public bool ShowApprovedIcon => IsApproved && !HasUnresolvedReviewComments;
@@ -819,6 +821,7 @@ public sealed class PrItemViewModel
         IsDraft = pr.IsDraft,
         HeadRefName = pr.HeadRefName,
         HeadCommitSha = pr.HeadCommitSha,
+        HasAutoMerge = pr.HasAutoMerge,
         IsApproved = pr.IsApproved,
         ReviewerLogins = pr.ReviewerLogins,
         CIIcon = pr.CIState switch

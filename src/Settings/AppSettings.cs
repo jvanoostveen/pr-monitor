@@ -145,6 +145,11 @@ public sealed class AppSettings
     /// <summary>Maximum automatic reruns for flaky failures per PR.</summary>
     public int FlakinessMaxReruns { get; set; } = 3;
 
+    // ── Auto-merge ───────────────────────────────────────────────────────
+
+    /// <summary>Merge method to use when enabling auto-merge. One of "merge", "squash", "rebase".</summary>
+    public string AutoMergeMergeMethod { get; set; } = "merge";
+
     /// <summary>Free-text project context injected into the AI system prompt to guide flakiness classification.</summary>
     public string FlakinessCustomHints { get; set; } = "";
 
