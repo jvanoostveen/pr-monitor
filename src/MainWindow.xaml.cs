@@ -1026,15 +1026,15 @@ public partial class MainWindow : Window
 
         if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
         {
-            System.Windows.MessageBox.Show("Could not determine owner/repository for this PR.", "Rerun failed jobs",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            DarkMessageBox.Show("Could not determine owner/repository for this PR.", "Rerun failed jobs",
+                MessageBoxButton.OK, MessageBoxImage.Warning, this);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(vm.HeadCommitSha))
         {
-            System.Windows.MessageBox.Show("No head commit SHA found for this PR.", "Rerun failed jobs",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            DarkMessageBox.Show("No head commit SHA found for this PR.", "Rerun failed jobs",
+                MessageBoxButton.OK, MessageBoxImage.Warning, this);
             return;
         }
 
@@ -1043,8 +1043,8 @@ public partial class MainWindow : Window
             var failedRunIds = await _github.FetchFailedRunIdsAsync(owner, repo, vm.HeadCommitSha);
             if (failedRunIds.Count == 0)
             {
-                System.Windows.MessageBox.Show("No failed workflow runs were found for this PR commit.", "Rerun failed jobs",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                DarkMessageBox.Show("No failed workflow runs were found for this PR commit.", "Rerun failed jobs",
+                    MessageBoxButton.OK, MessageBoxImage.Information, this);
                 return;
             }
 
@@ -1063,20 +1063,22 @@ public partial class MainWindow : Window
             }
             else
             {
-                System.Windows.MessageBox.Show(
+                DarkMessageBox.Show(
                     "Failed to trigger rerun for the failed workflow runs.",
                     "Rerun failed jobs",
                     MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    MessageBoxImage.Warning,
+                    this);
             }
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 $"Could not rerun failed jobs.\n\nDetails: {ex.Message}",
                 "Rerun failed jobs",
                 MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                MessageBoxImage.Error,
+                this);
         }
     }
 
@@ -1095,11 +1097,12 @@ public partial class MainWindow : Window
 
         if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
         {
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 "Could not determine owner/repository for this PR.",
                 "Request Copilot review",
                 MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                MessageBoxImage.Warning,
+                this);
             return;
         }
 
@@ -1112,20 +1115,22 @@ public partial class MainWindow : Window
             }
             else
             {
-                System.Windows.MessageBox.Show(
+                DarkMessageBox.Show(
                     "Could not request a Copilot review for this pull request.",
                     "Request Copilot review",
                     MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    MessageBoxImage.Warning,
+                    this);
             }
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 $"Could not request Copilot review.\n\nDetails: {ex.Message}",
                 "Request Copilot review",
                 MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                MessageBoxImage.Error,
+                this);
         }
     }
 
@@ -1144,20 +1149,22 @@ public partial class MainWindow : Window
             }
             else
             {
-                System.Windows.MessageBox.Show(
+                DarkMessageBox.Show(
                     $"Could not assign {login} as reviewer.",
                     "Assign reviewer",
                     MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    MessageBoxImage.Warning,
+                    this);
             }
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 $"Could not assign reviewer.\n\nDetails: {ex.Message}",
                 "Assign reviewer",
                 MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                MessageBoxImage.Error,
+                this);
         }
     }
 
@@ -1171,19 +1178,21 @@ public partial class MainWindow : Window
             if (success)
                 await ViewModel.RefreshAsync();
             else
-                System.Windows.MessageBox.Show(
+                DarkMessageBox.Show(
                     $"Could not remove {login} as reviewer.",
                     "Remove reviewer",
                     MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    MessageBoxImage.Warning,
+                    this);
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 $"Could not remove reviewer.\n\nDetails: {ex.Message}",
                 "Remove reviewer",
                 MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                MessageBoxImage.Error,
+                this);
         }
     }
 
@@ -1205,20 +1214,22 @@ public partial class MainWindow : Window
             }
             else
             {
-                System.Windows.MessageBox.Show(
+                DarkMessageBox.Show(
                     $"Could not assign {login} as reviewer.",
                     "Assign reviewer",
                     MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    MessageBoxImage.Warning,
+                    this);
             }
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 $"Could not assign reviewer.\n\nDetails: {ex.Message}",
                 "Assign reviewer",
                 MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                MessageBoxImage.Error,
+                this);
         }
     }
 
@@ -1239,11 +1250,12 @@ public partial class MainWindow : Window
 
         if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
         {
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 "Could not determine owner/repository for this PR.",
                 "Mark as ready",
                 MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                MessageBoxImage.Warning,
+                this);
             return;
         }
 
@@ -1253,19 +1265,21 @@ public partial class MainWindow : Window
             if (success)
                 await ViewModel.RefreshAsync();
             else
-                System.Windows.MessageBox.Show(
+                DarkMessageBox.Show(
                     "Could not mark this pull request as ready.",
                     "Mark as ready",
                     MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    MessageBoxImage.Warning,
+                    this);
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 $"Could not mark PR as ready.\n\nDetails: {ex.Message}",
                 "Mark as ready",
                 MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                MessageBoxImage.Error,
+                this);
         }
     }
 
@@ -1276,11 +1290,12 @@ public partial class MainWindow : Window
 
         if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
         {
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 "Could not determine owner/repository for this PR.",
                 "Convert to draft",
                 MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                MessageBoxImage.Warning,
+                this);
             return;
         }
 
@@ -1290,19 +1305,21 @@ public partial class MainWindow : Window
             if (success)
                 await ViewModel.RefreshAsync();
             else
-                System.Windows.MessageBox.Show(
+                DarkMessageBox.Show(
                     "Could not convert this pull request to draft.",
                     "Convert to draft",
                     MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    MessageBoxImage.Warning,
+                    this);
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 $"Could not convert PR to draft.\n\nDetails: {ex.Message}",
                 "Convert to draft",
                 MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                MessageBoxImage.Error,
+                this);
         }
     }
 
@@ -1313,11 +1330,12 @@ public partial class MainWindow : Window
 
         if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
         {
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 "Could not determine owner/repository for this PR.",
                 "Enable auto-merge",
                 MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                MessageBoxImage.Warning,
+                this);
             return;
         }
 
@@ -1327,19 +1345,21 @@ public partial class MainWindow : Window
             if (success)
                 await ViewModel.RefreshAsync();
             else
-                System.Windows.MessageBox.Show(
+                DarkMessageBox.Show(
                     "Could not enable auto-merge for this pull request.\n\nMake sure branch protection requires at least one check and auto-merge is allowed on this repository.",
                     "Enable auto-merge",
                     MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    MessageBoxImage.Warning,
+                    this);
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 $"Could not enable auto-merge.\n\nDetails: {ex.Message}",
                 "Enable auto-merge",
                 MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                MessageBoxImage.Error,
+                this);
         }
     }
 

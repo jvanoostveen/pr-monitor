@@ -40,7 +40,7 @@ public partial class App : System.Windows.Application
         _ownsSingleInstanceMutex = createdNew;
         if (!createdNew)
         {
-            System.Windows.MessageBox.Show("PR Monitor is already running.", "PR Monitor",
+            DarkMessageBox.Show("PR Monitor is already running.", "PR Monitor",
                 MessageBoxButton.OK, MessageBoxImage.Information);
             Shutdown();
             return;
@@ -199,11 +199,12 @@ public partial class App : System.Windows.Application
         if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
         {
             _logger?.Warn($"Manual update check failed: {result.ErrorMessage}");
-            System.Windows.MessageBox.Show(
+            DarkMessageBox.Show(
                 $"Unable to check for updates right now.\n\nDetails: {result.ErrorMessage}",
                 "Check for updates",
                 MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                MessageBoxImage.Warning,
+                _mainWindow);
             return;
         }
 
@@ -220,11 +221,12 @@ public partial class App : System.Windows.Application
                 $"Latest version: {result.LatestVersionText}\n\n" +
                 "Do you want to view the changelog for the versions you're missing?";
 
-            var answer = System.Windows.MessageBox.Show(
+            var answer = DarkMessageBox.Show(
                 message,
                 "Update available",
                 MessageBoxButton.YesNo,
-                MessageBoxImage.Information);
+                MessageBoxImage.Information,
+                _mainWindow);
 
             if (answer == MessageBoxResult.Yes)
             {
@@ -237,11 +239,12 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        System.Windows.MessageBox.Show(
+        DarkMessageBox.Show(
             "You're using the latest version of PR Monitor.",
             "Check for updates",
             MessageBoxButton.OK,
-            MessageBoxImage.Information);
+            MessageBoxImage.Information,
+            _mainWindow);
     }
 
     private static void OpenInBrowser(string url)
