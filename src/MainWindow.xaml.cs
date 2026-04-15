@@ -809,17 +809,23 @@ public partial class MainWindow : Window
                 var autoMergeFlags = vm.CanEnableAutoMerge ? MF_STRING : MF_STRING | MF_GRAYED;
                 AppendMenuW(hMenu, autoMergeFlags, (UIntPtr)ID_PR_ENABLE_AUTOMERGE, "Enable auto-merge");
 
+                var memberNames = _settings.OrgMembersCache
+                    .Where(m => !string.IsNullOrWhiteSpace(m.Name))
+                    .ToDictionary(m => m.Login, m => m.Name!, StringComparer.OrdinalIgnoreCase);
+                string ReviewerLabel(string login) =>
+                    memberNames.TryGetValue(login, out var name) ? $"{name} ({login})" : login;
+
                 var assignMenu = CreatePopupMenu();
                 // Assigned reviewers (checked — click removes)
                 for (int i = 0; i < assignedLogins.Length; i++)
-                    AppendMenuW(assignMenu, MF_STRING | MF_CHECKED, (UIntPtr)(ID_PR_ASSIGN_BASE + (uint)i), assignedLogins[i]);
+                    AppendMenuW(assignMenu, MF_STRING | MF_CHECKED, (UIntPtr)(ID_PR_ASSIGN_BASE + (uint)i), ReviewerLabel(assignedLogins[i]));
                 // Recent reviewers not yet assigned
                 if (recentLogins.Length > 0)
                 {
                     if (assignedLogins.Length > 0)
                         AppendMenuW(assignMenu, MF_SEPARATOR, UIntPtr.Zero, null);
                     for (int i = 0; i < recentLogins.Length; i++)
-                        AppendMenuW(assignMenu, MF_STRING, (UIntPtr)(ID_PR_RECENT_BASE + (uint)i), recentLogins[i]);
+                        AppendMenuW(assignMenu, MF_STRING, (UIntPtr)(ID_PR_RECENT_BASE + (uint)i), ReviewerLabel(recentLogins[i]));
                 }
                 // Only add separator before Search… when there are items above it
                 if (assignedLogins.Length > 0 || recentLogins.Length > 0)
