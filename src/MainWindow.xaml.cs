@@ -813,7 +813,9 @@ public partial class MainWindow : Window
                     .Where(m => !string.IsNullOrWhiteSpace(m.Name))
                     .ToDictionary(m => m.Login, m => m.Name!, StringComparer.OrdinalIgnoreCase);
                 string ReviewerLabel(string login) =>
-                    memberNames.TryGetValue(login, out var name) ? $"{name} ({login})" : login;
+                    memberNames.TryGetValue(login, out var name) && !name.Equals(login, StringComparison.OrdinalIgnoreCase)
+                        ? $"{name} ({login})"
+                        : login;
 
                 var assignMenu = CreatePopupMenu();
                 // Assigned reviewers (checked — click removes)
