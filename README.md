@@ -13,8 +13,8 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 | **Hotfixes** | Open PRs targeting a `release/*` branch that you are involved in |
 | **My Auto-Merge PRs** | Your own PRs with auto-merge enabled, including their CI status |
 | **Awaiting My Review** | PRs where your review has been requested directly (including assignee-only PRs) |
-| **Dependabot** | Dependabot PRs awaiting your review (collapsed by default) |
 | **My PRs** | Your own open non-draft PRs without auto-merge (collapsed by default) |
+| **Dependabot** | Dependabot PRs awaiting your review (collapsed by default) |
 | **Team Review Requests** | PRs where a review was requested from a team you belong to (collapsed by default; can be disabled in Settings) |
 | **My Draft PRs** | Your own draft PRs (collapsed by default) |
 | **Later** | PRs you've snoozed with "Move to later" |
