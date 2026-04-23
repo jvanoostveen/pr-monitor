@@ -786,6 +786,7 @@ public partial class MainWindow : Window
         var assignedLogins = vm.ReviewerLogins.Take(10).ToArray();
         var recentLogins = _settings.RecentReviewers
             .Where(r => !assignedLogins.Contains(r, StringComparer.OrdinalIgnoreCase))
+            .OrderBy(r => r, StringComparer.OrdinalIgnoreCase)
             .Take(10)
             .ToArray();
 

@@ -41,7 +41,7 @@ Right-clicking a PR row shows a context menu with:
 - **Copy branch name** — copies the head branch name to the clipboard
 - **Rerun failed jobs** — retriggers failed CI runs for the PR (enabled for failed, non-draft PRs)
 - **Request Copilot review** — requests (or re-requests) a Copilot review for the PR
-- **Assign reviewer** (submenu, shown for own non-draft PRs) — currently assigned reviewers appear with a checkmark (click to remove); up to 10 recently used reviewers are listed for one-click assignment; **Search…** opens a dialog to find any org member by login or display name
+- **Assign reviewer** (submenu, shown for own non-draft PRs) — currently assigned reviewers appear with a checkmark (click to remove); up to 10 recently used reviewers are listed in alphabetical order for one-click assignment; **Search…** opens a dialog to find any org member by login or display name
 - **Move to later** (submenu: 1 hour / 4 hours / Tomorrow morning / 1 week / Indefinitely) — snoozes the PR into the Later section
 - **Restore** — moves the PR back from the Later section
 - **Mark as ready** / **Convert to draft** — toggles the PR’s draft state (shown when applicable)

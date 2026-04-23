@@ -261,7 +261,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 ### Assign reviewer submenu
 - Own non-draft PR rows (My Auto-Merge PRs, My PRs, Hotfixes, own PRs in Later) show an **Assign reviewer** submenu in their right-click context menus.
 - **Currently assigned reviewers** appear at the top with a checkmark; clicking them removes the reviewer via the GraphQL `requestReviewsById` mutation.
-- **Up to 10 recently used reviewers** (`RecentReviewers` in settings) are listed below for one-click assignment; the list is updated on every successful assign/remove.
+- **Up to 10 recently used reviewers** (`RecentReviewers` in settings) are listed below in case-insensitive alphabetical order for one-click assignment; the list is updated on every successful assign/remove.
 - **Search…** opens `AssignReviewerSearchWindow` — a modal search dialog with instant client-side filtering of org members once loaded. It shows a recents panel when the search box is empty, with per-item remove (✕ or Delete key). Keyboard navigation (↑/↓) works between the search box and results.
 - The org-member list is fetched via GraphQL (`organization.membersWithRole`) and cached in `OrgMembersCache` / `OrgMembersCachedAt` in settings. The cache is reused across restarts and only re-fetched after 30 days or when the user clicks the ↺ refresh button in the dialog.
 

@@ -125,7 +125,9 @@ public partial class AssignReviewerSearchWindow : Window
 
     private void ShowRecents()
     {
-        var logins = _settings.RecentReviewers;
+        var logins = _settings.RecentReviewers
+            .OrderBy(login => login, StringComparer.OrdinalIgnoreCase)
+            .ToList();
         if (logins.Count == 0)
         {
             RecentsPanel.Visibility = Visibility.Collapsed;
