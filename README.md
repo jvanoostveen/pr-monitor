@@ -10,7 +10,7 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 
 | Section | What's in it |
 |---|---|
-| **Hotfixes** | Open PRs targeting a `release/*` branch that you are involved in |
+| **Hotfixes** | Open PRs targeting a `release/*` branch that are yours or explicitly assigned to you |
 | **My Auto-Merge PRs** | Your own PRs with auto-merge enabled, including their CI status |
 | **Awaiting My Review** | PRs where your review has been requested directly (including assignee-only PRs) |
 | **My PRs** | Your own open non-draft PRs without auto-merge (collapsed by default) |

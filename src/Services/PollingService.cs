@@ -136,13 +136,18 @@ public sealed class PollingService : IDisposable
             var assignedPrs = await _github.FetchMyAssignedPRsAsync(_settings.Organizations);
             var hotfixPrs   = await _github.FetchHotfixPRsAsync(_settings.Organizations);
 
+            var myPrKeys = allMyPrs.Select(p => p.Key).ToHashSet();
+            var assignedPrKeys = assignedPrs.Select(p => p.Key).ToHashSet();
+
+            // Only keep hotfix PRs that are owned by me or explicitly assigned to me.
+            // This avoids showing release PRs where I was merely involved (e.g. reviewed/commented).
+            hotfixPrs = FilterOwnedOrAssignedHotfixPrs(hotfixPrs, myPrKeys, assignedPrKeys);
+
             // Exclude hotfix PRs (release/* targets) from My PRs and Auto-Merge PRs to avoid duplication
             var hotfixKeys   = hotfixPrs.Select(p => p.Key).ToHashSet();
             var autoMergePrs = allMyPrs.Where(p => p.HasAutoMerge && !hotfixKeys.Contains(p.Key)).ToList();
             var myPrs        = allMyPrs.Where(p => !p.HasAutoMerge && !hotfixKeys.Contains(p.Key) && !p.IsDraft).ToList();
             var draftPrs     = allMyPrs.Where(p => !p.HasAutoMerge && !hotfixKeys.Contains(p.Key) && p.IsDraft).ToList();
-
-            var myPrKeys = allMyPrs.Select(p => p.Key).ToHashSet();
 
             // Split review PRs into direct-user requests and team-only requests
             var directReviewPrs = reviewPrs.Where(p => !p.IsTeamReviewRequested).ToList();
@@ -234,6 +239,16 @@ public sealed class PollingService : IDisposable
         {
             _pollLock.Release();
         }
+    }
+
+    internal static List<PullRequestInfo> FilterOwnedOrAssignedHotfixPrs(
+        IEnumerable<PullRequestInfo> hotfixPrs,
+        IReadOnlySet<string> myPrKeys,
+        IReadOnlySet<string> assignedPrKeys)
+    {
+        return hotfixPrs
+            .Where(p => myPrKeys.Contains(p.Key) || assignedPrKeys.Contains(p.Key))
+            .ToList();
     }
 
     /// <summary>

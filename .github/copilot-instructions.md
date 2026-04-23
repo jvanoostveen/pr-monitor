@@ -233,6 +233,8 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 ### Collapsible sections
 Eight collapsible sections in order: Hotfixes, My Auto-Merge PRs, Awaiting My Review, My PRs, Dependabot, Team Review Requests, My Draft PRs, Later. State persisted in `AppSettings` (`HotfixExpanded`, `AutoMergeExpanded`, `ReviewExpanded`, `DependabotExpanded`, `MyPrsExpanded`, `TeamReviewExpanded`, `DraftExpanded`, `LaterExpanded`). `BoolToAngleConverter` rotates chevron (0° = expanded, -90° = collapsed). Hotfixes is only shown when `HotfixCount > 0`; Dependabot only when `DependabotCount > 0`; Team Review Requests only when `TeamReviewCount > 0` (which is 0 when `ShowTeamReviewSection` is false); My Draft PRs only when `DraftPrsCount > 0`; all other sections likewise hide when their count is zero.
 
+Hotfixes include only open `release/*` PRs that are either authored by the current user or explicitly assigned to the current user. PRs where the user is merely involved (for example by reviewing/commenting) are excluded from Hotfixes.
+
 Draft PRs (own, non-hotfix, non-auto-merge) are carved out from "My PRs" in `PollingService.PollAsync` and placed in a separate `DraftPrs` list in `PollSnapshot`. `MyPrs` contains only non-draft own PRs. `PrItemViewModel.IsDraftSectionPr` flags items belonging to this section; `IsOwnPr` includes `IsDraftSectionPr`.
 
 Dependabot PRs are identified by `Author` being `"dependabot[bot]"` or `"dependabot"` (case-insensitive). They are split out of the "Awaiting My Review" list during polling and placed in their own `DependabotPrs` collection.

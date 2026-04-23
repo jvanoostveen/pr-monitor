@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependabot section** moved below **My PRs** in the window order.
 - Recent reviewer lists in reviewer assignment UI are now shown in case-insensitive alphabetical order (context menu and search dialog recents panel).
 
+### Fixed
+- Hotfix classification now only includes open `release/*` PRs that are yours or explicitly assigned to you. PRs where you were merely involved (for example by reviewing/commenting) no longer appear in the Hotfixes section.
+
 ## [1.8.6] - 2026-04-08
 
 ### Added

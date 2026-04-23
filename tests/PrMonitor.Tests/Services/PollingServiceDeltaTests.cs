@@ -176,4 +176,45 @@ public class PollingServiceDeltaTests
 
         Assert.Empty(events);
     }
+
+    [Fact]
+    public void FilterOwnedOrAssignedHotfixPrs_ReviewedOnlyPr_IsExcluded()
+    {
+        var reviewedOnly = PR("org/repo#10");
+
+        var result = PollingService.FilterOwnedOrAssignedHotfixPrs(
+            [reviewedOnly],
+            myPrKeys: new HashSet<string>(),
+            assignedPrKeys: new HashSet<string>());
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void FilterOwnedOrAssignedHotfixPrs_OwnPr_IsIncluded()
+    {
+        var ownHotfix = PR("org/repo#11");
+
+        var result = PollingService.FilterOwnedOrAssignedHotfixPrs(
+            [ownHotfix],
+            myPrKeys: new HashSet<string> { "org/repo#11" },
+            assignedPrKeys: new HashSet<string>());
+
+        Assert.Single(result);
+        Assert.Equal("org/repo#11", result[0].Key);
+    }
+
+    [Fact]
+    public void FilterOwnedOrAssignedHotfixPrs_AssignedPr_IsIncluded()
+    {
+        var assignedHotfix = PR("org/repo#12");
+
+        var result = PollingService.FilterOwnedOrAssignedHotfixPrs(
+            [assignedHotfix],
+            myPrKeys: new HashSet<string>(),
+            assignedPrKeys: new HashSet<string> { "org/repo#12" });
+
+        Assert.Single(result);
+        Assert.Equal("org/repo#12", result[0].Key);
+    }
 }
