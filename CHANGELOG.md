@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recent reviewer lists in reviewer assignment UI are now shown in case-insensitive alphabetical order (context menu and search dialog recents panel).
 
 ### Fixed
+- Toast notifications now properly display PR titles containing Unicode ellipsis characters (U+2026, …) by replacing them with ASCII "..." for compatibility with the Windows notification system.
 - Hotfix classification now only includes open `release/*` PRs that are yours or explicitly assigned to you. PRs where you were merely involved (for example by reviewing/commenting) no longer appear in the Hotfixes section.
 
 ## [1.8.6] - 2026-04-08

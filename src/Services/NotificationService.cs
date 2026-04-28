@@ -79,6 +79,20 @@ public sealed class NotificationService : IDisposable
         try { ToastNotificationManagerCompat.History.Clear(); } catch { }
     }
     /// <summary>
+    /// Sanitize text for display in Windows toast notifications by replacing problematic Unicode characters
+    /// (e.g., U+2026 ellipsis) with their ASCII equivalents.
+    /// </summary>
+    private static string SanitizeForToast(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return text ?? "";
+        
+        // Replace Unicode ellipsis (U+2026) with ASCII "..."
+        text = text.Replace("…", "...");
+        
+        return text;
+    }
+
+    /// <summary>
     /// Show an ad-hoc toast notification directly (not tied to the polling event cycle).
     /// </summary>
     public void Notify(string title, string body)
@@ -124,10 +138,10 @@ public sealed class NotificationService : IDisposable
             }
             else
             {
-                // Summarise: "N pull requests" + individual titles (up to 4, then "…")
-                var titles = items.Take(4).Select(e => $"• {e.PullRequest.Title}").ToList();
+                // Summarise: "N pull requests" + individual titles (up to 4, then "...")
+                var titles = items.Take(4).Select(e => $"• {SanitizeForToast(e.PullRequest.Title)}").ToList();
                 if (items.Count > 4)
-                    titles.Add($"… and {items.Count - 4} more");
+                    titles.Add($"... and {items.Count - 4} more");
 
                 ShowToast(
                     group.Key,
@@ -177,8 +191,8 @@ public sealed class NotificationService : IDisposable
             new ToastContentBuilder()
                 .AddArgument(url)
                 .AddText(header)
-                .AddText(line1)
-                .AddText(line2)
+                .AddText(SanitizeForToast(line1))
+                .AddText(SanitizeForToast(line2))
                 .Show();
         }
         catch
