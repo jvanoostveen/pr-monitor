@@ -416,8 +416,28 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         public HiddenPrEntryViewModel(string key)
         {
             Key = key;
+
+            var normalizedKey = key.Trim();
+            var hashIndex = normalizedKey.LastIndexOf('#');
+
+            if (hashIndex > 0
+                && hashIndex < normalizedKey.Length - 1
+                && int.TryParse(normalizedKey[(hashIndex + 1)..], out var number))
+            {
+                var repo = normalizedKey[..hashIndex];
+                DisplayName = $"{repo} PR #{number}";
+                PullRequestUrl = $"https://github.com/{repo}/pull/{number}";
+            }
+            else
+            {
+                DisplayName = normalizedKey;
+                PullRequestUrl = null;
+            }
         }
 
         public string Key { get; }
+        public string DisplayName { get; }
+        public string? PullRequestUrl { get; }
+        public bool CanOpen => !string.IsNullOrWhiteSpace(PullRequestUrl);
     }
 }

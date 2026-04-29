@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a separate **Hide** action for PR rows that hides PRs completely from the main window without creating a new window section, plus a new **Settings → Hidden PRs** tab to remove hidden entries and show PRs again.
 - The Settings window is now wider to keep tab headers on a single row instead of wrapping.
 - Fresh settings defaults now start with **My PRs** expanded and both **Later** and **Dependabot** collapsed.
+- Hidden PR entries in **Settings → Hidden PRs** now show a readable PR label and include an **Open** action to jump directly to the PR on GitHub.
 
 ### Fixed
 - Toast notifications now properly display PR titles containing Unicode ellipsis characters (U+2026, …) by replacing them with ASCII "..." for compatibility with the Windows notification system.

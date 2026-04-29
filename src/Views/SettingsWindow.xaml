@@ -403,7 +403,7 @@
 
                         <TextBlock Text="MANUALLY HIDDEN PRS" Style="{StaticResource SectionLabel}"/>
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="0,0,0,10" TextWrapping="Wrap"
-                                   Text="PRs hidden via the Hide action are listed here. Remove one to show it again in the main window."/>
+                                   Text="PRs hidden via the Hide action are listed here. Open one to inspect it on GitHub, or remove it to show it again in the main window."/>
 
                         <Border Background="#0D1117" BorderBrush="#30363D" BorderThickness="1" CornerRadius="6" Padding="8">
                             <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto">
@@ -412,16 +412,29 @@
                                         <DataTemplate>
                                             <DockPanel Margin="0,0,0,6">
                                                 <Button DockPanel.Dock="Right"
+                                                        Content="Open"
+                                                        Width="64"
+                                                        Margin="8,0,0,0"
+                                                        Tag="{Binding PullRequestUrl}"
+                                                        IsEnabled="{Binding CanOpen}"
+                                                        Style="{StaticResource SecondaryButton}"
+                                                        Click="HiddenPrOpen_Click"/>
+                                                <Button DockPanel.Dock="Right"
                                                         Content="Remove"
                                                         Width="76"
                                                         Margin="8,0,0,0"
                                                         Tag="{Binding Key}"
                                                         Style="{StaticResource SecondaryButton}"
                                                         Click="HiddenPrRemove_Click"/>
-                                                <TextBlock VerticalAlignment="Center"
-                                                           Foreground="#C9D1D9"
-                                                           FontFamily="Consolas"
-                                                           Text="{Binding Key}"/>
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Foreground="#C9D1D9"
+                                                               FontWeight="SemiBold"
+                                                               Text="{Binding DisplayName}"/>
+                                                    <TextBlock Foreground="#8B949E"
+                                                               FontSize="11"
+                                                               FontFamily="Consolas"
+                                                               Text="{Binding Key}"/>
+                                                </StackPanel>
                                             </DockPanel>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

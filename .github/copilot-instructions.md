@@ -216,7 +216,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - **Snooze actions**: the **Move to later** submenu includes **1 hour**, **4 hours**, **Tomorrow morning (09:00)**, **Next week (Monday 09:00)**, and **Indefinitely**.
 - Moving a PR to **Later** no longer auto-expands the Later section when the first item is added; the user's current collapsed/expanded preference is preserved.
 - **Hide action**: PR row context menus include **Hide**, which removes a PR from all main-window sections without placing it in a dedicated in-window hidden category.
-- **Hidden PR settings**: Settings includes a **Hidden PRs** tab where manually hidden PR keys can be removed so those PRs appear again.
+- **Hidden PR settings**: Settings includes a **Hidden PRs** tab where manually hidden entries show a readable PR label, an **Open** action to jump to GitHub, and a remove action so those PRs appear again.
 - **Legacy Later migration**: on settings load, hidden keys from older builds that have no snooze timestamp and are not marked as manual hides are automatically migrated to indefinite snoozes so they remain visible in the **Later** section after upgrade.
 - **Notification mode compatibility**: settings load accepts legacy/unknown `notificationMode` string values and falls back safely, preventing full settings resets and preserving fields like `flakinessCustomHints` and `flakinessRules` during upgrades.
 - `PollingService` also tracks CI changes on "My PRs" (non-auto-merge) via `DetectMyPrsChanges`, so flakiness analysis covers both auto-merge and regular own PRs.

@@ -237,6 +237,36 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public void Constructor_HiddenPrs_ParsesDisplayNameAndUrl()
+    {
+        var settings = MakeSettings();
+        settings.HiddenPrKeys = ["owner/repository#123"];
+        settings.ManuallyHiddenPrKeys = ["owner/repository#123"];
+
+        var vm = new SettingsViewModel(settings);
+
+        Assert.Single(vm.HiddenPrs);
+        Assert.Equal("owner/repository PR #123", vm.HiddenPrs[0].DisplayName);
+        Assert.Equal("https://github.com/owner/repository/pull/123", vm.HiddenPrs[0].PullRequestUrl);
+        Assert.True(vm.HiddenPrs[0].CanOpen);
+    }
+
+    [Fact]
+    public void Constructor_HiddenPrs_InvalidKey_FallsBackToRawDisplayName()
+    {
+        var settings = MakeSettings();
+        settings.HiddenPrKeys = ["invalid-key"];
+        settings.ManuallyHiddenPrKeys = ["invalid-key"];
+
+        var vm = new SettingsViewModel(settings);
+
+        Assert.Single(vm.HiddenPrs);
+        Assert.Equal("invalid-key", vm.HiddenPrs[0].DisplayName);
+        Assert.Null(vm.HiddenPrs[0].PullRequestUrl);
+        Assert.False(vm.HiddenPrs[0].CanOpen);
+    }
+
+    [Fact]
     public void RemoveHiddenPr_ExistingKey_RemovesFromCollection()
     {
         var settings = MakeSettings();

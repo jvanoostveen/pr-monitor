@@ -49,7 +49,7 @@ Right-clicking a PR row shows a context menu with:
 - **Restore** — moves the PR back from the Later section
 - **Mark as ready** / **Convert to draft** — toggles the PR’s draft state (shown when applicable)
 
-Hidden PRs can be managed from **Settings → Hidden PRs**. Removing an entry there makes that PR visible in the main window again.
+Hidden PRs can be managed from **Settings → Hidden PRs**. Entries now show a readable PR label and an **Open** button to jump to GitHub, and removing an entry makes that PR visible in the main window again.
 When upgrading from older builds, existing saved **Later** entries are automatically migrated so they continue to appear in the Later section.
 Settings loading is backward-compatible with older notification mode values, so existing flakiness hints and learned rules are preserved across updates.
 
