@@ -98,6 +98,8 @@ Settings are stored in `%APPDATA%\pr-monitor\settings.json`.
 
 You can also run a manual update check at any time from **About…** in the tray menu.
 
+The Settings window is sized to keep tab headers on a single row, including the **Hidden PRs** tab.
+
 ## Running from source (development)
 
 ```powershell

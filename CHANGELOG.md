@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recent reviewer labels now hide handles when a full name is known, and fall back to handles when no full name is available.
 - The **Move to later** snooze option formerly labeled **1 week** is now **Next week (Monday 09:00)** and always wakes PRs on the next calendar week's Monday morning at 09:00 local time.
 - Added a separate **Hide** action for PR rows that hides PRs completely from the main window without creating a new window section, plus a new **Settings → Hidden PRs** tab to remove hidden entries and show PRs again.
+- The Settings window is now wider to keep tab headers on a single row instead of wrapping.
 
 ### Fixed
 - Toast notifications now properly display PR titles containing Unicode ellipsis characters (U+2026, …) by replacing them with ASCII "..." for compatibility with the Windows notification system.
