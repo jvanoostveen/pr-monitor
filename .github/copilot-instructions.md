@@ -284,6 +284,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 - Green `#3FB950` — all clear
 - Blue `#005FAA` — only Later-items, nothing active
 - Gray `#8B949E` — idle / not polled yet
+- Badge text rendering uses anti-aliased glyphs tuned for small transparent tray icons so two-digit counts remain legible.
 
 ### Version display
 - App version is defined once in `src/PrMonitor.csproj` via `<Version>`.

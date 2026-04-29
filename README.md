@@ -30,6 +30,8 @@ Empty sections are hidden automatically. The tray icon badge changes colour to r
 - 🔵 Blue — only "Later" items, nothing active
 - ⚫ Gray — not yet polled
 
+Badge text rendering is tuned for small tray icons so two-digit counts remain readable.
+
 Click the tray icon to toggle the window. Right-click for a context menu with **Open PR Monitor**, **About…**, **Settings…**, and totals per section.
 
 Windows toast notifications are shown under the app name **PR Monitor**.

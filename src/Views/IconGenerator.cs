@@ -30,7 +30,8 @@ public static class IconGenerator
         using var bmp = new Bitmap(size, size);
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+        // ClearType on transparent icons can drop thin strokes (e.g. the '0' in '10').
+        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
         g.Clear(Color.Transparent);
 
         // Pick circle colour based on worst state
@@ -48,11 +49,14 @@ public static class IconGenerator
         if (totalCount > 0)
         {
             var text = totalCount > 99 ? "…" : totalCount.ToString();
-            float fontSize = totalCount > 9 ? size * 0.40f : size * 0.48f;
+            float fontSize = totalCount > 9 ? size * 0.34f : size * 0.48f;
             using var font = new Font("Segoe UI", fontSize, FontStyle.Bold, GraphicsUnit.Point);
             using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
             var textBrush = GetContrastBrush(circleColor);
-            g.DrawString(text, font, textBrush, new RectangleF(0, 0, size, size), sf);
+            var textBounds = totalCount > 9
+                ? new RectangleF(0, 0, size, size - 1) // tiny upward nudge keeps both digits centered in 16px icons
+                : new RectangleF(0, 0, size, size);
+            g.DrawString(text, font, textBrush, textBounds, sf);
         }
 
         var hIcon = bmp.GetHicon();
