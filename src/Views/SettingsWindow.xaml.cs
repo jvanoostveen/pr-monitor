@@ -49,4 +49,10 @@ public partial class SettingsWindow : Window
         var rulesWindow = new FlakinessRulesWindow(_viewModel) { Owner = this };
         rulesWindow.Show();
     }
+
+    private void HiddenPrRemove_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: string key } && !string.IsNullOrWhiteSpace(key))
+            _viewModel.RemoveHiddenPr(key);
+    }
 }

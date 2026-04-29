@@ -221,6 +221,50 @@ public class SettingsViewModelTests
         Assert.Equal("r2", vm.FlakinessRules[1].Id);
     }
 
+    [Fact]
+    public void Constructor_HiddenPrs_OnlyIncludesNonSnoozedKeys()
+    {
+        var settings = MakeSettings();
+        settings.HiddenPrKeys = ["org/repo#1", "org/repo#2"];
+        settings.SnoozedPrs["org/repo#2"] = DateTimeOffset.MaxValue;
+
+        var vm = new SettingsViewModel(settings);
+
+        Assert.Single(vm.HiddenPrs);
+        Assert.Equal("org/repo#1", vm.HiddenPrs[0].Key);
+    }
+
+    [Fact]
+    public void RemoveHiddenPr_ExistingKey_RemovesFromCollection()
+    {
+        var settings = MakeSettings();
+        settings.HiddenPrKeys = ["org/repo#1"];
+        var vm = new SettingsViewModel(settings);
+
+        vm.RemoveHiddenPr("org/repo#1");
+
+        Assert.Empty(vm.HiddenPrs);
+    }
+
+    [Fact]
+    public void Save_RemovedManualHiddenPr_IsRemovedButSnoozedStaysHidden()
+    {
+        var settings = MakeSettings();
+        settings.HiddenPrKeys = ["org/repo#1", "org/repo#2"];
+        settings.HiddenPrLastSeen["org/repo#1"] = DateTimeOffset.UtcNow;
+        settings.HiddenPrLastSeen["org/repo#2"] = DateTimeOffset.UtcNow;
+        settings.SnoozedPrs["org/repo#2"] = DateTimeOffset.MaxValue;
+
+        var vm = new SettingsViewModel(settings);
+        vm.RemoveHiddenPr("org/repo#1");
+
+        vm.Save();
+
+        Assert.DoesNotContain("org/repo#1", settings.HiddenPrKeys);
+        Assert.Contains("org/repo#2", settings.HiddenPrKeys);
+        Assert.DoesNotContain("org/repo#1", settings.HiddenPrLastSeen.Keys);
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────
 
     private static AppSettings MakeSettings(NotificationMode mode = NotificationMode.Always) =>

@@ -86,6 +86,7 @@ public partial class MainWindow : Window
     private const uint ID_SNOOZE_NEXT_WEEK   = 1011;
     private const uint ID_SNOOZE_INDEFINITELY= 1012;
     private const uint ID_PR_ENABLE_AUTOMERGE= 1013;
+    private const uint ID_PR_HIDE            = 1014;
 
     // Assign-reviewer submenu — 2000..2009 assigned, 2010..2019 recent, 2020 search
     private const uint ID_PR_ASSIGN_BASE     = 2000;
@@ -851,6 +852,8 @@ public partial class MainWindow : Window
                 AppendMenuW(snoozeMenu, MF_SEPARATOR, UIntPtr.Zero, null);
                 AppendMenuW(snoozeMenu, MF_STRING, (UIntPtr)ID_SNOOZE_INDEFINITELY, "Indefinitely");
                 AppendMenuW(hMenu, MF_POPUP, (UIntPtr)(ulong)snoozeMenu.ToInt64(), "Move to later");
+                AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
+                AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_HIDE, "Hide");
             }
             if (vm.CanMarkAsReady || vm.CanConvertToDraft)
             {
@@ -899,6 +902,9 @@ public partial class MainWindow : Window
                     break;
                 case ID_PR_MOVE_RESTORE:
                     ViewModel.RestoreItem(vm.Key);
+                    break;
+                case ID_PR_HIDE:
+                    ViewModel.HideCompletely(vm.Key);
                     break;
                 case ID_SNOOZE_1H:
                     ViewModel.HideItem(vm.Key, DateTimeOffset.UtcNow.AddHours(1));

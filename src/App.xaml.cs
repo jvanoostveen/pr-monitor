@@ -107,6 +107,11 @@ public partial class App : System.Windows.Application
             {
                 // Apply new polling interval live and refresh data immediately
                 _polling.UpdateInterval(settings.PollingIntervalSeconds);
+
+                // Apply hidden/unhidden settings immediately to the current snapshot.
+                if (_polling.LatestSnapshot is { } latest)
+                    _mainVm?.RefreshFromSnapshot(latest);
+
                 _ = _polling.RefreshAsync();
                 // Sync verbose-logging flag to logger without restart
                 if (_logger is not null) _logger.VerboseLogging = settings.VerboseLogging;

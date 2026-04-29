@@ -43,8 +43,11 @@ Right-clicking a PR row shows a context menu with:
 - **Request Copilot review** — requests (or re-requests) a Copilot review for the PR
 - **Assign reviewer** (submenu, shown for own non-draft PRs) — currently assigned reviewers appear with a checkmark (click to remove); up to 10 recently used reviewers are listed in alphabetical order for one-click assignment, showing full names when known (fallback to handle); **Search…** opens a dialog to find any org member by login or display name
 - **Move to later** (submenu: 1 hour / 4 hours / Tomorrow morning / Next week (Monday 09:00) / Indefinitely) — snoozes the PR into the Later section
+- **Hide** — hides the PR completely from the main window (no dedicated window section)
 - **Restore** — moves the PR back from the Later section
 - **Mark as ready** / **Convert to draft** — toggles the PR’s draft state (shown when applicable)
+
+Hidden PRs can be managed from **Settings → Hidden PRs**. Removing an entry there makes that PR visible in the main window again.
 
 PR row right-click actions now use a native Win32 popup menu (same rendering path as the tray icon menu), so visuals and dark/light behavior stay aligned with Windows.
 

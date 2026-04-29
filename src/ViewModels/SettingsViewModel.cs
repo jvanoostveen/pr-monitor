@@ -48,6 +48,13 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         };
         foreach (var rule in settings.FlakinessRules)
             FlakinessRules.Add(new FlakinessRuleViewModel(rule));
+
+        foreach (var key in settings.HiddenPrKeys
+            .Where(k => !settings.SnoozedPrs.ContainsKey(k))
+            .OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
+        {
+            HiddenPrs.Add(new HiddenPrEntryViewModel(key));
+        }
     }
 
     // ── Bindable properties ─────────────────────────────────────────
@@ -231,6 +238,16 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     }
 
     public ObservableCollection<FlakinessRuleViewModel> FlakinessRules { get; } = [];
+    public ObservableCollection<HiddenPrEntryViewModel> HiddenPrs { get; } = [];
+
+    public void RemoveHiddenPr(string key)
+    {
+        var vm = HiddenPrs.FirstOrDefault(h => h.Key.Equals(key, StringComparison.Ordinal));
+        if (vm is null)
+            return;
+
+        HiddenPrs.Remove(vm);
+    }
 
     // ── Auto-merge merge method ────────────────────────────────────────────
 
@@ -298,6 +315,24 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.FlakinessMaxReruns = _flakinessMaxReruns;
         _settings.FlakinessCustomHints = _flakinessCustomHints;
         _settings.AutoMergeMergeMethod = _autoMergeMergeMethod;
+
+        var snoozedKeys = _settings.SnoozedPrs.Keys.ToHashSet(StringComparer.Ordinal);
+        var permanentlyHiddenKeys = HiddenPrs.Select(h => h.Key).ToHashSet(StringComparer.Ordinal);
+
+        _settings.HiddenPrKeys = _settings.HiddenPrKeys
+            .Where(k => snoozedKeys.Contains(k) || permanentlyHiddenKeys.Contains(k))
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var key in permanentlyHiddenKeys)
+            _settings.HiddenPrKeys.Add(key);
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var key in permanentlyHiddenKeys.Where(k => !_settings.HiddenPrLastSeen.ContainsKey(k)))
+            _settings.HiddenPrLastSeen[key] = now;
+
+        foreach (var key in _settings.HiddenPrLastSeen.Keys.Where(k => !_settings.HiddenPrKeys.Contains(k)).ToList())
+            _settings.HiddenPrLastSeen.Remove(key);
+
         _settings.FlakinessRules = FlakinessRules.Select(vm => new FlakinessRule
         {
             Id = vm.Id,
@@ -308,7 +343,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.Save();
 
         ApplyAutoStart(_autoStartWithWindows);
-        App.ApplyCompactMode(_settings.CompactMode);
+        if (System.Windows.Application.Current is not null)
+            App.ApplyCompactMode(_settings.CompactMode);
     }
 
     // ── Auto-start registry ─────────────────────────────────────────
@@ -379,4 +415,15 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
-    }}
+    }
+
+    public sealed class HiddenPrEntryViewModel
+    {
+        public HiddenPrEntryViewModel(string key)
+        {
+            Key = key;
+        }
+
+        public string Key { get; }
+    }
+}

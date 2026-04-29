@@ -213,6 +213,8 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - **Copilot review action**: PR row context menus include **Request Copilot review** (enabled for non-draft PRs). It requests/re-requests Copilot review via the REST API (`gh api repos/{owner}/{repo}/pulls/{prNumber}/requested_reviewers --method POST -f reviewers[]=copilot-pull-request-reviewer[bot]`). The REST API is used because the Copilot reviewer is a GitHub App bot that cannot be resolved by GraphQL's `requestReviewsByLogin` (which is what `gh pr edit --add-reviewer` uses).
 - **Copy actions**: PR row context menus include **Copy PR URL** and **Copy branch name** for quick clipboard actions from any PR section.
 - **Snooze actions**: the **Move to later** submenu includes **1 hour**, **4 hours**, **Tomorrow morning (09:00)**, **Next week (Monday 09:00)**, and **Indefinitely**.
+- **Hide action**: PR row context menus include **Hide**, which removes a PR from all main-window sections without placing it in a dedicated in-window hidden category.
+- **Hidden PR settings**: Settings includes a **Hidden PRs** tab where manually hidden PR keys can be removed so those PRs appear again.
 - `PollingService` also tracks CI changes on "My PRs" (non-auto-merge) via `DetectMyPrsChanges`, so flakiness analysis covers both auto-merge and regular own PRs.
 - `PullRequestInfo.HeadCommitSha` is populated from the GraphQL `oid` field and used to resolve the correct workflow run ID.
 

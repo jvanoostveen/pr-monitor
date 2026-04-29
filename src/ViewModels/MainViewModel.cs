@@ -26,7 +26,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _settings = settings;
         _notificationService = notificationService;
         _updateService = updateService;
-        _hiddenCount = settings.HiddenPrKeys.Count;
+        _hiddenCount = settings.SnoozedPrs.Keys.Count(settings.HiddenPrKeys.Contains);
     }
 
     public ObservableCollection<PrItemViewModel> AutoMergePrs { get; } = [];
@@ -330,6 +330,32 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private static readonly TimeSpan StaleCooldown = TimeSpan.FromDays(14);
 
+    public void HideCompletely(string key)
+    {
+        _settings.HiddenPrKeys.Add(key);
+        _settings.HiddenPrLastSeen[key] = DateTimeOffset.UtcNow;
+        _settings.SnoozedPrs.Remove(key);
+        _settings.Save();
+
+        // Remove from any visible section without adding it to Later.
+        _ = FindAndRemove(HotfixPrs, key)
+            ?? FindAndRemove(AutoMergePrs, key)
+            ?? FindAndRemove(MyPrs, key)
+            ?? FindAndRemove(DraftPrs, key)
+            ?? FindAndRemove(ReviewRequestedPrs, key)
+            ?? FindAndRemove(TeamReviewRequestedPrs, key)
+            ?? FindAndRemove(DependabotPrs, key);
+
+        AutoMergeCount = AutoMergePrs.Count;
+        MyPrsCount = MyPrs.Count;
+        DraftPrsCount = DraftPrs.Count;
+        ReviewCount = ReviewRequestedPrs.Count;
+        TeamReviewCount = TeamReviewRequestedPrs.Count;
+        HotfixCount = HotfixPrs.Count;
+        HiddenCount = HiddenPrs.Count;
+        OnHiddenPrsChanged?.Invoke();
+    }
+
     public void HideItem(string key, DateTimeOffset? until = null)
     {
         _settings.HiddenPrKeys.Add(key);
@@ -443,6 +469,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
         };
         polling.PollFailed += ex =>
             System.Windows.Application.Current?.Dispatcher.Invoke(() => IsOffline = true);
+    }
+
+    public void RefreshFromSnapshot(PollSnapshot snapshot)
+    {
+        UpdateFromSnapshot(snapshot);
+        OnHiddenPrsChanged?.Invoke();
     }
 
     // ── Commands ────────────────────────────────────────────────────
@@ -659,7 +691,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                      .Concat(snapshot.HotfixPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: true, isTeamReview: false, isDependabot: false, isDraftSection: false)))
                      .Concat(snapshot.DependabotPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: false, isTeamReview: false, isDependabot: true, isDraftSection: false)))
                      .DistinctBy(x => x.pr.Key)
-                     .Where(x => hidden.Contains(x.pr.Key)))
+                     .Where(x => hidden.Contains(x.pr.Key) && _settings.SnoozedPrs.ContainsKey(x.pr.Key)))
         {
             HiddenPrs.Add(PrItemViewModel.From(x.pr, isAutoMerge: x.isAm, isMyPr: x.isMyPr, isHotfix: x.isHotfix, isTeamReview: x.isTeamReview, isDependabot: x.isDependabot, isDraftSection: x.isDraftSection,
                 snoozedUntilText: FormatSnoozedUntil(_settings.SnoozedPrs.GetValueOrDefault(x.pr.Key, DateTimeOffset.MaxValue))));
