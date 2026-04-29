@@ -54,7 +54,7 @@ Each section is collapsible; state persisted in `AppSettings`.
 ## PR row context menu (native Win32)
 
 Copy PR URL · Copy branch name · Rerun failed jobs · Request Copilot review ·  
-Move to later ▶ (1 h / 4 h / Tomorrow / 1 week / Indefinitely) · Restore · Mark as ready · Convert to draft
+Move to later ▶ (1 h / 4 h / Tomorrow / Next week (Monday 09:00) / Indefinitely) · Restore · Mark as ready · Convert to draft
 
 Note: the WPF `ContextMenu` blocks in XAML are dead code — the `PreviewMouseRightButtonUp` handler always shows the native Win32 menu instead.
 

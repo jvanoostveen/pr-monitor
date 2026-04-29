@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All native `MessageBox` dialogs replaced with a custom dark-themed `DarkMessageBox` that matches the app's dark UI, including a dark title bar via `DwmSetWindowAttribute`.
 - **Dependabot section** moved below **My PRs** in the window order.
 - Recent reviewer lists in reviewer assignment UI are now shown in case-insensitive alphabetical order (context menu and search dialog recents panel).
+- Recent reviewer labels now hide handles when a full name is known, and fall back to handles when no full name is available.
+- The **Move to later** snooze option formerly labeled **1 week** is now **Next week (Monday 09:00)** and always wakes PRs on the next calendar week's Monday morning at 09:00 local time.
 
 ### Fixed
 - Toast notifications now properly display PR titles containing Unicode ellipsis characters (U+2026, …) by replacing them with ASCII "..." for compatibility with the Windows notification system.

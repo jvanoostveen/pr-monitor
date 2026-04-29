@@ -136,6 +136,12 @@ Do not batch unrelated work into one commit. After each completed implementation
 - If `src/` files changed: restart the app so changes are visible
 - Continue with the next step in a new commit
 
+Execution requirement for coding agents:
+- These steps are mandatory to execute in terminal, not optional guidance.
+- Do not finish a task after code/docs edits without actually creating the commit.
+- When `src/` changed, do not finish the task without actually restarting the app process after the commit.
+- If commit or restart cannot be executed, stop and report the concrete blocker in the final response.
+
 When a request contains multiple deliverables (for example framework migration + UI polish), create separate commits per deliverable.
 
 ---
@@ -206,6 +212,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - **Manual rerun action**: PR row context menus include **Rerun failed jobs** (enabled only for failed, non-draft PRs with known head SHA). It resolves failed workflow runs for that commit and triggers `gh run rerun --failed`.
 - **Copilot review action**: PR row context menus include **Request Copilot review** (enabled for non-draft PRs). It requests/re-requests Copilot review via the REST API (`gh api repos/{owner}/{repo}/pulls/{prNumber}/requested_reviewers --method POST -f reviewers[]=copilot-pull-request-reviewer[bot]`). The REST API is used because the Copilot reviewer is a GitHub App bot that cannot be resolved by GraphQL's `requestReviewsByLogin` (which is what `gh pr edit --add-reviewer` uses).
 - **Copy actions**: PR row context menus include **Copy PR URL** and **Copy branch name** for quick clipboard actions from any PR section.
+- **Snooze actions**: the **Move to later** submenu includes **1 hour**, **4 hours**, **Tomorrow morning (09:00)**, **Next week (Monday 09:00)**, and **Indefinitely**.
 - `PollingService` also tracks CI changes on "My PRs" (non-auto-merge) via `DetectMyPrsChanges`, so flakiness analysis covers both auto-merge and regular own PRs.
 - `PullRequestInfo.HeadCommitSha` is populated from the GraphQL `oid` field and used to resolve the correct workflow run ID.
 
@@ -263,7 +270,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 ### Assign reviewer submenu
 - Own non-draft PR rows (My Auto-Merge PRs, My PRs, Hotfixes, own PRs in Later) show an **Assign reviewer** submenu in their right-click context menus.
 - **Currently assigned reviewers** appear at the top with a checkmark; clicking them removes the reviewer via the GraphQL `requestReviewsById` mutation.
-- **Up to 10 recently used reviewers** (`RecentReviewers` in settings) are listed below in case-insensitive alphabetical order for one-click assignment; the list is updated on every successful assign/remove.
+- **Up to 10 recently used reviewers** (`RecentReviewers` in settings) are listed below in case-insensitive alphabetical order for one-click assignment; labels prefer cached full names and fall back to handles when no name is known. The list is updated on every successful assign/remove.
 - **Search…** opens `AssignReviewerSearchWindow` — a modal search dialog with instant client-side filtering of org members once loaded. It shows a recents panel when the search box is empty, with per-item remove (✕ or Delete key). Keyboard navigation (↑/↓) works between the search box and results.
 - The org-member list is fetched via GraphQL (`organization.membersWithRole`) and cached in `OrgMembersCache` / `OrgMembersCachedAt` in settings. The cache is reused across restarts and only re-fetched after 30 days or when the user clicks the ↺ refresh button in the dialog.
 
@@ -435,6 +442,11 @@ On `Load()`, rerun records older than 30 days are automatically pruned. Expired 
 ## Git Workflow
 
 Commits follow conventional commits: `feat:`, `fix:`, `refactor:` etc.
+
+Mandatory execution policy:
+- After implementing requested edits, the agent must run the required git commit command(s) instead of only suggesting them.
+- For commits that include `src/` changes, the agent must restart the app immediately after the commit.
+- The final response must include the commit hash and confirm whether restart was executed.
 
 Before every commit with `src/` file changes:
 ```powershell

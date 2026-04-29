@@ -23,7 +23,9 @@ public partial class AssignReviewerSearchWindow : Window
         public RecentItemVM(string login, string? name)
         {
             Login = login;
-            Label = string.IsNullOrWhiteSpace(name) ? login : $"{name} ({login})";
+            Label = string.IsNullOrWhiteSpace(name) || name.Equals(login, StringComparison.OrdinalIgnoreCase)
+                ? login
+                : name;
         }
     }
 

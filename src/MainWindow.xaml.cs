@@ -83,7 +83,7 @@ public partial class MainWindow : Window
     private const uint ID_SNOOZE_1H          = 1008;
     private const uint ID_SNOOZE_4H          = 1009;
     private const uint ID_SNOOZE_TOMORROW    = 1010;
-    private const uint ID_SNOOZE_1W          = 1011;
+    private const uint ID_SNOOZE_NEXT_WEEK   = 1011;
     private const uint ID_SNOOZE_INDEFINITELY= 1012;
     private const uint ID_PR_ENABLE_AUTOMERGE= 1013;
 
@@ -815,7 +815,7 @@ public partial class MainWindow : Window
                     .ToDictionary(m => m.Login, m => m.Name!, StringComparer.OrdinalIgnoreCase);
                 string ReviewerLabel(string login) =>
                     memberNames.TryGetValue(login, out var name) && !name.Equals(login, StringComparison.OrdinalIgnoreCase)
-                        ? $"{name} ({login})"
+                        ? name
                         : login;
 
                 var assignMenu = CreatePopupMenu();
@@ -847,7 +847,7 @@ public partial class MainWindow : Window
                 AppendMenuW(snoozeMenu, MF_STRING, (UIntPtr)ID_SNOOZE_1H, "1 hour");
                 AppendMenuW(snoozeMenu, MF_STRING, (UIntPtr)ID_SNOOZE_4H, "4 hours");
                 AppendMenuW(snoozeMenu, MF_STRING, (UIntPtr)ID_SNOOZE_TOMORROW, "Tomorrow morning (09:00)");
-                AppendMenuW(snoozeMenu, MF_STRING, (UIntPtr)ID_SNOOZE_1W, "1 week");
+                AppendMenuW(snoozeMenu, MF_STRING, (UIntPtr)ID_SNOOZE_NEXT_WEEK, "Next week (Monday 09:00)");
                 AppendMenuW(snoozeMenu, MF_SEPARATOR, UIntPtr.Zero, null);
                 AppendMenuW(snoozeMenu, MF_STRING, (UIntPtr)ID_SNOOZE_INDEFINITELY, "Indefinitely");
                 AppendMenuW(hMenu, MF_POPUP, (UIntPtr)(ulong)snoozeMenu.ToInt64(), "Move to later");
@@ -912,8 +912,8 @@ public partial class MainWindow : Window
                     ViewModel.HideItem(vm.Key, new DateTimeOffset(tomorrow, DateTimeOffset.Now.Offset));
                     break;
                 }
-                case ID_SNOOZE_1W:
-                    ViewModel.HideItem(vm.Key, DateTimeOffset.UtcNow.AddDays(7));
+                case ID_SNOOZE_NEXT_WEEK:
+                    ViewModel.HideItem(vm.Key, GetNextWeekMondayMorning(DateTimeOffset.Now));
                     break;
                 case ID_SNOOZE_INDEFINITELY:
                     ViewModel.HideItem(vm.Key, null);
@@ -1000,6 +1000,16 @@ public partial class MainWindow : Window
     {
         if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
             ViewModel.HideItem(vm.Key);
+    }
+
+    internal static DateTimeOffset GetNextWeekMondayMorning(DateTimeOffset now)
+    {
+        // Monday-based index where Monday = 0 and Sunday = 6.
+        var daysSinceMonday = ((int)now.DayOfWeek + 6) % 7;
+        var nextMondayDate = now.Date.AddDays(7 - daysSinceMonday);
+        var mondayMorningLocal = DateTime.SpecifyKind(nextMondayDate.AddHours(9), DateTimeKind.Unspecified);
+        var offset = TimeZoneInfo.Local.GetUtcOffset(mondayMorningLocal);
+        return new DateTimeOffset(mondayMorningLocal, offset);
     }
 
     private void PrRow_Restore_Click(object sender, RoutedEventArgs e)

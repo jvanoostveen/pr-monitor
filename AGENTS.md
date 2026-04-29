@@ -42,6 +42,8 @@ See [src/AGENTS.md](src/AGENTS.md) for source-folder structure details.
 - All `src/` changes must pass `dotnet build .\src\PrMonitor.csproj -v q` before committing.
 - All `src/` changes must also pass `dotnet test .\tests\PrMonitor.Tests\PrMonitor.Tests.csproj` before committing.
 - Update `CHANGELOG.md` (`[Unreleased]`) for every `src/` change — mandatory, not optional.
+- Agents must execute commit commands after completing requested edits; do not leave tasks uncommitted.
+- For commits that include `src/` changes, agents must restart the app process immediately after the commit.
 - Commit message format: `feat:`, `fix:`, `refactor:`, `docs:`, `test:` etc.
 - UI text must be in **English**.
 - Settings are JSON-backed in `%APPDATA%\pr-monitor\settings.json` — see full schema in `.github/copilot-instructions.md`.
