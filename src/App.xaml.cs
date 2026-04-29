@@ -27,6 +27,8 @@ public partial class App : System.Windows.Application
     private System.Threading.Timer? _updateTimer;
     private GitHubService? _github;
     private FlakinessService? _flakinessService;
+    private SettingsWindow? _settingsWindow;
+    private AboutWindow? _aboutWindow;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -102,6 +104,13 @@ public partial class App : System.Windows.Application
         _trayIcon.OnWindowVisibility(() => _mainWindow.IsVisible);
         _trayIcon.OnOpenSettings(() =>
         {
+            if (_settingsWindow is not null)
+            {
+                _settingsWindow.Activate();
+                _settingsWindow.Focus();
+                return;
+            }
+
             var settingsVm = new SettingsViewModel(settings);
             var settingsWindow = new SettingsWindow(settingsVm, onSaved: () =>
             {
@@ -121,14 +130,25 @@ public partial class App : System.Windows.Application
                     System.Windows.Threading.DispatcherPriority.Loaded,
                     new System.Action(() => _mainWindow.ReapplySnapIfSnapped()));
             });
-            settingsWindow.ShowDialog();
+            settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow = settingsWindow;
+            settingsWindow.Show();
         });
         _trayIcon.OnOpenAbout(() =>
         {
+            if (_aboutWindow is not null)
+            {
+                _aboutWindow.Activate();
+                _aboutWindow.Focus();
+                return;
+            }
+
             var aboutWindow = new AboutWindow(
                 TrayIconManager.GetAppVersion(),
                 () => _ = CheckForUpdatesManuallyAsync());
-            aboutWindow.ShowDialog();
+            aboutWindow.Closed += (_, _) => _aboutWindow = null;
+            _aboutWindow = aboutWindow;
+            aboutWindow.Show();
         });
         _trayIcon.OnExit(() => Shutdown());
 
