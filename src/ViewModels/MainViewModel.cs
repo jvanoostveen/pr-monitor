@@ -327,14 +327,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void ToggleTeamReviewExpanded() => TeamReviewExpanded = !TeamReviewExpanded;
     public void ToggleDependabotExpanded() => DependabotExpanded = !DependabotExpanded;
     public void ToggleDraftExpanded() => DraftExpanded = !DraftExpanded;
-
-    private static readonly TimeSpan StaleCooldown = TimeSpan.FromDays(14);
-
     public void HideCompletely(string key)
     {
         _settings.HiddenPrKeys.Add(key);
-        _settings.HiddenPrLastSeen[key] = DateTimeOffset.UtcNow;
         _settings.SnoozedPrs.Remove(key);
+        _settings.ManuallyHiddenPrKeys.Add(key);
         _settings.Save();
 
         // Remove from any visible section without adding it to Later.
@@ -359,8 +356,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void HideItem(string key, DateTimeOffset? until = null)
     {
         _settings.HiddenPrKeys.Add(key);
-        _settings.HiddenPrLastSeen[key] = DateTimeOffset.UtcNow;
         _settings.SnoozedPrs[key] = until ?? DateTimeOffset.MaxValue;
+        _settings.ManuallyHiddenPrKeys.Remove(key);
         _settings.Save();
 
         // Find item in active lists, move it to HiddenPrs immediately
@@ -373,11 +370,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 ?? FindAndRemove(DependabotPrs, key);
         if (item is not null)
         {
-            var wasEmpty = HiddenPrs.Count == 0;
             HiddenPrs.Add(item);
-            // Only auto-expand Later if it was empty before — don't override user's collapsed state
-            if (wasEmpty)
-                LaterExpanded = true;
         }
 
         AutoMergeCount = AutoMergePrs.Count;
@@ -393,8 +386,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void RestoreItem(string key)
     {
         _settings.HiddenPrKeys.Remove(key);
-        _settings.HiddenPrLastSeen.Remove(key);
         _settings.SnoozedPrs.Remove(key);
+        _settings.ManuallyHiddenPrKeys.Remove(key);
         _settings.Save();
         var item = FindAndRemove(HiddenPrs, key);
         if (item is not null)
@@ -576,52 +569,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void UpdateFromSnapshot(PollSnapshot snapshot)
     {
-        // All PR keys seen in this poll
-        var allKeys = snapshot.AutoMergePrs.Select(p => p.Key)
-            .Concat(snapshot.MyPrs.Select(p => p.Key))
-            .Concat(snapshot.DraftPrs.Select(p => p.Key))
-            .Concat(snapshot.ReviewRequestedPrs.Select(p => p.Key))
-            .Concat(snapshot.TeamReviewRequestedPrs.Select(p => p.Key))
-            .Concat(snapshot.HotfixPrs.Select(p => p.Key))
-            .Concat(snapshot.DependabotPrs.Select(p => p.Key))
-            .ToHashSet();
-
-        // Guard: if the poll returned nothing at all (network failure / auth error),
-        // skip stale-key cleanup entirely to avoid wrongly evicting hidden PRs.
-        if (allKeys.Count > 0 || _settings.HiddenPrKeys.Count == 0)
-        {
-            var now = DateTimeOffset.UtcNow;
-
-            // Initialize last-seen for any key that has no record yet (e.g. migrated settings)
-            bool lastSeenChanged = false;
-            foreach (var key in _settings.HiddenPrKeys.Where(k => !_settings.HiddenPrLastSeen.ContainsKey(k)))
-            {
-                _settings.HiddenPrLastSeen[key] = now;
-                lastSeenChanged = true;
-            }
-
-            // Update last-seen timestamp for every hidden key present in this poll
-            foreach (var key in _settings.HiddenPrKeys.Where(k => allKeys.Contains(k)))
-            {
-                _settings.HiddenPrLastSeen[key] = now;
-                lastSeenChanged = true;
-            }
-
-            // Remove keys that have been gone for longer than the cooldown period
-            var stale = _settings.HiddenPrKeys
-                .Where(k => !allKeys.Contains(k) &&
-                            _settings.HiddenPrLastSeen.TryGetValue(k, out var seen) &&
-                            (now - seen) > StaleCooldown)
-                .ToList();
-            foreach (var k in stale)
-            {
-                _settings.HiddenPrKeys.Remove(k);
-                _settings.HiddenPrLastSeen.Remove(k);
-            }
-
-            if (lastSeenChanged || stale.Count > 0) _settings.Save();
-        }
-
         // Auto-restore snoozed PRs whose timer has expired
         var wakingKeys = _settings.SnoozedPrs
             .Where(kv => kv.Value != DateTimeOffset.MaxValue && kv.Value <= DateTimeOffset.UtcNow)

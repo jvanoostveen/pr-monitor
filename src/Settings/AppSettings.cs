@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using PrMonitor.Models;
@@ -19,6 +20,8 @@ public sealed class AppSettings
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
+
+    private static readonly AsyncLocal<string?> SettingsPathOverride = new();
 
     /// <summary>
     /// GitHub organizations to monitor (e.g. ["my-org"]).
@@ -55,7 +58,7 @@ public sealed class AppSettings
     public bool HotfixExpanded { get; set; } = true;
 
     /// <summary>Whether the "My PRs" (non-auto-merge) section is expanded in the window.</summary>
-    public bool MyPrsExpanded { get; set; } = false;
+    public bool MyPrsExpanded { get; set; } = true;
 
     /// <summary>Whether the "Later" section is expanded in the window.</summary>
     public bool LaterExpanded { get; set; } = false;
@@ -64,7 +67,7 @@ public sealed class AppSettings
     public bool TeamReviewExpanded { get; set; } = false;
 
     /// <summary>Whether the "Dependabot" section is expanded in the window.</summary>
-    public bool DependabotExpanded { get; set; } = true;
+    public bool DependabotExpanded { get; set; } = false;
 
     /// <summary>Whether the "My Draft PRs" section is expanded in the window.</summary>
     public bool DraftExpanded { get; set; } = false;
@@ -89,17 +92,15 @@ public sealed class AppSettings
 
     /// <summary>Keys of PRs the user has hidden to the "Later" section.</summary>
     public HashSet<string> HiddenPrKeys { get; set; } = [];
-
-    /// <summary>
-    /// Tracks the last time each hidden PR key was seen in a successful poll.
-    /// Keys unseen for longer than the cooldown period are eligible for removal.
-    /// </summary>
-    public Dictionary<string, DateTimeOffset> HiddenPrLastSeen { get; set; } = [];
-
     /// <summary>
     /// Snooze expiry timestamps for hidden PRs. DateTimeOffset.MaxValue means indefinite.
     /// </summary>
     public Dictionary<string, DateTimeOffset> SnoozedPrs { get; set; } = new();
+
+    /// <summary>
+    /// Keys hidden via the explicit "Hide" action (not shown in the Later section).
+    /// </summary>
+    public HashSet<string> ManuallyHiddenPrKeys { get; set; } = [];
 
     // ── Notification toggles ─────────────────────────────────────────────
 
@@ -131,7 +132,7 @@ public sealed class AppSettings
     public bool NotifyMentioned { get; set; } = true;
 
     /// <summary>Controls when toast notifications are shown: always, only when the window is closed, or never.</summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(NotificationModeTolerantConverter))]
     public NotificationMode NotificationMode { get; set; } = NotificationMode.Always;
 
     // ── Flakiness analysis ───────────────────────────────────────────────
@@ -178,23 +179,42 @@ public sealed class AppSettings
     /// <summary>
     /// Load settings from disk, or return defaults if no file exists.
     /// </summary>
-    public static AppSettings Load() => LoadFrom(SettingsPath);
+    public static AppSettings Load() => LoadFrom(GetSettingsPath());
+
+    /// <summary>
+    /// Test helper: temporarily override the default settings path for the current async flow.
+    /// </summary>
+    internal static IDisposable UseSettingsPathOverride(string path)
+    {
+        var previousPath = SettingsPathOverride.Value;
+        SettingsPathOverride.Value = path;
+        return new ActionOnDispose(() => SettingsPathOverride.Value = previousPath);
+    }
 
     internal static AppSettings LoadFrom(string path)
     {
         if (!File.Exists(path))
             return new AppSettings();
 
-        AppSettings? settings = null;
-        try
-        {
-            var json = File.ReadAllText(path);
-            settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
-        }
-        catch
-        {
+        var settings = TryDeserialize(path);
+
+        // Resilience: if the primary file is corrupted/partial, recover from last known good backup.
+        if (settings is null)
+            settings = TryDeserialize(path + ".bak");
+
+        if (settings is null)
             return new AppSettings();
-        }
+
+        // Clean up rerun records older than 30 days
+        settings.Organizations ??= [];
+        settings.HiddenPrKeys ??= [];
+        settings.ManuallyHiddenPrKeys ??= [];
+        settings.SnoozedPrs ??= new Dictionary<string, DateTimeOffset>();
+        settings.FlakinessRules ??= [];
+        settings.FlakinessRerunCounts ??= [];
+        settings.RecentReviewers ??= [];
+        settings.OrgMembersCache ??= [];
+        settings.FlakinessCustomHints ??= "";
 
         // Clean up rerun records older than 30 days
         var cutoff = DateTimeOffset.UtcNow.AddDays(-30);
@@ -213,13 +233,33 @@ public sealed class AppSettings
         foreach (var k in expiredSnoozes)
             settings.SnoozedPrs.Remove(k);
 
+        // Legacy migration: in older builds all hidden keys represented Later items.
+        // Convert hidden keys without explicit hide markers into indefinite snoozes.
+        foreach (var key in settings.HiddenPrKeys
+            .Where(k => !settings.SnoozedPrs.ContainsKey(k) && !settings.ManuallyHiddenPrKeys.Contains(k))
+            .ToList())
+        {
+            settings.SnoozedPrs[key] = DateTimeOffset.MaxValue;
+        }
+
+        // Keep HiddenPrKeys as the authoritative union used by filtering.
+        foreach (var key in settings.SnoozedPrs.Keys)
+            settings.HiddenPrKeys.Add(key);
+        foreach (var key in settings.ManuallyHiddenPrKeys)
+            settings.HiddenPrKeys.Add(key);
+
+        // Clean up stale markers that no longer exist in HiddenPrKeys.
+        settings.ManuallyHiddenPrKeys = settings.ManuallyHiddenPrKeys
+            .Where(settings.HiddenPrKeys.Contains)
+            .ToHashSet(StringComparer.Ordinal);
+
         return settings;
     }
 
     /// <summary>
     /// Persist current settings to disk.
     /// </summary>
-    public void Save() => SaveTo(SettingsPath);
+    public void Save() => SaveTo(GetSettingsPath());
 
     internal void SaveTo(string path)
     {
@@ -227,6 +267,76 @@ public sealed class AppSettings
         var json = JsonSerializer.Serialize(this, JsonOptions);
         var tmp = path + ".tmp";
         File.WriteAllText(tmp, json);
+
+        // Keep a best-effort backup of the previous good settings file.
+        if (File.Exists(path))
+            File.Copy(path, path + ".bak", overwrite: true);
+
         File.Move(tmp, path, overwrite: true);
+    }
+
+    private static AppSettings? TryDeserialize(string path)
+    {
+        if (!File.Exists(path))
+            return null;
+
+        try
+        {
+            var json = File.ReadAllText(path);
+            return JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string GetSettingsPath() => SettingsPathOverride.Value ?? SettingsPath;
+
+    private sealed class ActionOnDispose(Action onDispose) : IDisposable
+    {
+        private Action? _onDispose = onDispose;
+
+        public void Dispose()
+        {
+            _onDispose?.Invoke();
+            _onDispose = null;
+        }
+    }
+}
+
+internal sealed class NotificationModeTolerantConverter : JsonConverter<NotificationMode>
+{
+    public override NotificationMode Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.String)
+        {
+            var value = reader.GetString()?.Trim();
+            if (string.IsNullOrWhiteSpace(value))
+                return NotificationMode.Always;
+
+            if (value.Equals("Always", StringComparison.OrdinalIgnoreCase))
+                return NotificationMode.Always;
+            if (value.Equals("WhenWindowClosed", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("OnlyWhenWindowClosed", StringComparison.OrdinalIgnoreCase))
+                return NotificationMode.WhenWindowClosed;
+            if (value.Equals("Never", StringComparison.OrdinalIgnoreCase))
+                return NotificationMode.Never;
+
+            return NotificationMode.Always;
+        }
+
+        if (reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var numeric)
+            && Enum.IsDefined(typeof(NotificationMode), numeric))
+        {
+            return (NotificationMode)numeric;
+        }
+
+        return NotificationMode.Always;
+    }
+
+    public override void Write(Utf8JsonWriter writer, NotificationMode value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value.ToString());
     }
 }

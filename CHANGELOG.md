@@ -15,11 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The **Move to later** snooze option formerly labeled **1 week** is now **Next week (Monday 09:00)** and always wakes PRs on the next calendar week's Monday morning at 09:00 local time.
 - Added a separate **Hide** action for PR rows that hides PRs completely from the main window without creating a new window section, plus a new **Settings → Hidden PRs** tab to remove hidden entries and show PRs again.
 - The Settings window is now wider to keep tab headers on a single row instead of wrapping.
+- Fresh settings defaults now start with **My PRs** expanded and both **Later** and **Dependabot** collapsed.
 
 ### Fixed
 - Toast notifications now properly display PR titles containing Unicode ellipsis characters (U+2026, …) by replacing them with ASCII "..." for compatibility with the Windows notification system.
+- Removed automatic stale-key eviction entirely. Hidden and snoozed PRs now persist until explicitly removed via restore or Settings → Hidden PRs. The `hiddenPrLastSeen` field is no longer stored in settings.json.
 - Hotfix classification now only includes open `release/*` PRs that are yours or explicitly assigned to you. PRs where you were merely involved (for example by reviewing/commenting) no longer appear in the Hotfixes section.
 - Tray icon badge text rendering is now tuned for small transparent icons so two-digit counts (for example `10`) remain legible instead of appearing as a single digit.
+- Existing saved Later entries from older settings formats are now migrated automatically to the new hidden/snooze structure, so previously snoozed PRs continue to appear in the Later section after upgrade.
+- Settings migration now tolerates legacy/unknown `notificationMode` values so updates no longer reset unrelated settings; existing flakiness custom hints and learned rules are preserved.
+- Settings persistence now keeps a `settings.json.bak` backup and automatically loads from it when `settings.json` is unreadable, preventing settings resets after file corruption/write glitches.
+- Moving the first PR to **Later** no longer auto-opens the Later section; the section now stays in the user's chosen collapsed/expanded state.
+- Test runs no longer write to the real `%APPDATA%/pr-monitor/settings.json`; settings save tests now use an isolated temporary settings path to prevent local settings from being overwritten during development.
 
 ## [1.8.6] - 2026-04-08
 

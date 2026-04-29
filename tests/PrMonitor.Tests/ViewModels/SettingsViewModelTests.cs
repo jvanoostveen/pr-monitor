@@ -1,3 +1,4 @@
+using System.IO;
 using PrMonitor.Models;
 using PrMonitor.Settings;
 using PrMonitor.ViewModels;
@@ -222,10 +223,11 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public void Constructor_HiddenPrs_OnlyIncludesNonSnoozedKeys()
+    public void Constructor_HiddenPrs_UsesExplicitManualHiddenList()
     {
         var settings = MakeSettings();
         settings.HiddenPrKeys = ["org/repo#1", "org/repo#2"];
+        settings.ManuallyHiddenPrKeys = ["org/repo#1"];
         settings.SnoozedPrs["org/repo#2"] = DateTimeOffset.MaxValue;
 
         var vm = new SettingsViewModel(settings);
@@ -239,6 +241,7 @@ public class SettingsViewModelTests
     {
         var settings = MakeSettings();
         settings.HiddenPrKeys = ["org/repo#1"];
+        settings.ManuallyHiddenPrKeys = ["org/repo#1"];
         var vm = new SettingsViewModel(settings);
 
         vm.RemoveHiddenPr("org/repo#1");
@@ -249,10 +252,12 @@ public class SettingsViewModelTests
     [Fact]
     public void Save_RemovedManualHiddenPr_IsRemovedButSnoozedStaysHidden()
     {
+        var path = TempPath();
+        using var _ = AppSettings.UseSettingsPathOverride(path);
+
         var settings = MakeSettings();
         settings.HiddenPrKeys = ["org/repo#1", "org/repo#2"];
-        settings.HiddenPrLastSeen["org/repo#1"] = DateTimeOffset.UtcNow;
-        settings.HiddenPrLastSeen["org/repo#2"] = DateTimeOffset.UtcNow;
+        settings.ManuallyHiddenPrKeys = ["org/repo#1"];
         settings.SnoozedPrs["org/repo#2"] = DateTimeOffset.MaxValue;
 
         var vm = new SettingsViewModel(settings);
@@ -262,12 +267,46 @@ public class SettingsViewModelTests
 
         Assert.DoesNotContain("org/repo#1", settings.HiddenPrKeys);
         Assert.Contains("org/repo#2", settings.HiddenPrKeys);
-        Assert.DoesNotContain("org/repo#1", settings.HiddenPrLastSeen.Keys);
+        Assert.DoesNotContain("org/repo#1", settings.ManuallyHiddenPrKeys);
+
+        File.Delete(path);
+        File.Delete(path + ".bak");
+    }
+
+    [Fact]
+    public void Save_PreservesFlakinessRuleMetadata()
+    {
+        var path = TempPath();
+        using var _ = AppSettings.UseSettingsPathOverride(path);
+
+        var settings = MakeSettings();
+        settings.FlakinessRules.Add(new FlakinessRule
+        {
+            Id = "rule-1",
+            Pattern = "timeout",
+            Description = "Timeout rule",
+            IsEnabled = true,
+            CreatedAt = new DateTimeOffset(2026, 4, 1, 12, 0, 0, TimeSpan.Zero),
+            MatchCount = 5,
+        });
+
+        var vm = new SettingsViewModel(settings);
+        vm.Save();
+
+        Assert.Single(settings.FlakinessRules);
+        Assert.Equal(new DateTimeOffset(2026, 4, 1, 12, 0, 0, TimeSpan.Zero), settings.FlakinessRules[0].CreatedAt);
+        Assert.Equal(5, settings.FlakinessRules[0].MatchCount);
+
+        File.Delete(path);
+        File.Delete(path + ".bak");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
 
     private static AppSettings MakeSettings(NotificationMode mode = NotificationMode.Always) =>
         new() { NotificationMode = mode };
+
+    private static string TempPath() =>
+        Path.Combine(Path.GetTempPath(), $"prtests_settingsvm_{Guid.NewGuid()}.json");
 }
 

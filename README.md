@@ -50,6 +50,8 @@ Right-clicking a PR row shows a context menu with:
 - **Mark as ready** / **Convert to draft** — toggles the PR’s draft state (shown when applicable)
 
 Hidden PRs can be managed from **Settings → Hidden PRs**. Removing an entry there makes that PR visible in the main window again.
+When upgrading from older builds, existing saved **Later** entries are automatically migrated so they continue to appear in the Later section.
+Settings loading is backward-compatible with older notification mode values, so existing flakiness hints and learned rules are preserved across updates.
 
 PR row right-click actions now use a native Win32 popup menu (same rendering path as the tray icon menu), so visuals and dark/light behavior stay aligned with Windows.
 
@@ -96,7 +98,11 @@ Right-click the tray icon and choose **Settings** to:
 - Configure **Notifications** — choose when to show toasts: **Always** (default), **Only when window is closed**, or **Never**, with per-event-type toggles for CI failures, review requests, and more
 - Configure **Flakiness** options, including limiting AI flakiness analysis to **My Auto-Merge PRs** only and setting **Maximum automatic reruns** (1-10, default 3)
 
+With a fresh settings file, section defaults are: **My PRs** expanded, **Later** collapsed, and **Dependabot** collapsed.
+When moving PRs to **Later**, the section keeps your chosen collapsed/expanded state and does not auto-open on the first moved item.
+
 Settings are stored in `%APPDATA%\pr-monitor\settings.json`.
+PR Monitor also keeps a best-effort backup at `%APPDATA%\pr-monitor\settings.json.bak` and will recover from it if the main settings file is unreadable.
 
 You can also run a manual update check at any time from **About…** in the tray menu.
 

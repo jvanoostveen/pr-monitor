@@ -129,6 +129,111 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void LoadFrom_InvalidJson_UsesBackupWhenAvailable()
+    {
+        var path = TempPath();
+        var backupPath = path + ".bak";
+        try
+        {
+            var backup = new AppSettings
+            {
+                PollingIntervalSeconds = 45,
+                GitHubUsername = "backup-user",
+            };
+            backup.SaveTo(backupPath);
+
+            File.WriteAllText(path, "{ invalid json }");
+
+            var loaded = AppSettings.LoadFrom(path);
+
+            Assert.Equal(45, loaded.PollingIntervalSeconds);
+            Assert.Equal("backup-user", loaded.GitHubUsername);
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(backupPath);
+        }
+    }
+
+    [Fact]
+    public void SaveTo_WhenFileExists_CreatesBackupFile()
+    {
+        var path = TempPath();
+        var backupPath = path + ".bak";
+        try
+        {
+            new AppSettings { PollingIntervalSeconds = 60 }.SaveTo(path);
+
+            new AppSettings { PollingIntervalSeconds = 90 }.SaveTo(path);
+
+            Assert.True(File.Exists(backupPath));
+            var backupLoaded = AppSettings.LoadFrom(backupPath);
+            Assert.Equal(60, backupLoaded.PollingIntervalSeconds);
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(backupPath);
+        }
+    }
+
+        [Fact]
+        public void LoadFrom_UnknownNotificationMode_PreservesFlakinessSettings()
+        {
+                var path = TempPath();
+                try
+                {
+                        File.WriteAllText(path,
+                                """
+                                {
+                                    "notificationMode": "LegacyUnknownValue",
+                                    "flakinessCustomHints": "Please treat browser retries as flaky",
+                                    "flakinessRules": [
+                                        {
+                                            "id": "rule-1",
+                                            "pattern": "timeout",
+                                            "description": "Timeout rule",
+                                            "isEnabled": true,
+                                            "createdAt": "2026-04-01T12:00:00Z",
+                                            "matchCount": 7
+                                        }
+                                    ]
+                                }
+                                """);
+
+                        var loaded = AppSettings.LoadFrom(path);
+
+                        Assert.Equal(NotificationMode.Always, loaded.NotificationMode);
+                        Assert.Equal("Please treat browser retries as flaky", loaded.FlakinessCustomHints);
+                        Assert.Single(loaded.FlakinessRules);
+                        Assert.Equal("rule-1", loaded.FlakinessRules[0].Id);
+                        Assert.Equal(7, loaded.FlakinessRules[0].MatchCount);
+                }
+                finally { File.Delete(path); }
+        }
+
+        [Fact]
+        public void LoadFrom_LegacyNotificationModeAlias_MapsToWhenWindowClosed()
+        {
+                var path = TempPath();
+                try
+                {
+                        File.WriteAllText(path,
+                                """
+                                {
+                                    "notificationMode": "OnlyWhenWindowClosed"
+                                }
+                                """);
+
+                        var loaded = AppSettings.LoadFrom(path);
+
+                        Assert.Equal(NotificationMode.WhenWindowClosed, loaded.NotificationMode);
+                }
+                finally { File.Delete(path); }
+        }
+
+    [Fact]
     public void LoadFrom_EmptyFile_ReturnsDefaultSettings()
     {
         var path = TempPath();
@@ -205,6 +310,47 @@ public class AppSettingsTests
         finally { File.Delete(path); }
     }
 
+    [Fact]
+    public void LoadFrom_MigratesLegacyHiddenPrKeysToIndefiniteSnooze()
+    {
+        var path = TempPath();
+        try
+        {
+            var settings = new AppSettings
+            {
+                HiddenPrKeys = ["org/repo#1", "org/repo#2"],
+            };
+            settings.SaveTo(path);
+
+            var loaded = AppSettings.LoadFrom(path);
+
+            Assert.Equal(DateTimeOffset.MaxValue, loaded.SnoozedPrs["org/repo#1"]);
+            Assert.Equal(DateTimeOffset.MaxValue, loaded.SnoozedPrs["org/repo#2"]);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void LoadFrom_DoesNotMigrateExplicitlyManualHiddenPrs()
+    {
+        var path = TempPath();
+        try
+        {
+            var settings = new AppSettings
+            {
+                HiddenPrKeys = ["org/repo#99"],
+                ManuallyHiddenPrKeys = ["org/repo#99"],
+            };
+            settings.SaveTo(path);
+
+            var loaded = AppSettings.LoadFrom(path);
+
+            Assert.DoesNotContain("org/repo#99", loaded.SnoozedPrs.Keys);
+            Assert.Contains("org/repo#99", loaded.ManuallyHiddenPrKeys);
+        }
+        finally { File.Delete(path); }
+    }
+
     // ── New fields (reviewer assignment) ────────────────────────────────
 
     [Fact]
@@ -255,12 +401,12 @@ public class AppSettingsTests
     }
 
     [Fact]
-    public void DefaultSettings_DraftExpandedFalse_DependabotExpandedTrue()
+    public void DefaultSettings_DraftExpandedFalse_DependabotExpandedFalse()
     {
         var settings = new AppSettings();
 
         Assert.False(settings.DraftExpanded);
-        Assert.True(settings.DependabotExpanded);
+        Assert.False(settings.DependabotExpanded);
     }
 
     private static string TempPath() =>

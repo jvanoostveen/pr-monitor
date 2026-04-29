@@ -214,8 +214,11 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - **Copilot review action**: PR row context menus include **Request Copilot review** (enabled for non-draft PRs). It requests/re-requests Copilot review via the REST API (`gh api repos/{owner}/{repo}/pulls/{prNumber}/requested_reviewers --method POST -f reviewers[]=copilot-pull-request-reviewer[bot]`). The REST API is used because the Copilot reviewer is a GitHub App bot that cannot be resolved by GraphQL's `requestReviewsByLogin` (which is what `gh pr edit --add-reviewer` uses).
 - **Copy actions**: PR row context menus include **Copy PR URL** and **Copy branch name** for quick clipboard actions from any PR section.
 - **Snooze actions**: the **Move to later** submenu includes **1 hour**, **4 hours**, **Tomorrow morning (09:00)**, **Next week (Monday 09:00)**, and **Indefinitely**.
+- Moving a PR to **Later** no longer auto-expands the Later section when the first item is added; the user's current collapsed/expanded preference is preserved.
 - **Hide action**: PR row context menus include **Hide**, which removes a PR from all main-window sections without placing it in a dedicated in-window hidden category.
 - **Hidden PR settings**: Settings includes a **Hidden PRs** tab where manually hidden PR keys can be removed so those PRs appear again.
+- **Legacy Later migration**: on settings load, hidden keys from older builds that have no snooze timestamp and are not marked as manual hides are automatically migrated to indefinite snoozes so they remain visible in the **Later** section after upgrade.
+- **Notification mode compatibility**: settings load accepts legacy/unknown `notificationMode` string values and falls back safely, preventing full settings resets and preserving fields like `flakinessCustomHints` and `flakinessRules` during upgrades.
 - `PollingService` also tracks CI changes on "My PRs" (non-auto-merge) via `DetectMyPrsChanges`, so flakiness analysis covers both auto-merge and regular own PRs.
 - `PullRequestInfo.HeadCommitSha` is populated from the GraphQL `oid` field and used to resolve the correct workflow run ID.
 
@@ -388,9 +391,9 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "hotfixExpanded": true,
   "autoMergeExpanded": true,
   "reviewExpanded": true,
-  "myPrsExpanded": false,
+  "myPrsExpanded": true,
   "teamReviewExpanded": false,
-  "dependabotExpanded": true,
+  "dependabotExpanded": false,
   "draftExpanded": false,
   "showTeamReviewSection": true,
   "teamReviewCountsForTrayIcon": false,
@@ -400,7 +403,7 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "mainWindowTop": 120.0,
   "mainWindowSnappedCorner": null,
   "hiddenPrKeys": [],
-  "hiddenPrLastSeen": {},
+  "manuallyHiddenPrKeys": [],
   "snoozedPrs": {},
   "notifyCiFailed": true,
   "notifyCiPassed": true,
@@ -440,6 +443,7 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
 
 Serialized as camelCase. `AppSettings.Load()` / `settings.Save()` handle file I/O.
 On `Load()`, rerun records older than 30 days are automatically pruned. Expired `snoozedPrs` entries are also pruned on load.
+`settings.Save()` keeps a best-effort backup at `%APPDATA%/pr-monitor/settings.json.bak`; when `settings.json` is unreadable, `AppSettings.Load()` falls back to the backup before returning defaults.
 
 ---
 

@@ -49,8 +49,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         foreach (var rule in settings.FlakinessRules)
             FlakinessRules.Add(new FlakinessRuleViewModel(rule));
 
-        foreach (var key in settings.HiddenPrKeys
-            .Where(k => !settings.SnoozedPrs.ContainsKey(k))
+        foreach (var key in settings.ManuallyHiddenPrKeys
             .OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
         {
             HiddenPrs.Add(new HiddenPrEntryViewModel(key));
@@ -317,28 +316,21 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.AutoMergeMergeMethod = _autoMergeMergeMethod;
 
         var snoozedKeys = _settings.SnoozedPrs.Keys.ToHashSet(StringComparer.Ordinal);
-        var permanentlyHiddenKeys = HiddenPrs.Select(h => h.Key).ToHashSet(StringComparer.Ordinal);
+        var manuallyHiddenKeys = HiddenPrs.Select(h => h.Key).ToHashSet(StringComparer.Ordinal);
 
-        _settings.HiddenPrKeys = _settings.HiddenPrKeys
-            .Where(k => snoozedKeys.Contains(k) || permanentlyHiddenKeys.Contains(k))
+        _settings.ManuallyHiddenPrKeys = manuallyHiddenKeys;
+
+        _settings.HiddenPrKeys = snoozedKeys
+            .Concat(manuallyHiddenKeys)
             .ToHashSet(StringComparer.Ordinal);
-
-        foreach (var key in permanentlyHiddenKeys)
-            _settings.HiddenPrKeys.Add(key);
-
-        var now = DateTimeOffset.UtcNow;
-        foreach (var key in permanentlyHiddenKeys.Where(k => !_settings.HiddenPrLastSeen.ContainsKey(k)))
-            _settings.HiddenPrLastSeen[key] = now;
-
-        foreach (var key in _settings.HiddenPrLastSeen.Keys.Where(k => !_settings.HiddenPrKeys.Contains(k)).ToList())
-            _settings.HiddenPrLastSeen.Remove(key);
-
         _settings.FlakinessRules = FlakinessRules.Select(vm => new FlakinessRule
         {
             Id = vm.Id,
             Pattern = vm.Pattern,
             Description = vm.Description,
             IsEnabled = vm.IsEnabled,
+            CreatedAt = vm.CreatedAt,
+            MatchCount = vm.MatchCount,
         }).ToList();
         _settings.Save();
 
@@ -390,6 +382,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         public string Id { get; }
         public string Pattern { get; }
         public string Description { get; }
+        public DateTimeOffset CreatedAt { get; }
 
         private bool _isEnabled;
         public bool IsEnabled
@@ -410,6 +403,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             Id = rule.Id;
             Pattern = rule.Pattern;
             Description = rule.Description;
+            CreatedAt = rule.CreatedAt;
             _isEnabled = rule.IsEnabled;
             MatchCount = rule.MatchCount;
         }
