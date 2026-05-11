@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-05-11
+
 ### Changed
 - All native `MessageBox` dialogs replaced with a custom dark-themed `DarkMessageBox` that matches the app's dark UI, including a dark title bar via `DwmSetWindowAttribute`.
 - **Dependabot section** moved below **My PRs** in the window order.
