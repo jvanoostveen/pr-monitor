@@ -1179,6 +1179,8 @@ public sealed class GitHubService
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
+                StandardOutputEncoding = System.Text.Encoding.UTF8,
+                StandardErrorEncoding = System.Text.Encoding.UTF8,
             };
             foreach (var arg in arguments)
                 process.StartInfo.ArgumentList.Add(arg);
