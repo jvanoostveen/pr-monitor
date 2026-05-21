@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-05-21
+
 ### Fixed
 - PR titles containing Unicode characters (e.g., em-dashes "—") are now correctly displayed instead of appearing as mojibake (e.g., "â€•"). Fixed by explicitly setting UTF-8 encoding when reading output from the `gh` CLI.
 
