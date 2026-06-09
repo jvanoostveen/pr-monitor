@@ -181,16 +181,6 @@ public sealed class GitHubService
         }
         """;
 
-    private const string GetPrIdQuery = """
-        query($owner: String!, $repo: String!, $prNumber: Int!) {
-          repository(owner: $owner, name: $repo) {
-            pullRequest(number: $prNumber) {
-              id
-            }
-          }
-        }
-        """;
-
     private const string ConvertPrToDraftMutation = """
         mutation($prId: ID!) {
           convertPullRequestToDraft(input: {pullRequestId: $prId}) {
@@ -826,43 +816,21 @@ public sealed class GitHubService
 
         try
         {
-            // Step 1: Get the PR's GraphQL ID
+            // Step 1: Get the PR's GraphQL node ID via REST API (avoids GraphQL Int variable type issues)
             var (output, stderr, exitCode) = await RunGhAsync(
-                "api", "graphql",
-                "-f", $"query={GetPrIdQuery}",
-                "-f", $"owner={owner}",
-                "-f", $"repo={repo}",
-                "-f", $"prNumber={prNumber}");
+                "api", $"repos/{owner}/{repo}/pulls/{prNumber}",
+                "--jq", ".node_id");
 
             if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
             {
-                _logger.Warn($"SetPrDraftAsync failed to fetch PR ID (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
+                _logger.Warn($"SetPrDraftAsync failed to fetch PR node ID (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
                 return false;
             }
 
-            string? prId = null;
-            try
-            {
-                using var doc = JsonDocument.Parse(output);
-                if (!doc.RootElement.TryGetProperty("data", out var data) ||
-                    !data.TryGetProperty("repository", out var repo_el) ||
-                    !repo_el.TryGetProperty("pullRequest", out var pr_el) ||
-                    !pr_el.TryGetProperty("id", out var id_el))
-                {
-                    _logger.Warn($"SetPrDraftAsync: PR not found or unexpected response for {owner}/{repo}#{prNumber}");
-                    return false;
-                }
-                prId = id_el.GetString();
-            }
-            catch (JsonException ex)
-            {
-                _logger.Error($"SetPrDraftAsync: failed to parse GraphQL response for {owner}/{repo}#{prNumber}", ex);
-                return false;
-            }
-
+            var prId = output.Trim();
             if (string.IsNullOrWhiteSpace(prId))
             {
-                _logger.Warn($"SetPrDraftAsync: empty PR ID for {owner}/{repo}#{prNumber}");
+                _logger.Warn($"SetPrDraftAsync: empty PR node ID for {owner}/{repo}#{prNumber}");
                 return false;
             }
 
