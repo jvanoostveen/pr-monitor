@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Converting a PR to Draft now works correctly on all versions of the `gh` CLI by using the GraphQL `ConvertPullRequestToDraft` mutation instead of the non-existent `--draft` flag.
+
 ## [1.9.1] - 2026-05-21
 
 ### Fixed
