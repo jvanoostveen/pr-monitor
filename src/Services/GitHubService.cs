@@ -181,6 +181,27 @@ public sealed class GitHubService
         }
         """;
 
+    private const string GetPrIdQuery = """
+        query($owner: String!, $repo: String!, $prNumber: Int!) {
+          repository(owner: $owner, name: $repo) {
+            pullRequest(number: $prNumber) {
+              id
+            }
+          }
+        }
+        """;
+
+    private const string ConvertPrToDraftMutation = """
+        mutation($prId: ID!) {
+          convertPullRequestToDraft(input: {pullRequestId: $prId}) {
+            pullRequest {
+              id
+              isDraft
+            }
+          }
+        }
+        """;
+
     // ── Public API ──────────────────────────────────────────────────────
 
     /// <summary>
@@ -796,15 +817,74 @@ public sealed class GitHubService
 
     /// <summary>
     /// Converts a ready PR to draft. Returns true on success.
+    /// Uses GraphQL ConvertPullRequestToDraft mutation (CLI flag --draft doesn't exist in older gh versions).
     /// </summary>
     public async Task<bool> SetPrDraftAsync(string owner, string repo, int prNumber)
     {
         if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo"))
             return false;
-        var (_, stderr, exitCode) = await RunGhAsync("pr", "edit", prNumber.ToString(), "--draft", "--repo", $"{owner}/{repo}");
-        if (exitCode != 0)
-            _logger.Warn($"SetPrDraftAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
-        return exitCode == 0;
+
+        try
+        {
+            // Step 1: Get the PR's GraphQL ID
+            var (output, stderr, exitCode) = await RunGhAsync(
+                "api", "graphql",
+                "-f", $"query={GetPrIdQuery}",
+                "-f", $"owner={owner}",
+                "-f", $"repo={repo}",
+                "-f", $"prNumber={prNumber}");
+
+            if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
+            {
+                _logger.Warn($"SetPrDraftAsync failed to fetch PR ID (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
+                return false;
+            }
+
+            string? prId = null;
+            try
+            {
+                using var doc = JsonDocument.Parse(output);
+                if (!doc.RootElement.TryGetProperty("data", out var data) ||
+                    !data.TryGetProperty("repository", out var repo_el) ||
+                    !repo_el.TryGetProperty("pullRequest", out var pr_el) ||
+                    !pr_el.TryGetProperty("id", out var id_el))
+                {
+                    _logger.Warn($"SetPrDraftAsync: PR not found or unexpected response for {owner}/{repo}#{prNumber}");
+                    return false;
+                }
+                prId = id_el.GetString();
+            }
+            catch (JsonException ex)
+            {
+                _logger.Error($"SetPrDraftAsync: failed to parse GraphQL response for {owner}/{repo}#{prNumber}", ex);
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(prId))
+            {
+                _logger.Warn($"SetPrDraftAsync: empty PR ID for {owner}/{repo}#{prNumber}");
+                return false;
+            }
+
+            // Step 2: Run the ConvertPullRequestToDraft mutation
+            var (mutOutput, mutStderr, mutExitCode) = await RunGhAsync(
+                "api", "graphql",
+                "-f", $"query={ConvertPrToDraftMutation}",
+                "-f", $"prId={prId}");
+
+            if (mutExitCode != 0)
+            {
+                _logger.Warn($"SetPrDraftAsync mutation failed (exit={mutExitCode}) for {owner}/{repo}#{prNumber}: {mutStderr?.Trim()}");
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"SetPrDraftAsync failed for {owner}/{repo}#{prNumber}", ex);
+            return false;
+        }
     }
 
     /// <summary>
