@@ -139,11 +139,11 @@ public sealed class StatisticsService
                 }
 
                 // Reviews requested: a new review request appeared after baseline.
-                foreach (var key in currentReview.Keys)
+                foreach (var (key, pr) in currentReview)
                 {
                     if (!_previousReviewPrs.ContainsKey(key))
                     {
-                        _store.Increment(StatMetric.ReviewsRequested);
+                        _store.IncrementReviewRequested(DateOnly.FromDateTime(DateTime.Today), pr.Author);
                         changed = true;
                     }
                 }

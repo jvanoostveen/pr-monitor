@@ -59,6 +59,19 @@
             <Setter Property="FontFamily" Value="Consolas, monospace"/>
         </Style>
 
+        <Style x:Key="AuthorNumberCell" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#8B949E"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontFamily" Value="Consolas, monospace"/>
+        </Style>
+
+        <BooleanToVisibilityConverter x:Key="BoolToVisible"/>
+
+        <!-- ── Chevron toggle button for inline breakdowns ────────────── -->
+        <!-- (style kept for potential reuse; main usage is now inline ControlTemplate) -->
+
         <!-- ── Minimal overlay scrollbar (matches main window) ───────── -->
         <Style x:Key="MinimalScrollBarThumb" TargetType="Thumb">
             <Setter Property="OverridesDefaultStyle" Value="True"/>
@@ -190,22 +203,100 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border Padding="0,7" BorderBrush="#21262D" BorderThickness="0,0,0,1">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" SharedSizeGroup="MetricCol"/>
-                                        <ColumnDefinition Width="64" SharedSizeGroup="TodayCol"/>
-                                        <ColumnDefinition Width="64" SharedSizeGroup="WeekCol"/>
-                                        <ColumnDefinition Width="64" SharedSizeGroup="MonthCol"/>
-                                        <ColumnDefinition Width="64" SharedSizeGroup="TotalCol"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{Binding Label}"
-                                               Foreground="#C9D1D9" FontSize="13" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Style="{StaticResource NumberCell}" Text="{Binding Today}"/>
-                                    <TextBlock Grid.Column="2" Style="{StaticResource NumberCell}" Text="{Binding Week}"/>
-                                    <TextBlock Grid.Column="3" Style="{StaticResource NumberCell}" Text="{Binding Month}"/>
-                                    <TextBlock Grid.Column="4" Style="{StaticResource NumberCell}" Text="{Binding Total}"
-                                               FontWeight="SemiBold" Foreground="#E6EDF3"/>
-                                </Grid>
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" SharedSizeGroup="MetricCol"/>
+                                            <ColumnDefinition Width="64" SharedSizeGroup="TodayCol"/>
+                                            <ColumnDefinition Width="64" SharedSizeGroup="WeekCol"/>
+                                            <ColumnDefinition Width="64" SharedSizeGroup="MonthCol"/>
+                                            <ColumnDefinition Width="64" SharedSizeGroup="TotalCol"/>
+                                        </Grid.ColumnDefinitions>
+                                        <!-- Metric label: entire text+chevron is clickable when HasBreakdown -->
+                                        <ToggleButton Grid.Column="0"
+                                                      IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                                      OverridesDefaultStyle="True"
+                                                      HorizontalAlignment="Left"
+                                                      VerticalAlignment="Center">
+                                            <ToggleButton.Template>
+                                                <ControlTemplate TargetType="ToggleButton">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding Label}"
+                                                                   Foreground="#C9D1D9" FontSize="13"/>
+                                                        <TextBlock x:Name="Chevron" Text="&#x203A;"
+                                                                   Foreground="#6E7681" FontSize="13"
+                                                                   Margin="5,0,0,0"
+                                                                   Visibility="Collapsed"
+                                                                   RenderTransformOrigin="0.5,0.5">
+                                                            <TextBlock.RenderTransform>
+                                                                <RotateTransform x:Name="Rot" Angle="0"/>
+                                                            </TextBlock.RenderTransform>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                    <ControlTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding HasBreakdown}" Value="True">
+                                                            <Setter TargetName="Chevron" Property="Visibility" Value="Visible"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                        </DataTrigger>
+                                                        <Trigger Property="IsChecked" Value="True">
+                                                            <Trigger.EnterActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetName="Rot"
+                                                                                         Storyboard.TargetProperty="Angle"
+                                                                                         To="90" Duration="0:0:0.15"/>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </Trigger.EnterActions>
+                                                            <Trigger.ExitActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetName="Rot"
+                                                                                         Storyboard.TargetProperty="Angle"
+                                                                                         To="0" Duration="0:0:0.15"/>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </Trigger.ExitActions>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </ToggleButton.Template>
+                                        </ToggleButton>
+                                        <TextBlock Grid.Column="1" Style="{StaticResource NumberCell}" Text="{Binding Today}"/>
+                                        <TextBlock Grid.Column="2" Style="{StaticResource NumberCell}" Text="{Binding Week}"/>
+                                        <TextBlock Grid.Column="3" Style="{StaticResource NumberCell}" Text="{Binding Month}"/>
+                                        <TextBlock Grid.Column="4" Style="{StaticResource NumberCell}" Text="{Binding Total}"
+                                                   FontWeight="SemiBold" Foreground="#E6EDF3"/>
+                                    </Grid>
+                                    <!-- Per-author breakdown (toggle with chevron) -->
+                                    <ItemsControl ItemsSource="{Binding AuthorBreakdown}"
+                                                  Margin="0,4,0,0"
+                                                  Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisible}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                        <!-- Per-author breakdown: same SharedSizeGroups as outer rows, indent via Padding -->
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" SharedSizeGroup="MetricCol"/>
+                                                <ColumnDefinition Width="64" SharedSizeGroup="TodayCol"/>
+                                                <ColumnDefinition Width="64" SharedSizeGroup="WeekCol"/>
+                                                <ColumnDefinition Width="64" SharedSizeGroup="MonthCol"/>
+                                                <ColumnDefinition Width="64" SharedSizeGroup="TotalCol"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Author}"
+                                                       Padding="20,0,0,0"
+                                                       Foreground="#8B949E" FontSize="12" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="1" Style="{StaticResource AuthorNumberCell}" Text="{Binding Today}"/>
+                                            <TextBlock Grid.Column="2" Style="{StaticResource AuthorNumberCell}" Text="{Binding Week}"/>
+                                            <TextBlock Grid.Column="3" Style="{StaticResource AuthorNumberCell}" Text="{Binding Month}"/>
+                                            <TextBlock Grid.Column="4" Style="{StaticResource AuthorNumberCell}" Text="{Binding Total}"
+                                                       FontWeight="SemiBold"/>
+                                        </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

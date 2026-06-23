@@ -28,6 +28,9 @@ public sealed class DayStat
     public int ReviewsRequested { get; set; }
     public int ReviewsCompleted { get; set; }
     public int OwnPrsOpened { get; set; }
+
+    /// <summary>Per-author breakdown for the ReviewsRequested counter.</summary>
+    public Dictionary<string, int>? ReviewsRequestedByAuthor { get; set; }
     public int OwnPrsMerged { get; set; }
     public int CiFailures { get; set; }
     public int FlakyReruns { get; set; }
@@ -68,6 +71,13 @@ public sealed class DayStat
         CiFailures += other.CiFailures;
         FlakyReruns += other.FlakyReruns;
         RealFailures += other.RealFailures;
+
+        if (other.ReviewsRequestedByAuthor is { } otherAuthors)
+        {
+            ReviewsRequestedByAuthor ??= new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (author, count) in otherAuthors)
+                ReviewsRequestedByAuthor[author] = ReviewsRequestedByAuthor.GetValueOrDefault(author) + count;
+        }
     }
 }
 
@@ -180,6 +190,23 @@ public sealed class StatisticsStore
     }
 
     // ── Mutation ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Increment <see cref="StatMetric.ReviewsRequested"/> for today, also tracking the PR author.
+    /// </summary>
+    public void IncrementReviewRequested(DateOnly day, string author)
+    {
+        var key = day.ToString(DateKeyFormat, CultureInfo.InvariantCulture);
+        if (!Days.TryGetValue(key, out var stat))
+        {
+            stat = new DayStat();
+            Days[key] = stat;
+        }
+        stat.ReviewsRequested++;
+        stat.ReviewsRequestedByAuthor ??= new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        stat.ReviewsRequestedByAuthor[author] =
+            stat.ReviewsRequestedByAuthor.GetValueOrDefault(author) + 1;
+    }
 
     /// <summary>Increment a metric for today.</summary>
     public void Increment(StatMetric metric, int delta = 1) =>

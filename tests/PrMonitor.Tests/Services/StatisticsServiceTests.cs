@@ -187,6 +187,24 @@ public class StatisticsServiceTests
     }
 
     [Fact]
+    public void ReviewRequested_TracksAuthor()
+    {
+        var (service, store, path) = CreateService();
+        try
+        {
+            service.ProcessSnapshot(Snapshot()); // baseline
+            service.ProcessSnapshot(Snapshot(review: [PR("org/repo#9", author: "bob"), PR("org/repo#10", author: "bob")]));
+            service.ProcessSnapshot(Snapshot(review: [PR("org/repo#9", author: "bob"), PR("org/repo#10", author: "bob"), PR("org/repo#11", author: "carol")]));
+
+            var day = store.ForDay(Today);
+            Assert.Equal(3, day.ReviewsRequested);
+            Assert.Equal(2, day.ReviewsRequestedByAuthor?["bob"]);
+            Assert.Equal(1, day.ReviewsRequestedByAuthor?["carol"]);
+        }
+        finally { Cleanup(path); }
+    }
+
+    [Fact]
     public void Record_FlakyRerunAndRealFailure_Increment()
     {
         var (service, store, path) = CreateService();
