@@ -41,6 +41,12 @@ public sealed class FlakinessService
         _logger = logger;
     }
 
+    /// <summary>Raised when an automatic flaky rerun is triggered. Arg: PR key ("owner/repo#n").</summary>
+    public event Action<string>? FlakyRerunTriggered;
+
+    /// <summary>Raised when a CI failure is classified as a real (non-flaky) failure. Arg: PR key.</summary>
+    public event Action<string>? RealFailureClassified;
+
     public void Subscribe(PollingService polling)
     {
         polling.PrChanged += (_, e) =>
@@ -194,6 +200,7 @@ public sealed class FlakinessService
         else
         {
             _logger.Info($"FlakinessService: Copilot says REAL FAILURE for {prKey}: {result.Rationale}");
+            RealFailureClassified?.Invoke(prKey);
             if (_settings.NotifyFlakinessRealFailure)
                 _notifications.Notify(
                     $"\u274c Real failure on #{pr.Number} ({pr.Repository})",
@@ -213,6 +220,7 @@ public sealed class FlakinessService
         var newCount = IncrementRerunCount(prKey);
         _settings.Save();
 
+        FlakyRerunTriggered?.Invoke(prKey);
         _logger.Info($"FlakinessService: triggered rerun {newCount}/{maxAttempts} for {prKey}.");
         if (_settings.NotifyFlakinessRerun)
             _notifications.Notify(

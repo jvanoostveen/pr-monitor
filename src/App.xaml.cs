@@ -27,8 +27,10 @@ public partial class App : System.Windows.Application
     private System.Threading.Timer? _updateTimer;
     private GitHubService? _github;
     private FlakinessService? _flakinessService;
+    private StatisticsService? _statisticsService;
     private SettingsWindow? _settingsWindow;
     private AboutWindow? _aboutWindow;
+    private StatsWindow? _statsWindow;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -82,6 +84,14 @@ public partial class App : System.Windows.Application
         _flakinessService = new FlakinessService(_github, copilot, settings, _notifications, _logger);
         _flakinessService.Subscribe(_polling);
 
+        // Statistics collection (event-based, only while the app runs).
+        var statisticsStore = StatisticsStore.Load();
+        _statisticsService = new StatisticsService(statisticsStore, settings, _logger);
+        _statisticsService.Subscribe(_polling);
+        _statisticsService.SubscribeFlakiness(_flakinessService);
+        _statisticsService.StatsChanged += () =>
+            Dispatcher.Invoke(() => _statsWindow?.RefreshData());
+
         _updates = new UpdateService(_logger);
 
         // ── View layer ─────────────────────────────────────────────
@@ -94,6 +104,7 @@ public partial class App : System.Windows.Application
         _trayIcon = new TrayIconManager(settings);
         _trayIcon.Subscribe(_polling);
         mainVm.OnHiddenPrsChanged = () => _trayIcon.RefreshFromLatestSnapshot();
+        _mainWindow.OpenStatisticsRequested = ShowStatsWindow;
         _trayIcon.OnOpenWindow(() =>
         {
             if (_mainWindow.IsVisible)
@@ -150,6 +161,7 @@ public partial class App : System.Windows.Application
             _aboutWindow = aboutWindow;
             aboutWindow.Show();
         });
+        _trayIcon.OnOpenStatistics(ShowStatsWindow);
         _trayIcon.OnExit(() => Shutdown());
 
         // ── Start polling ──────────────────────────────────────────
@@ -196,6 +208,32 @@ public partial class App : System.Windows.Application
         }
 
         base.OnExit(e);
+    }
+
+    private void ShowStatsWindow()
+    {
+        if (_statisticsService is null)
+            return;
+
+        if (_statsWindow is not null)
+        {
+            _statsWindow.RefreshData();
+            _statsWindow.Activate();
+            _statsWindow.Focus();
+            return;
+        }
+
+        var vm = new StatsViewModel(_statisticsService.Store);
+        var window = new StatsWindow(vm)
+        {
+            Owner = _mainWindow is { IsLoaded: true, IsVisible: true } ? _mainWindow : null,
+            WindowStartupLocation = _mainWindow is { IsLoaded: true, IsVisible: true }
+                ? WindowStartupLocation.CenterOwner
+                : WindowStartupLocation.CenterScreen,
+        };
+        window.Closed += (_, _) => _statsWindow = null;
+        _statsWindow = window;
+        window.Show();
     }
 
     private async Task RunAutoUpdateCheckAsync()

@@ -32,9 +32,23 @@ Empty sections are hidden automatically. The tray icon badge changes colour to r
 
 Badge text rendering is tuned for small tray icons so two-digit counts remain readable.
 
-Click the tray icon to toggle the window. Right-click for a context menu with **Open PR Monitor**, **About…**, **Settings…**, and totals per section.
+Click the tray icon to toggle the window. Right-click for a context menu with **Open PR Monitor**, **About…**, **Settings…**, **Statistics…**, and totals per section.
 
 Windows toast notifications are shown under the app name **PR Monitor**.
+
+### Statistics
+
+PR Monitor keeps lightweight activity statistics while it runs:
+
+- **Reviews completed** — review requests on you that were resolved
+- **PRs opened** — your PRs created while the app is running
+- **PRs merged** — your PRs that left every section (merged or closed)
+- **CI failures** — failures on your PRs
+- **Flaky reruns** — automatic reruns triggered by flakiness analysis
+- **Real failures** — CI failures classified as genuine (non-flaky)
+
+Open the **Statistics** window from the chart button in the PR Monitor window header or the **Statistics…** item in the tray context menu. Each metric is shown per period — **Today**, **This week**, **This month**, and **Total**. Counts are persisted to `%APPDATA%/pr-monitor/statistics.json` and survive restarts. Statistics are only counted while the app is running (there is no historical backfill); *PRs merged* and *reviews completed* are heuristics based on a PR disappearing from its section.
+
 
 The app automatically checks for a new release ~30 seconds after startup and again every 24 hours. When a newer version is available, a green clickable banner appears at the bottom of the PR window showing the target version. Click the banner to download the update, and once it is ready the banner switches to a restart action. The adjacent **What's new?** link opens an in-app changelog view sourced from `CHANGELOG.md`, filtered to the versions between your current build and the latest release. A manual check is also available from **About… → Check for updates…**.
 

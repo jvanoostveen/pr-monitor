@@ -746,6 +746,14 @@ public partial class MainWindow : Window
         _ = ViewModel.RefreshAsync();
     }
 
+    /// <summary>Invoked when the statistics button in the header is clicked. Wired in App.xaml.cs.</summary>
+    public Action? OpenStatisticsRequested { get; set; }
+
+    private void StatsButton_Click(object sender, MouseButtonEventArgs e)
+    {
+        OpenStatisticsRequested?.Invoke();
+    }
+
     private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (e.Key == System.Windows.Input.Key.Escape)

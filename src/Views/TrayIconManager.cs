@@ -29,6 +29,7 @@ public sealed class TrayIconManager : IDisposable
     private Action? _openWindowAction;
     private Action? _openSettingsAction;
     private Action? _openAboutAction;
+    private Action? _openStatisticsAction;
     private Action? _exitAction;
     private Func<bool>? _isWindowVisible;
 
@@ -54,6 +55,7 @@ public sealed class TrayIconManager : IDisposable
     private const uint ID_MY_PRS   = 5;
     private const uint ID_REVIEWS  = 6;
     private const uint ID_EXIT     = 7;
+    private const uint ID_STATISTICS = 8;
 
     public TrayIconManager(AppSettings settings)
     {
@@ -94,6 +96,7 @@ public sealed class TrayIconManager : IDisposable
     public void OnWindowVisibility(Func<bool> isVisible) => _isWindowVisible = isVisible;
     public void OnOpenSettings(Action action) => _openSettingsAction = action;
     public void OnOpenAbout(Action action) => _openAboutAction = action;
+    public void OnOpenStatistics(Action action) => _openStatisticsAction = action;
     public void OnExit(Action action) => _exitAction = action;
 
     // ── Native context menu ─────────────────────────────────────────
@@ -108,6 +111,7 @@ public sealed class TrayIconManager : IDisposable
             AppendMenuW(hMenu, MF_STRING | MF_DEFAULT, (UIntPtr)ID_OPEN,     openLabel);
             AppendMenuW(hMenu, MF_STRING,               (UIntPtr)ID_ABOUT,    "About…");
             AppendMenuW(hMenu, MF_STRING,               (UIntPtr)ID_SETTINGS, "Settings…");
+            AppendMenuW(hMenu, MF_STRING,               (UIntPtr)ID_STATISTICS, "Statistics…");
             AppendMenuW(hMenu, MF_SEPARATOR,             UIntPtr.Zero,         null);
             if (_hotfixesVisible)
                 AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_HOTFIXES, _hotfixesText);
@@ -130,6 +134,7 @@ public sealed class TrayIconManager : IDisposable
                 case ID_OPEN:     _openWindowAction?.Invoke();  break;
                 case ID_ABOUT:    _openAboutAction?.Invoke();   break;
                 case ID_SETTINGS: _openSettingsAction?.Invoke(); break;
+                case ID_STATISTICS: _openStatisticsAction?.Invoke(); break;
                 case ID_HOTFIXES: OpenInBrowser("https://github.com/pulls?q=is%3Aopen+is%3Apr+involves%3A%40me+base%3Arelease"); break;
                 case ID_MY_PRS:   OpenInBrowser("https://github.com/pulls?q=is%3Aopen+is%3Apr+author%3A%40me"); break;
                 case ID_REVIEWS:  OpenInBrowser("https://github.com/pulls?q=is%3Aopen+is%3Apr+review-requested%3A%40me"); break;

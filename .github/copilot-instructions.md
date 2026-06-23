@@ -34,6 +34,7 @@ Development is done on **Windows** with **PowerShell**. Never use Unix/bash comm
 | Auth / API | `gh` CLI → `gh api graphql` subprocess |
 | Notifications | `Microsoft.Toolkit.Uwp.Notifications` v7.1.3 |
 | Settings | JSON in `%APPDATA%/pr-monitor/settings.json` |
+| Statistics | JSON in `%APPDATA%/pr-monitor/statistics.json` |
 | Diagnostics log | `%APPDATA%/pr-monitor/logs/pr-monitor.log` |
 | Version source | `<Version>` in `src/PrMonitor.csproj` |
 
@@ -70,12 +71,15 @@ pr-monitor/
 │   │   ├── NotificationService.cs      # Windows toast on PR changes + Notify() helper
 │   │   ├── UpdateService.cs            # GitHub latest release check + version compare
 │   │   ├── CopilotService.cs           # GitHub Models API (gpt-4o-mini) flakiness analysis
+│   │   ├── StatisticsService.cs        # Event/snapshot-based activity statistics collector
 │   │   └── FlakinessService.cs         # CI failure analysis orchestrator + auto-rerun
 │   ├── Settings/
-│   │   └── AppSettings.cs              # JSON-backed settings
+│   │   ├── AppSettings.cs              # JSON-backed settings
+│   │   └── StatisticsStore.cs          # JSON-backed daily statistics buckets (statistics.json)
 │   ├── ViewModels/
 │   │   ├── MainViewModel.cs            # Main window VM + PrItemViewModel (inner)
-│   │   └── SettingsViewModel.cs        # Settings window VM
+│   │   ├── SettingsViewModel.cs        # Settings window VM
+│   │   └── StatsViewModel.cs           # Statistics window VM (per-period rows)
 │   └── Views/
 │       ├── TrayIconManager.cs          # NotifyIcon + context menu
 │       ├── IconGenerator.cs            # Generates 16×16 icon with colored badge
@@ -83,6 +87,7 @@ pr-monitor/
 │       ├── ChangelogWindow.xaml / .cs  # In-app changelog view (filtered version range)
 │       ├── AssignReviewerSearchWindow.xaml / .cs  # Org-member search dialog for reviewer assignment
 │       ├── FlakinessRulesWindow.xaml / .cs  # Resizable/scrollable window for managing flakiness rules
+│       ├── StatsWindow.xaml / .cs       # Resizable statistics table window (per-period columns)
 │       └── SettingsWindow.xaml / .cs   # Settings dialog
 └── tests/
     └── PrMonitor.Tests/
@@ -222,6 +227,19 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - `PollingService` also tracks CI changes on "My PRs" (non-auto-merge) via `DetectMyPrsChanges`, so flakiness analysis covers both auto-merge and regular own PRs.
 - `PullRequestInfo.HeadCommitSha` is populated from the GraphQL `oid` field and used to resolve the correct workflow run ID.
 
+### Statistics
+- `StatisticsStore` ([src/Settings/StatisticsStore.cs](../src/Settings/StatisticsStore.cs)) persists activity counters as daily buckets (`Dictionary<yyyy-MM-dd, DayStat>`) to `%APPDATA%/pr-monitor/statistics.json`. It mirrors `AppSettings`'s persistence pattern exactly: atomic write (`.tmp → .bak → primary`), camelCase JSON, an `AsyncLocal` path override (`UseStatisticsPathOverride`) and `internal LoadFrom`/`SaveTo(path)` so the test suite never touches the real file. The store also remembers the path it was loaded from so `Save()` writes back there even outside an override scope. Buckets older than ~18 months are pruned on load. Aggregation helpers: `ForDay`, `ForWeekOf` (ISO Monday–Sunday), `ForMonthOf`, `ForRange`, `Total`.
+- `StatMetric` enum: `ReviewsCompleted`, `OwnPrsOpened`, `OwnPrsMerged`, `CiFailures`, `FlakyReruns`, `RealFailures`. `DayStat` holds one int per metric.
+- `StatisticsService` ([src/Services/StatisticsService.cs](../src/Services/StatisticsService.cs)) subscribes to `PollingService.Polled` and computes its own deltas between successive snapshots (the first snapshot is a baseline that counts nothing, so pre-existing PRs at startup don't inflate numbers). It also subscribes to two new `FlakinessService` events.
+  - **OwnPrsOpened**: a new own-PR key (authored by `GitHubUsername`) whose `CreatedAt >= service start time`.
+  - **OwnPrsMerged** *(heuristic)*: an own-PR key that disappeared from every snapshot section (counts closed-not-merged too).
+  - **CiFailures**: an own PR transitioning into `CIState.Failure`.
+  - **ReviewsCompleted** *(heuristic)*: a review-request key that disappeared (also fires on withdrawn requests / PRs closed by others).
+  - **FlakyReruns** / **RealFailures**: from `FlakinessService.FlakyRerunTriggered` / `RealFailureClassified` events.
+  - The store is saved only when a counter actually changes, and `StatsChanged` is raised so an open stats window can live-refresh. Collection happens only while the app runs (no GitHub backfill). `ProcessSnapshot` and `Record` are `internal` for testing.
+- `FlakinessService` raises `FlakyRerunTriggered(prKey)` when an automatic rerun fires and `RealFailureClassified(prKey)` when Copilot concludes a failure is genuine.
+- `StatsViewModel` ([src/ViewModels/StatsViewModel.cs](../src/ViewModels/StatsViewModel.cs)) builds one `StatRowViewModel` per metric with Today/Week/Month/Total columns. `StatsWindow` is a resizable dark-themed table (modeled on `FlakinessRulesWindow`) opened from the tray menu (**Statistics…**) and the chart button in the main window header. `App.ShowStatsWindow()` is a create-or-focus singleton that refreshes on reopen and is wired to both entry points; `MainWindow.OpenStatisticsRequested` is the header-button callback.
+
 ### Notification app name
 - Windows toast notifications should display the app name as **PR Monitor** (configured via project metadata in `src/PrMonitor.csproj`).
 
@@ -229,7 +247,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - Borderless, transparent, `Topmost=True`, `SizeToContent=Height`, `MaxHeight=700`
 - **No auto-hide on deactivate** — stays visible until user clicks X or tray icon
 - **Tray left-click** toggles window visibility
-- Tray context menu order starts with **Open PR Monitor**, then **About…**, then **Settings…**
+- Tray context menu order starts with **Open PR Monitor**, then **About…**, then **Settings…**, then **Statistics…**.
 - PR row right-click actions use a native Win32 popup menu from `MainWindow` (not WPF `ContextMenu`) to match tray-menu rendering and Windows dark/light behavior.
 - **Draggable** by the title/timestamp area in the header (cursor: SizeAll)
 - **Buttons** (Refresh, Close) use `MouseLeftButtonUp` — NOT inside the drag zone — to avoid `DragMove()` hijacking mouse capture
@@ -318,7 +336,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
   - `push` to `main`
 - Behavior:
   - Restores and builds the full solution (`pr-monitor.slnx`) in `Release` with .NET 10 on `windows-latest`
-  - Runs `dotnet test` on `tests/PrMonitor.Tests` (305 xUnit tests)
+  - Runs `dotnet test` on `tests/PrMonitor.Tests` (341 xUnit tests)
   - Build + test validation only (no tag/release/upload steps)
 
 - Release workflow: `.github/workflows/release-on-version-change.yml`
