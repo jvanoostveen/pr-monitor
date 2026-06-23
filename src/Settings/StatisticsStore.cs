@@ -11,6 +11,7 @@ namespace PrMonitor.Settings;
 /// </summary>
 public enum StatMetric
 {
+    ReviewsRequested,
     ReviewsCompleted,
     OwnPrsOpened,
     OwnPrsMerged,
@@ -24,6 +25,7 @@ public enum StatMetric
 /// </summary>
 public sealed class DayStat
 {
+    public int ReviewsRequested { get; set; }
     public int ReviewsCompleted { get; set; }
     public int OwnPrsOpened { get; set; }
     public int OwnPrsMerged { get; set; }
@@ -33,6 +35,7 @@ public sealed class DayStat
 
     public int Get(StatMetric metric) => metric switch
     {
+        StatMetric.ReviewsRequested => ReviewsRequested,
         StatMetric.ReviewsCompleted => ReviewsCompleted,
         StatMetric.OwnPrsOpened => OwnPrsOpened,
         StatMetric.OwnPrsMerged => OwnPrsMerged,
@@ -46,6 +49,7 @@ public sealed class DayStat
     {
         switch (metric)
         {
+            case StatMetric.ReviewsRequested: ReviewsRequested += delta; break;
             case StatMetric.ReviewsCompleted: ReviewsCompleted += delta; break;
             case StatMetric.OwnPrsOpened: OwnPrsOpened += delta; break;
             case StatMetric.OwnPrsMerged: OwnPrsMerged += delta; break;
@@ -57,6 +61,7 @@ public sealed class DayStat
 
     internal void Accumulate(DayStat other)
     {
+        ReviewsRequested += other.ReviewsRequested;
         ReviewsCompleted += other.ReviewsCompleted;
         OwnPrsOpened += other.OwnPrsOpened;
         OwnPrsMerged += other.OwnPrsMerged;
@@ -150,6 +155,15 @@ public sealed class StatisticsStore
     /// Persist current statistics to disk (atomic write with a <c>.bak</c> backup).
     /// </summary>
     public void Save() => SaveTo(_sourcePath ?? GetStatsPath());
+
+    /// <summary>
+    /// Clear all collected statistics and persist the empty store to disk.
+    /// </summary>
+    public void Reset()
+    {
+        Days.Clear();
+        Save();
+    }
 
     internal void SaveTo(string path)
     {

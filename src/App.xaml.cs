@@ -142,6 +142,10 @@ public partial class App : System.Windows.Application
                 _mainWindow.Dispatcher.BeginInvoke(
                     System.Windows.Threading.DispatcherPriority.Loaded,
                     new System.Action(() => _mainWindow.ReapplySnapIfSnapped()));
+            }, onResetStatistics: () =>
+            {
+                _statisticsService?.Store.Reset();
+                _statsWindow?.RefreshData();
             });
             settingsWindow.Closed += (_, _) => _settingsWindow = null;
             _settingsWindow = settingsWindow;

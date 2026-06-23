@@ -138,6 +138,16 @@ public sealed class StatisticsService
                     }
                 }
 
+                // Reviews requested: a new review request appeared after baseline.
+                foreach (var key in currentReview.Keys)
+                {
+                    if (!_previousReviewPrs.ContainsKey(key))
+                    {
+                        _store.Increment(StatMetric.ReviewsRequested);
+                        changed = true;
+                    }
+                }
+
                 // Reviews completed: a review request that disappeared.
                 foreach (var key in _previousReviewPrs.Keys)
                 {

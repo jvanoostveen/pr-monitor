@@ -59,6 +59,52 @@ public partial class StatsWindow : Window
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        if (WindowState == WindowState.Maximized)
+        {
+            // Instead of going full-screen, fit the window to show all rows without scrolling.
+            WindowState = WindowState.Normal;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                new Action(FitToContent));
+        }
+    }
+
+    /// <summary>
+    /// Resize the window to its natural content height (all rows visible, no scrollbar needed).
+    /// Caps to 90 % of the current work area to stay on screen.
+    /// </summary>
+    private void FitToContent()
+    {
+        var previousSizeToContent = SizeToContent;
+        SizeToContent = SizeToContent.Height;
+        UpdateLayout();
+        var fitHeight = ActualHeight + 1;
+        SizeToContent = previousSizeToContent;
+
+        // Cap to 90 % of the monitor work area.
+        var wa = GetCurrentWorkArea();
+        if (fitHeight > wa.Height * 0.9)
+            fitHeight = wa.Height * 0.9;
+
+        Height = fitHeight;
+
+        // Clamp position in case the taller window now goes off-screen.
+        var (clampedLeft, clampedTop) = ClampToBestWorkArea(Left, Top, Width, Height);
+        Left = clampedLeft;
+        Top = clampedTop;
+    }
+
+    private Rect GetCurrentWorkArea()
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        var screen = handle != IntPtr.Zero
+            ? WinForms.Screen.FromHandle(handle)
+            : WinForms.Screen.PrimaryScreen!;
+        return ScreenRectToWpf(screen!.WorkingArea);
+    }
+
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
         // Persist size and final on-screen position.

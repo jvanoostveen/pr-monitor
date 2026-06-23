@@ -173,6 +173,20 @@ public class StatisticsServiceTests
     }
 
     [Fact]
+    public void ReviewRequested_NewRequestAppears_Counts()
+    {
+        var (service, store, path) = CreateService();
+        try
+        {
+            service.ProcessSnapshot(Snapshot()); // baseline (no review requests)
+            service.ProcessSnapshot(Snapshot(review: [PR("org/repo#9", author: "bob")])); // new request
+
+            Assert.Equal(1, store.ForDay(Today).ReviewsRequested);
+        }
+        finally { Cleanup(path); }
+    }
+
+    [Fact]
     public void Record_FlakyRerunAndRealFailure_Increment()
     {
         var (service, store, path) = CreateService();

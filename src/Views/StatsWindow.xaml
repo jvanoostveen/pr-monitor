@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="PR Monitor – Statistics"
-        Width="540" Height="420"
-        MinWidth="420" MinHeight="280"
+        Width="460" Height="480"
+        MinWidth="360" MinHeight="320"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
         Background="#0D1117">
@@ -148,7 +148,7 @@
 
     </Window.Resources>
 
-    <Border Margin="12" Padding="18" Background="#0D1117"
+    <Border Margin="10" Padding="14" Background="#0D1117"
             BorderBrush="#30363D" BorderThickness="1" CornerRadius="8">
         <Grid Grid.IsSharedSizeScope="True">
             <Grid.RowDefinitions>
@@ -159,7 +159,7 @@
             </Grid.RowDefinitions>
 
             <!-- Title -->
-            <StackPanel Grid.Row="0" Margin="0,0,0,14">
+            <StackPanel Grid.Row="0" Margin="0,0,0,10">
                 <TextBlock Text="Statistics" FontSize="18" FontWeight="Bold" Foreground="#E6EDF3"/>
                 <TextBlock FontSize="11" Foreground="#6E7681" Margin="0,3,0,0"
                            Text="Counted while PR Monitor is running."/>
@@ -189,7 +189,7 @@
                 <ItemsControl ItemsSource="{Binding Rows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Padding="0,9" BorderBrush="#21262D" BorderThickness="0,0,0,1">
+                            <Border Padding="0,7" BorderBrush="#21262D" BorderThickness="0,0,0,1">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" SharedSizeGroup="MetricCol"/>
@@ -213,13 +213,9 @@
             </ScrollViewer>
 
             <!-- Footer -->
-            <DockPanel Grid.Row="3" Margin="0,14,0,0">
-                <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center"
-                           FontSize="11" Foreground="#6E7681"
-                           Text="{Binding LastUpdated, StringFormat='Updated {0}'}"/>
-                <Button Content="Close" Style="{StaticResource SecondaryButton}"
-                        HorizontalAlignment="Right" Click="Close_Click"/>
-            </DockPanel>
+            <TextBlock Grid.Row="3" Margin="0,6,0,0"
+                       FontSize="11" Foreground="#6E7681"
+                       Text="{Binding LastUpdated, StringFormat='Updated {0}'}"/>
         </Grid>
     </Border>
 </Window>

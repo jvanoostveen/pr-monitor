@@ -50,6 +50,7 @@ public sealed class StatsViewModel : INotifyPropertyChanged
         var total = _store.Total();
 
         Rows.Clear();
+        AddRow("Reviews requested", StatMetric.ReviewsRequested, day, week, month, total);
         AddRow("Reviews completed", StatMetric.ReviewsCompleted, day, week, month, total);
         AddRow("PRs opened", StatMetric.OwnPrsOpened, day, week, month, total);
         AddRow("PRs merged", StatMetric.OwnPrsMerged, day, week, month, total);

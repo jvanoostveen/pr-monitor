@@ -15,11 +15,13 @@ public partial class SettingsWindow : Window
 
     private readonly SettingsViewModel _viewModel;
     private readonly Action? _onSaved;
+    private readonly Action? _onResetStatistics;
 
-    public SettingsWindow(SettingsViewModel viewModel, Action? onSaved = null)
+    public SettingsWindow(SettingsViewModel viewModel, Action? onSaved = null, Action? onResetStatistics = null)
     {
         _viewModel = viewModel;
         _onSaved = onSaved;
+        _onResetStatistics = onResetStatistics;
         DataContext = viewModel;
         InitializeComponent();
     }
@@ -64,5 +66,16 @@ public partial class SettingsWindow : Window
 
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    private void ResetStatistics_Click(object sender, RoutedEventArgs e)
+    {
+        var result = DarkMessageBox.Show(
+            "This will permanently delete all collected statistics. Continue?",
+            "Reset statistics",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (result == MessageBoxResult.Yes)
+            _onResetStatistics?.Invoke();
     }
 }

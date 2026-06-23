@@ -547,6 +547,21 @@
                     </StackPanel>
                 </TabItem>
 
+                <!-- ══ Statistics tab ════════════════════════════════════════ -->
+                <TabItem Header="Statistics">
+                    <StackPanel Margin="0,20,0,0">
+
+                        <TextBlock Text="RESET" Style="{StaticResource SectionLabel}" Margin="0,0,0,10"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="0,0,0,12" TextWrapping="Wrap"
+                                   Text="Permanently deletes all collected statistics. This cannot be undone."/>
+                        <Button Content="Reset statistics…"
+                                Width="160" HorizontalAlignment="Left"
+                                Style="{StaticResource SecondaryButton}"
+                                Click="ResetStatistics_Click"/>
+
+                    </StackPanel>
+                </TabItem>
+
             </TabControl>
 
             <!-- Buttons -->
