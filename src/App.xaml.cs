@@ -31,6 +31,7 @@ public partial class App : System.Windows.Application
     private SettingsWindow? _settingsWindow;
     private AboutWindow? _aboutWindow;
     private StatsWindow? _statsWindow;
+    private AppSettings? _settings;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -52,6 +53,7 @@ public partial class App : System.Windows.Application
 
         // ── Settings ───────────────────────────────────────────────
         var settings = AppSettings.Load();
+        _settings = settings;
         _logger = new DiagnosticsLogger { VerboseLogging = settings.VerboseLogging };
 
         // Clean up leftover .old exe from a previous in-place update
@@ -224,12 +226,15 @@ public partial class App : System.Windows.Application
         }
 
         var vm = new StatsViewModel(_statisticsService.Store);
-        var window = new StatsWindow(vm)
+        var hasSavedPosition = _settings is { StatsWindowLeft: not null, StatsWindowTop: not null };
+        var window = new StatsWindow(vm, _settings!)
         {
             Owner = _mainWindow is { IsLoaded: true, IsVisible: true } ? _mainWindow : null,
-            WindowStartupLocation = _mainWindow is { IsLoaded: true, IsVisible: true }
-                ? WindowStartupLocation.CenterOwner
-                : WindowStartupLocation.CenterScreen,
+            WindowStartupLocation = hasSavedPosition
+                ? WindowStartupLocation.Manual
+                : _mainWindow is { IsLoaded: true, IsVisible: true }
+                    ? WindowStartupLocation.CenterOwner
+                    : WindowStartupLocation.CenterScreen,
         };
         window.Closed += (_, _) => _statsWindow = null;
         _statsWindow = window;

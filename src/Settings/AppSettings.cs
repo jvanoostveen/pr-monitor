@@ -90,6 +90,18 @@ public sealed class AppSettings
     /// <summary>Last known snapped corner (None/TopLeft/TopRight/BottomLeft/BottomRight).</summary>
     public string? MainWindowSnappedCorner { get; set; }
 
+    /// <summary>Last known Statistics window left position in WPF units.</summary>
+    public double? StatsWindowLeft { get; set; }
+
+    /// <summary>Last known Statistics window top position in WPF units.</summary>
+    public double? StatsWindowTop { get; set; }
+
+    /// <summary>Last known Statistics window width in WPF units.</summary>
+    public double? StatsWindowWidth { get; set; }
+
+    /// <summary>Last known Statistics window height in WPF units.</summary>
+    public double? StatsWindowHeight { get; set; }
+
     /// <summary>Keys of PRs the user has hidden to the "Later" section.</summary>
     public HashSet<string> HiddenPrKeys { get; set; } = [];
     /// <summary>

@@ -238,7 +238,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
   - **FlakyReruns** / **RealFailures**: from `FlakinessService.FlakyRerunTriggered` / `RealFailureClassified` events.
   - The store is saved only when a counter actually changes, and `StatsChanged` is raised so an open stats window can live-refresh. Collection happens only while the app runs (no GitHub backfill). `ProcessSnapshot` and `Record` are `internal` for testing.
 - `FlakinessService` raises `FlakyRerunTriggered(prKey)` when an automatic rerun fires and `RealFailureClassified(prKey)` when Copilot concludes a failure is genuine.
-- `StatsViewModel` ([src/ViewModels/StatsViewModel.cs](../src/ViewModels/StatsViewModel.cs)) builds one `StatRowViewModel` per metric with Today/Week/Month/Total columns. `StatsWindow` is a resizable dark-themed table (modeled on `FlakinessRulesWindow`) opened from the tray menu (**Statistics…**) and the chart button in the main window header. `App.ShowStatsWindow()` is a create-or-focus singleton that refreshes on reopen and is wired to both entry points; `MainWindow.OpenStatisticsRequested` is the header-button callback.
+- `StatsViewModel` ([src/ViewModels/StatsViewModel.cs](../src/ViewModels/StatsViewModel.cs)) builds one `StatRowViewModel` per metric with Today/Week/Month/Total columns. `StatsWindow` is a resizable dark-themed table (modeled on `FlakinessRulesWindow`) opened from the tray menu (**Statistics…**) and the chart button in the main window header. `App.ShowStatsWindow()` is a create-or-focus singleton that refreshes on reopen and is wired to both entry points; `MainWindow.OpenStatisticsRequested` is the header-button callback. `StatsWindow` persists its last position and size (`StatsWindowLeft/Top/Width/Height` in settings), saved in `OnClosing` and restored in `OnSourceInitialized`; restored coordinates are clamped to the nearest available monitor work area (`ClampToBestWorkArea`) so a window from a disconnected screen is recovered onto a visible monitor.
 
 ### Notification app name
 - Windows toast notifications should display the app name as **PR Monitor** (configured via project metadata in `src/PrMonitor.csproj`).
@@ -420,6 +420,10 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "mainWindowLeft": 1440.0,
   "mainWindowTop": 120.0,
   "mainWindowSnappedCorner": null,
+  "statsWindowLeft": null,
+  "statsWindowTop": null,
+  "statsWindowWidth": null,
+  "statsWindowHeight": null,
   "hiddenPrKeys": [],
   "manuallyHiddenPrKeys": [],
   "snoozedPrs": {},
