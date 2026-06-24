@@ -283,7 +283,7 @@
                                                 <ColumnDefinition Width="64" SharedSizeGroup="MonthCol"/>
                                                 <ColumnDefinition Width="64" SharedSizeGroup="TotalCol"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{Binding Author}"
+                                            <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
                                                        Padding="20,0,0,0"
                                                        Foreground="#8B949E" FontSize="12" VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"/>

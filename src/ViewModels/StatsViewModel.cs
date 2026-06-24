@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using PrMonitor.Models;
 using PrMonitor.Settings;
 
 namespace PrMonitor.ViewModels;
@@ -9,6 +10,7 @@ namespace PrMonitor.ViewModels;
 public sealed class AuthorBreakdownRow
 {
     public required string Author { get; init; }
+    public required string DisplayName { get; init; }
     public int Today { get; init; }
     public int Week { get; init; }
     public int Month { get; init; }
@@ -49,10 +51,15 @@ public sealed class StatRowViewModel : INotifyPropertyChanged
 public sealed class StatsViewModel : INotifyPropertyChanged
 {
     private readonly StatisticsStore _store;
+    private readonly IReadOnlyDictionary<string, string> _memberNames;
 
-    public StatsViewModel(StatisticsStore store)
+    public StatsViewModel(StatisticsStore store, AppSettings? settings = null)
     {
         _store = store;
+        _memberNames = settings?.OrgMembersCache
+            .Where(m => !string.IsNullOrWhiteSpace(m.Name))
+            .ToDictionary(m => m.Login, m => m.Name!, StringComparer.OrdinalIgnoreCase)
+            ?? new Dictionary<string, string>();
         Refresh();
     }
 
@@ -94,7 +101,7 @@ public sealed class StatsViewModel : INotifyPropertyChanged
         LastUpdated = DateTime.Now.ToString("HH:mm:ss");
     }
 
-    private static IReadOnlyList<AuthorBreakdownRow>? BuildAuthorBreakdown(
+    private IReadOnlyList<AuthorBreakdownRow>? BuildAuthorBreakdown(
         DayStat day, DayStat week, DayStat month, DayStat total)
     {
         if (total.ReviewsRequestedByAuthor is not { Count: > 0 } authorTotals)
@@ -104,13 +111,16 @@ public sealed class StatsViewModel : INotifyPropertyChanged
             .Select(a => new AuthorBreakdownRow
             {
                 Author = a,
+                DisplayName = _memberNames.TryGetValue(a, out var name) && !name.Equals(a, StringComparison.OrdinalIgnoreCase)
+                    ? name
+                    : a,
                 Today = day.ReviewsRequestedByAuthor?.GetValueOrDefault(a) ?? 0,
                 Week  = week.ReviewsRequestedByAuthor?.GetValueOrDefault(a) ?? 0,
                 Month = month.ReviewsRequestedByAuthor?.GetValueOrDefault(a) ?? 0,
                 Total = authorTotals[a],
             })
             .OrderByDescending(r => r.Total)
-            .ThenBy(r => r.Author, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 

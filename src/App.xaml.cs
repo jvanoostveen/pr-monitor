@@ -229,7 +229,7 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        var vm = new StatsViewModel(_statisticsService.Store);
+        var vm = new StatsViewModel(_statisticsService.Store, _settings);
         var hasSavedPosition = _settings is { StatsWindowLeft: not null, StatsWindowTop: not null };
         var window = new StatsWindow(vm, _settings!)
         {
