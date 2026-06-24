@@ -8,8 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Statistics tracking and visualization.** PR Monitor now counts activity while it runs — reviews completed, your PRs opened and merged, CI failures on your PRs, flaky reruns triggered, and real (non-flaky) failures classified. Counts are persisted as daily buckets in `%APPDATA%/pr-monitor/statistics.json` and shown per period (Today / This week / This month / Total) in a new **Statistics** window, opened from the system-tray context menu (**Statistics…**) or the chart button in the PR Monitor window header. Statistics are only counted while the app is running (no historical backfill); "PRs merged" and "reviews completed" are heuristics based on a PR disappearing from its section.
+- **Statistics tracking and visualization.** PR Monitor now counts activity while it runs — reviews requested, reviews completed, your PRs opened and merged, CI failures on your PRs, flaky reruns triggered, and real (non-flaky) failures classified. Counts are persisted as daily buckets in `%APPDATA%/pr-monitor/statistics.json` and shown per period (Today / This week / This month / Total) in a new **Statistics** window, opened from the system-tray context menu (**Statistics…**) or the chart button in the PR Monitor window header. Statistics are only counted while the app is running (no historical backfill); "PRs merged" and "reviews completed" are heuristics based on a PR disappearing from its section.
 - The **Statistics** window now remembers its last position and size between openings, and is clamped back onto a visible monitor work area if its previous screen is no longer connected.
+- **Reviews requested** includes a per-author breakdown: clicking the metric label expands an inline sub-table showing each PR author's request counts per period, sorted by total descending.
+- **Settings → Statistics tab**: a **Reset statistics…** button clears all collected data after confirmation.
+- The **Statistics** window's maximize button fits the window to show all rows without scrolling instead of going full-screen.
 
 ### Fixed
 - Converting a PR to Draft now works correctly on all versions of the `gh` CLI by using the GraphQL `ConvertPullRequestToDraft` mutation instead of the non-existent `--draft` flag.
