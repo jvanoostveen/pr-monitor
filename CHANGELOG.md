@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The **Statistics** window's maximize button fits the window to show all rows without scrolling instead of going full-screen.
 
 ### Fixed
+- When an auto-update download fails, the update banner now changes to an orange "Download failed — click to open release page" state. Clicking opens the GitHub release page so the user can download and install manually. The failure toast notification also now tells the user to click the banner.
 - Converting a PR to Draft now works correctly on all versions of the `gh` CLI by using the GraphQL `ConvertPullRequestToDraft` mutation instead of the non-existent `--draft` flag.
 - The **Statistics** window now uses the same minimal overlay scrollbar as the main PR Monitor window instead of the default Windows scrollbar.
 

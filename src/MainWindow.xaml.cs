@@ -1413,6 +1413,8 @@ public partial class MainWindow : Window
     {
         if (ViewModel.UpdateReadyToInstall)
             ViewModel.RestartToInstallUpdate();
+        else if (ViewModel.UpdateDownloadFailed)
+            ViewModel.OpenReleasePageForManualDownload();
         else if (!ViewModel.IsDownloadingUpdate)
             _ = ViewModel.DownloadAndInstallUpdateAsync();
     }

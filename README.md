@@ -78,7 +78,7 @@ After a user drag ends, the final location and snapped corner are persisted imme
 
 ## Requirements
 
-- Windows 10 or later
+- Windows 11 or later
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [GitHub CLI (`gh`)](https://cli.github.com/) — authenticated with `gh auth login`
 

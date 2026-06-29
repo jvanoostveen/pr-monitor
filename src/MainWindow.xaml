@@ -1110,13 +1110,35 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
                                         MouseLeftButtonUp="UpdateBanner_Click">
-                                <TextBlock Style="{StaticResource IconText}"
-                                           Text="&#xF090;"
+                                <TextBlock Text="&#xF090;"
                                            FontSize="14"
-                                           Foreground="#3FB950"
-                                           Margin="0,0,6,0"/>
-                                <TextBlock FontSize="10" Foreground="#3FB950"
-                                           Text="{Binding UpdateBannerText}"/>
+                                           Margin="0,0,6,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource IconText}">
+                                            <Setter Property="Foreground" Value="#3FB950"/>
+                                            <Setter Property="Margin" Value="0,0,6,0"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding UpdateDownloadFailed}" Value="True">
+                                                    <Setter Property="Foreground" Value="#F0883E"/>
+                                                    <Setter Property="Text" Value="&#xE783;"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock FontSize="10"
+                                           Text="{Binding UpdateBannerText}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#3FB950"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding UpdateDownloadFailed}" Value="True">
+                                                    <Setter Property="Foreground" Value="#F0883E"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                                 <!-- "What's new?" changelog link -->
                                 <TextBlock Text="  What's new?"
                                            FontSize="10" Foreground="#3FB950" Opacity="0.65"

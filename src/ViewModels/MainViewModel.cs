@@ -197,12 +197,27 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>Dynamic text for the update banner depending on current download state.</summary>
-    public string UpdateBannerText => (_isDownloadingUpdate, _updateReadyToInstall) switch
+    private bool _updateDownloadFailed;
+    public bool UpdateDownloadFailed
     {
-        (true,  _)     => $"Downloading update… {_downloadProgress}%",
-        (_,     true)  => $"v{LatestVersion} ready — click to restart",
-        _              => $"Update available: v{LatestVersion} — click to download",
+        get => _updateDownloadFailed;
+        private set
+        {
+            if (_updateDownloadFailed == value) return;
+            _updateDownloadFailed = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(UpdateBannerText));
+            OnPropertyChanged(nameof(CanClickUpdateBanner));
+        }
+    }
+
+    /// <summary>Dynamic text for the update banner depending on current download state.</summary>
+    public string UpdateBannerText => (_isDownloadingUpdate, _updateReadyToInstall, _updateDownloadFailed) switch
+    {
+        (true,  _,    _)    => $"Downloading update… {_downloadProgress}%",
+        (_,     true, _)    => $"v{LatestVersion} ready — click to restart",
+        (_,     _,    true) => $"Download failed — click to open release page",
+        _                   => $"Update available: v{LatestVersion} — click to download",
     };
 
     /// <summary>False while a download is in progress; prevents double-clicks.</summary>
@@ -527,6 +542,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return;
 
         IsDownloadingUpdate = true;
+        UpdateDownloadFailed = false;
         DownloadProgress = 0;
 
         try
@@ -551,9 +567,22 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            System.Windows.Application.Current.Dispatcher.Invoke(() => IsDownloadingUpdate = false);
-            _notificationService.Notify("Update failed", $"Could not download PR Monitor v{LatestVersion}: {ex.Message}");
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                IsDownloadingUpdate = false;
+                UpdateDownloadFailed = true;
+            });
+            _notificationService.Notify("Update failed", $"Could not download PR Monitor v{LatestVersion}: {ex.Message}\nClick the banner to open the release page and download manually.");
         }
+    }
+
+    public void OpenReleasePageForManualDownload()
+    {
+        var url = string.IsNullOrWhiteSpace(UpdateReleaseNotesUrl) ? UpdateReleaseUrl : UpdateReleaseNotesUrl;
+        if (!string.IsNullOrWhiteSpace(url)
+            && Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps)
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
     public void RestartToInstallUpdate()
