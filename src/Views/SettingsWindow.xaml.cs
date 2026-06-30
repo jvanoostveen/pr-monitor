@@ -68,6 +68,12 @@ public partial class SettingsWindow : Window
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
+    private void HiddenReviewerRemove_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: string login } && !string.IsNullOrWhiteSpace(login))
+            _viewModel.RemoveHiddenReviewer(login);
+    }
+
     private void ResetStatistics_Click(object sender, RoutedEventArgs e)
     {
         var result = DarkMessageBox.Show(

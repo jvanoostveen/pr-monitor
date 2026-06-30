@@ -269,33 +269,69 @@
                                                    FontWeight="SemiBold" Foreground="#E6EDF3"/>
                                     </Grid>
                                     <!-- Per-author breakdown (toggle with chevron) -->
-                                    <ItemsControl ItemsSource="{Binding AuthorBreakdown}"
-                                                  Margin="0,4,0,0"
-                                                  Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisible}}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                        <!-- Per-author breakdown: same SharedSizeGroups as outer rows, indent via Padding -->
-                                        <Grid Margin="0,2">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" SharedSizeGroup="MetricCol"/>
-                                                <ColumnDefinition Width="64" SharedSizeGroup="TodayCol"/>
-                                                <ColumnDefinition Width="64" SharedSizeGroup="WeekCol"/>
-                                                <ColumnDefinition Width="64" SharedSizeGroup="MonthCol"/>
-                                                <ColumnDefinition Width="64" SharedSizeGroup="TotalCol"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
-                                                       Padding="20,0,0,0"
-                                                       Foreground="#8B949E" FontSize="12" VerticalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Grid.Column="1" Style="{StaticResource AuthorNumberCell}" Text="{Binding Today}"/>
-                                            <TextBlock Grid.Column="2" Style="{StaticResource AuthorNumberCell}" Text="{Binding Week}"/>
-                                            <TextBlock Grid.Column="3" Style="{StaticResource AuthorNumberCell}" Text="{Binding Month}"/>
-                                            <TextBlock Grid.Column="4" Style="{StaticResource AuthorNumberCell}" Text="{Binding Total}"
-                                                       FontWeight="SemiBold"/>
-                                        </Grid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                    <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisible}}"
+                                                Margin="0,4,0,0">
+                                        <ItemsControl ItemsSource="{Binding VisibleAuthorBreakdown}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                            <!-- Per-author breakdown: same SharedSizeGroups as outer rows, indent via Padding -->
+                                            <Grid Margin="0,2">
+                                                <Grid.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="{Binding DisplayName, StringFormat='Hide {0}'}"
+                                                                  Click="HideReviewer_Click"/>
+                                                    </ContextMenu>
+                                                </Grid.ContextMenu>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" SharedSizeGroup="MetricCol"/>
+                                                    <ColumnDefinition Width="64" SharedSizeGroup="TodayCol"/>
+                                                    <ColumnDefinition Width="64" SharedSizeGroup="WeekCol"/>
+                                                    <ColumnDefinition Width="64" SharedSizeGroup="MonthCol"/>
+                                                    <ColumnDefinition Width="64" SharedSizeGroup="TotalCol"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
+                                                           Padding="20,0,0,0"
+                                                           Foreground="#8B949E" FontSize="12" VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Grid.Column="1" Style="{StaticResource AuthorNumberCell}" Text="{Binding Today}"/>
+                                                <TextBlock Grid.Column="2" Style="{StaticResource AuthorNumberCell}" Text="{Binding Week}"/>
+                                                <TextBlock Grid.Column="3" Style="{StaticResource AuthorNumberCell}" Text="{Binding Month}"/>
+                                                <TextBlock Grid.Column="4" Style="{StaticResource AuthorNumberCell}" Text="{Binding Total}"
+                                                           FontWeight="SemiBold"/>
+                                            </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <!-- Toggle inactive reviewers link -->
+                                        <Button Margin="20,3,0,2"
+                                                HorizontalAlignment="Left"
+                                                OverridesDefaultStyle="True"
+                                                Cursor="Hand"
+                                                Content="{Binding ToggleInactiveLabel}"
+                                                Visibility="{Binding HasInactiveReviewers, Converter={StaticResource BoolToVisible}}"
+                                                Click="ToggleShowAllReviewers_Click">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                    <Setter Property="Foreground" Value="#4493F8"/>
+                                                    <Setter Property="FontSize" Value="12"/>
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <ContentPresenter/>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Foreground" Value="#79C0FF"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
                         </DataTemplate>

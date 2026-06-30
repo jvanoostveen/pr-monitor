@@ -54,6 +54,15 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         {
             HiddenPrs.Add(new HiddenPrEntryViewModel(key));
         }
+
+        foreach (var login in settings.HiddenStatReviewRequesters
+            .OrderBy(l => l, StringComparer.OrdinalIgnoreCase))
+        {
+            var name = settings.OrgMembersCache
+                .FirstOrDefault(m => m.Login.Equals(login, StringComparison.OrdinalIgnoreCase))?.Name;
+            HiddenReviewers.Add(new HiddenReviewerEntryViewModel(login,
+                string.IsNullOrWhiteSpace(name) ? null : name));
+        }
     }
 
     // ── Bindable properties ─────────────────────────────────────────
@@ -238,6 +247,15 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
     public ObservableCollection<FlakinessRuleViewModel> FlakinessRules { get; } = [];
     public ObservableCollection<HiddenPrEntryViewModel> HiddenPrs { get; } = [];
+    public ObservableCollection<HiddenReviewerEntryViewModel> HiddenReviewers { get; } = [];
+
+    public void RemoveHiddenReviewer(string login)
+    {
+        var vm = HiddenReviewers.FirstOrDefault(
+            h => h.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
+        if (vm is not null)
+            HiddenReviewers.Remove(vm);
+    }
 
     public void RemoveHiddenPr(string key)
     {
@@ -332,6 +350,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             CreatedAt = vm.CreatedAt,
             MatchCount = vm.MatchCount,
         }).ToList();
+        _settings.HiddenStatReviewRequesters = HiddenReviewers.Select(h => h.Login).ToList();
         _settings.Save();
 
         ApplyAutoStart(_autoStartWithWindows);
@@ -439,5 +458,17 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         public string DisplayName { get; }
         public string? PullRequestUrl { get; }
         public bool CanOpen => !string.IsNullOrWhiteSpace(PullRequestUrl);
+    }
+
+    public sealed class HiddenReviewerEntryViewModel
+    {
+        public HiddenReviewerEntryViewModel(string login, string? displayName)
+        {
+            Login = login;
+            DisplayName = string.IsNullOrWhiteSpace(displayName) ? login : displayName;
+        }
+
+        public string Login { get; }
+        public string DisplayName { get; }
     }
 }

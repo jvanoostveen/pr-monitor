@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Statistics window: reviewers inactive this week are hidden by default in the "Reviews requested" breakdown; a toggle link shows/hides them.
+- Statistics window: right-click a reviewer to permanently hide them from the breakdown.
+- Settings → Statistics: list of hidden reviewers with option to remove them.
+
 ## [1.10.0] - 2026-06-29
 
 ### Added

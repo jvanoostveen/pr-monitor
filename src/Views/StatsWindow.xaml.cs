@@ -59,6 +59,21 @@ public partial class StatsWindow : Window
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
+    private void HideReviewer_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.MenuItem { Parent: System.Windows.Controls.ContextMenu cm } &&
+            cm.PlacementTarget is FrameworkElement { DataContext: AuthorBreakdownRow row })
+        {
+            _viewModel.HideReviewer(row.Author);
+        }
+    }
+
+    private void ToggleShowAllReviewers_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { DataContext: StatRowViewModel row })
+            row.ShowAll = !row.ShowAll;
+    }
+
     protected override void OnStateChanged(EventArgs e)
     {
         base.OnStateChanged(e);

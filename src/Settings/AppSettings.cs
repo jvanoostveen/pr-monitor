@@ -188,6 +188,9 @@ public sealed class AppSettings
     /// <summary>When true, verbose window-placement traces are written to the log.</summary>
     public bool VerboseLogging { get; set; } = false;
 
+    /// <summary>Reviewer logins permanently hidden from the Statistics breakdown.</summary>
+    public List<string> HiddenStatReviewRequesters { get; set; } = [];
+
     /// <summary>
     /// Load settings from disk, or return defaults if no file exists.
     /// </summary>
@@ -227,6 +230,7 @@ public sealed class AppSettings
         settings.RecentReviewers ??= [];
         settings.OrgMembersCache ??= [];
         settings.FlakinessCustomHints ??= "";
+        settings.HiddenStatReviewRequesters ??= [];
 
         // Clean up rerun records older than 30 days
         var cutoff = DateTimeOffset.UtcNow.AddDays(-30);
