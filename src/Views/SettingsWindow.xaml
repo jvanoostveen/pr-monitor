@@ -559,7 +559,7 @@
                             <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
                                 <StackPanel>
                                     <TextBlock Text="(none)" Foreground="#6E7681" FontSize="12"
-                                               Visibility="{Binding HiddenReviewers.Count, Converter={StaticResource ZeroToVisible}}"/>
+                                               Visibility="{Binding HiddenReviewers.Count, Converter={StaticResource ZeroToVisibleConverter}}"/>
                                     <ItemsControl ItemsSource="{Binding HiddenReviewers}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>

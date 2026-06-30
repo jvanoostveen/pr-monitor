@@ -275,13 +275,8 @@
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                             <!-- Per-author breakdown: same SharedSizeGroups as outer rows, indent via Padding -->
-                                            <Grid Margin="0,2">
-                                                <Grid.ContextMenu>
-                                                    <ContextMenu>
-                                                        <MenuItem Header="{Binding DisplayName, StringFormat='Hide {0}'}"
-                                                                  Click="HideReviewer_Click"/>
-                                                    </ContextMenu>
-                                                </Grid.ContextMenu>
+                                            <Grid Margin="0,2"
+                                                  MouseRightButtonUp="AuthorRow_MouseRightButtonUp">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" SharedSizeGroup="MetricCol"/>
                                                     <ColumnDefinition Width="64" SharedSizeGroup="TodayCol"/>

@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Interop;
 using PrMonitor.Settings;
 using PrMonitor.ViewModels;
@@ -12,7 +13,18 @@ public partial class StatsWindow : Window
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
+    [DllImport("user32.dll")] private static extern IntPtr CreatePopupMenu();
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool AppendMenuW(IntPtr hMenu, uint uFlags, UIntPtr uIDNewItem, string? lpNewItem);
+    [DllImport("user32.dll")] private static extern uint TrackPopupMenuEx(IntPtr hmenu, uint fuFlags, int x, int y, IntPtr hwnd, IntPtr lptpm);
+    [DllImport("user32.dll")] private static extern bool DestroyMenu(IntPtr hMenu);
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
+
     private const int DwmwaUseImmersiveDarkMode = 20;
+    private const uint MF_STRING       = 0x0000;
+    private const uint TPM_BOTTOMALIGN = 0x0020;
+    private const uint TPM_RETURNCMD   = 0x0100;
+    private const uint TPM_RIGHTBUTTON = 0x0002;
+    private const uint ID_HIDE_REVIEWER = 1;
 
     private readonly StatsViewModel _viewModel;
     private readonly AppSettings _settings;
@@ -59,12 +71,42 @@ public partial class StatsWindow : Window
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
-    private void HideReviewer_Click(object sender, RoutedEventArgs e)
+    private void AuthorRow_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (sender is System.Windows.Controls.MenuItem { Parent: System.Windows.Controls.ContextMenu cm } &&
-            cm.PlacementTarget is FrameworkElement { DataContext: AuthorBreakdownRow row })
+        if (sender is FrameworkElement { DataContext: AuthorBreakdownRow row })
         {
-            _viewModel.HideReviewer(row.Author);
+            e.Handled = true;
+            ShowNativeReviewerContextMenu(row);
+        }
+    }
+
+    private void ShowNativeReviewerContextMenu(AuthorBreakdownRow row)
+    {
+        var hMenu = CreatePopupMenu();
+        if (hMenu == IntPtr.Zero) return;
+        try
+        {
+            AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_HIDE_REVIEWER, $"Hide {row.DisplayName}");
+
+            var cursor = WinForms.Cursor.Position;
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd != IntPtr.Zero)
+                SetForegroundWindow(hwnd);
+
+            var cmd = TrackPopupMenuEx(
+                hMenu,
+                TPM_BOTTOMALIGN | TPM_RETURNCMD | TPM_RIGHTBUTTON,
+                cursor.X,
+                cursor.Y,
+                hwnd,
+                IntPtr.Zero);
+
+            if (cmd == ID_HIDE_REVIEWER)
+                _viewModel.HideReviewer(row.Author);
+        }
+        finally
+        {
+            DestroyMenu(hMenu);
         }
     }
 
