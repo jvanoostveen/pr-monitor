@@ -291,9 +291,24 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 
 ### Reviewer indicator on own PRs
 - Own PR rows (My Auto-Merge PRs, My PRs, Hotfixes, and own PRs in Later) show a `E748` (SwitchUser) icon from **Segoe Fluent Icons** (`FontSize="11"`, amber `#D29922`) when `ShowNoReviewerWarning` is true (i.e., `IsOwnPr && !HasNonCopilotReviewer`).
-- No icon is shown when a non-Copilot reviewer has been assigned — reviewer names appear in `PrTooltip` instead.
+- No icon is shown when a non-Copilot reviewer has been assigned — reviewer names and their latest review state appear in `PrTooltip` instead.
 - `ReviewerLogins` is populated from GraphQL `reviewRequests(first: 10)` in `MyPrsQuery` and `ReviewRequestedQuery`, filtering out logins that start with `"copilot"` (case-insensitive, covers both `copilot` and `copilot-pull-request-reviewer[bot]`). Team slugs are included.
 - `PrTooltip` (computed property on `PrItemViewModel`) shows: `CI: {state}` + reviewer info (if `IsOwnPr`) + unresolved comments + approved state, joined by newlines.
+
+### Reviewer-state icons on own PRs
+- `ReviewState` ([src/Models/ReviewState.cs](../src/Models/ReviewState.cs)) mirrors GitHub's `PullRequestReviewState` enum: `Pending`, `Commented`, `Approved`, `ChangesRequested` (`DISMISSED` and draft `PENDING` reviews are excluded upstream by `GitHubService.ParseReviewerStates`).
+- `GitHubService.ParseReviewerStates(node)` builds a `Dictionary<string, ReviewState>` per PR from two GraphQL fields: `reviews(last: 20) { nodes { author { login } state submittedAt } }` (latest non-dismissed submitted review per author) and `reviewRequests(first: 10)` (an active pending request always overrides to `Pending`, even over a stale prior review — a fresh re-review request awaiting a new response). Copilot reviewers are filtered out. Populates `PullRequestInfo.ReviewerStates` / `PrItemViewModel.ReviewerStates`.
+- `PrItemViewModel.StateOf(login)` looks up a reviewer's state, defaulting to `Pending` when not yet recorded.
+- Icon precedence (each `Show*Icon` property is mutually exclusive, evaluated in this order, all require `IsOwnPr`):
+  1. `HasUnresolvedReviewComments` — existing grey comment icon (`E24C`), takes priority over all reviewer-state icons.
+  2. `ShowChangesRequestedIcon` — red icon (`E888`, `cancel`) when any reviewer's latest state is `ChangesRequested`.
+  3. `ShowNoReviewerWarning` — amber icon (`F567`) when no non-Copilot reviewer is assigned.
+  4. `ShowReviewPendingIcon` — grey clock icon (`EFD6`, `schedule`) when reviewer(s) are assigned and all are still `Pending`.
+  5. `ShowCommentedIcon` — blue icon (`E0CB`, `chat_bubble`) when any reviewer's latest state is `Commented` and none has requested changes, and the PR isn't `Approved`.
+  6. `ShowApprovedIcon` — existing green checkmark (`F0BE`), shown last when approved and none of the above apply.
+- Rendered in `MainWindow.xaml` in the PR row icon `StackPanel`, present in Hotfixes, My Auto-Merge PRs, My PRs, My Draft PRs, and Later sections (Draft PRs section omits the Approved icon, matching prior behavior). Non-own-PR sections (Awaiting My Review, Dependabot, Team Review Requests) don't show these reviewer-state icons since they aren't `IsOwnPr`.
+- `PrTooltip`'s reviewer line now includes each reviewer's display state, e.g. `Reviewers: alice (Approved), bob (Pending)`, via `ReviewState.ToDisplayString()`.
+
 
 ### Assign reviewer submenu
 - Own non-draft PR rows (My Auto-Merge PRs, My PRs, Hotfixes, own PRs in Later) show an **Assign reviewer** submenu in their right-click context menus.

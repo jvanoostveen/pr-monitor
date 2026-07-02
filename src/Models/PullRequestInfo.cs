@@ -67,6 +67,12 @@ public sealed class PullRequestInfo
     public IReadOnlyList<string> ReviewerLogins { get; init; } = [];
 
     /// <summary>
+    /// Latest review state (Pending/Approved/ChangesRequested/Commented) per reviewer login, excluding Copilot.
+    /// A login present in <see cref="ReviewerLogins"/> but absent here should be treated as Pending.
+    /// </summary>
+    public IReadOnlyDictionary<string, ReviewState> ReviewerStates { get; init; } = new Dictionary<string, ReviewState>();
+
+    /// <summary>
     /// Unique key used for delta-detection across polls.
     /// </summary>
     public string Key => $"{Repository}#{Number}";

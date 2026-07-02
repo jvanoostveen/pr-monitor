@@ -386,13 +386,31 @@
                                                                Foreground="#8B949E"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE888;"
+                                                               FontSize="14"
+                                                               Foreground="#F85149"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowChangesRequestedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xF567;"
                                                                FontSize="14"
                                                                Foreground="#D29922"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xEFD6;"
+                                                               FontSize="14"
+                                                               Foreground="#8B949E"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowReviewPendingIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE0CB;"
+                                                               FontSize="14"
+                                                               Foreground="#58A6FF"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowCommentedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -488,13 +506,31 @@
                                                                Foreground="#8B949E"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE888;"
+                                                               FontSize="14"
+                                                               Foreground="#F85149"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowChangesRequestedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xF567;"
                                                                FontSize="14"
                                                                Foreground="#D29922"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xEFD6;"
+                                                               FontSize="14"
+                                                               Foreground="#8B949E"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowReviewPendingIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE0CB;"
+                                                               FontSize="14"
+                                                               Foreground="#58A6FF"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowCommentedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -677,13 +713,31 @@
                                                                Foreground="#8B949E"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE888;"
+                                                               FontSize="14"
+                                                               Foreground="#F85149"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowChangesRequestedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xF567;"
                                                                FontSize="14"
                                                                Foreground="#D29922"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xEFD6;"
+                                                               FontSize="14"
+                                                               Foreground="#8B949E"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowReviewPendingIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE0CB;"
+                                                               FontSize="14"
+                                                               Foreground="#58A6FF"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowCommentedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -955,11 +1009,29 @@
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
                                                     <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE888;"
+                                                               FontSize="14"
+                                                               Foreground="#F85149"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowChangesRequestedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xF567;"
                                                                FontSize="14"
                                                                Foreground="#D29922"
                                                                Margin="5,0,0,0"
                                                                Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xEFD6;"
+                                                               FontSize="14"
+                                                               Foreground="#8B949E"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowReviewPendingIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Style="{StaticResource IconText}"
+                                                               Text="&#xE0CB;"
+                                                               FontSize="14"
+                                                               Foreground="#58A6FF"
+                                                               Margin="5,0,0,0"
+                                                               Visibility="{Binding ShowCommentedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Style="{StaticResource RepoText}">
@@ -1049,13 +1121,31 @@
                                                            Foreground="#8B949E"
                                                            Margin="5,0,0,0"
                                                            Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                <TextBlock Style="{StaticResource IconText}"
+                                                           Text="&#xE888;"
+                                                           FontSize="14"
+                                                           Foreground="#F85149"
+                                                           Margin="5,0,0,0"
+                                                           Visibility="{Binding ShowChangesRequestedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                                 <TextBlock Style="{StaticResource IconText}"
                                                            Text="&#xF567;"
                                                            FontSize="14"
                                                            Foreground="#D29922"
                                                            Margin="5,0,0,0"
                                                            Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
+                                                <TextBlock Style="{StaticResource IconText}"
+                                                           Text="&#xEFD6;"
+                                                           FontSize="14"
+                                                           Foreground="#8B949E"
+                                                           Margin="5,0,0,0"
+                                                           Visibility="{Binding ShowReviewPendingIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                <TextBlock Style="{StaticResource IconText}"
+                                                           Text="&#xE0CB;"
+                                                           FontSize="14"
+                                                           Foreground="#58A6FF"
+                                                           Margin="5,0,0,0"
+                                                           Visibility="{Binding ShowCommentedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                                                <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1">
                                                 <TextBlock Style="{StaticResource RepoText}">

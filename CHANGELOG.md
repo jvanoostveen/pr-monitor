@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Reviewer-state icons on own PR rows**: in addition to the existing "no reviewer assigned" warning and approved checkmark, own PR rows (Hotfixes, My Auto-Merge PRs, My PRs, My Draft PRs, Later) now show a red icon when a reviewer requested changes, a grey clock icon when reviewer(s) are assigned but none has responded yet, and a blue icon when a reviewer commented without approving or requesting changes. The PR tooltip's reviewer line now shows each reviewer's latest state (e.g. `alice (Approved), bob (Pending)`) instead of just names.
 - Statistics window: reviewers inactive this week are hidden by default in the "Reviews requested" breakdown; a toggle link shows/hides them.
 - Statistics window: right-click a reviewer to permanently hide them from the breakdown.
 - Settings → Statistics: list of hidden reviewers with option to remove them.

@@ -763,12 +763,34 @@ public sealed class PrItemViewModel
     public bool HasAutoMerge { get; init; }
     public bool IsApproved { get; init; }
     public IReadOnlyList<string> ReviewerLogins { get; init; } = [];
+    public IReadOnlyDictionary<string, ReviewState> ReviewerStates { get; init; } = new Dictionary<string, ReviewState>();
     public bool HasNonCopilotReviewer => ReviewerLogins.Count > 0;
     public bool IsOwnPr => IsMyPr || IsAutoMergePr || IsHotfixPr || IsDraftSectionPr;
     public bool ShowNoReviewerWarning => IsOwnPr && !HasNonCopilotReviewer;
     public string ReviewerTooltip => HasNonCopilotReviewer
         ? string.Join(", ", ReviewerLogins)
         : "No reviewer assigned";
+
+    /// <summary>Latest review state for a reviewer login; defaults to Pending when not yet recorded.</summary>
+    public ReviewState StateOf(string login) => ReviewerStates.TryGetValue(login, out var s) ? s : ReviewState.Pending;
+
+    /// <summary>Whether any assigned reviewer has requested changes.</summary>
+    public bool HasChangesRequested => ReviewerLogins.Any(l => StateOf(l) == ReviewState.ChangesRequested);
+
+    /// <summary>Whether at least one reviewer is assigned and none of them has responded yet.</summary>
+    public bool IsReviewPending => HasNonCopilotReviewer && ReviewerLogins.All(l => StateOf(l) == ReviewState.Pending);
+
+    /// <summary>Whether any assigned reviewer's latest state is Commented (no approval/changes-requested decision).</summary>
+    public bool HasCommentedOnly => ReviewerLogins.Any(l => StateOf(l) == ReviewState.Commented);
+
+    /// <summary>Show the changes-requested icon: highest-priority reviewer-state icon after unresolved comments.</summary>
+    public bool ShowChangesRequestedIcon => IsOwnPr && !HasUnresolvedReviewComments && HasChangesRequested;
+
+    /// <summary>Show the review-pending icon: reviewer(s) assigned but nobody has responded yet.</summary>
+    public bool ShowReviewPendingIcon => IsOwnPr && !HasUnresolvedReviewComments && !HasChangesRequested && IsReviewPending;
+
+    /// <summary>Show the commented icon: a reviewer left feedback without approving or requesting changes.</summary>
+    public bool ShowCommentedIcon => IsOwnPr && !HasUnresolvedReviewComments && !HasChangesRequested && !IsReviewPending && HasCommentedOnly && !IsApproved;
     public string PrTooltip
     {
         get
@@ -780,7 +802,7 @@ public sealed class PrItemViewModel
                 parts.Add("Merge conflicts");
             if (IsOwnPr)
                 parts.Add(HasNonCopilotReviewer
-                    ? $"Reviewers: {string.Join(", ", ReviewerLogins)}"
+                    ? $"Reviewers: {string.Join(", ", ReviewerLogins.Select(l => $"{l} ({StateOf(l).ToDisplayString()})"))}"
                     : "No reviewer assigned");
             if (HasUnresolvedReviewComments)
                 parts.Add(UnresolvedReviewCommentsToolTip);
@@ -796,7 +818,7 @@ public sealed class PrItemViewModel
     public bool CanEnableAutoMerge => IsOwnPr && !IsDraft && !HasAutoMerge;
 
     /// <summary>Show the approved checkmark icon: PR is approved but has no unresolved review comments (comments take priority).</summary>
-    public bool ShowApprovedIcon => IsApproved && !HasUnresolvedReviewComments;
+    public bool ShowApprovedIcon => IsApproved && !HasUnresolvedReviewComments && !HasChangesRequested;
 
     /// <summary>
     /// CI state used for the indicator: always Unknown (grey) for draft PRs; Failure when PR has merge conflicts.
@@ -832,6 +854,7 @@ public sealed class PrItemViewModel
         HasAutoMerge = pr.HasAutoMerge,
         IsApproved = pr.IsApproved,
         ReviewerLogins = pr.ReviewerLogins,
+        ReviewerStates = pr.ReviewerStates,
         CIIcon = pr.CIState switch
         {
             CIState.Success => "✅",

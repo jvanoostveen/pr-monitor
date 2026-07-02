@@ -291,6 +291,130 @@ public class GitHubServiceParsingTests
     }
 
     [Fact]
+    public void ParseReviewerStates_NoReviewsOrReviewRequests_ReturnsEmpty()
+    {
+        using var doc = JsonDocument.Parse("{}");
+        var result = GitHubService.ParseReviewerStates(doc.RootElement);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ParseReviewerStates_SubmittedReview_MapsStateCorrectly()
+    {
+        const string json = """
+            {
+              "reviews": {
+                "nodes": [
+                  { "author": { "login": "alice" }, "state": "APPROVED", "submittedAt": "2026-01-01T00:00:00Z" }
+                ]
+              }
+            }
+            """;
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseReviewerStates(doc.RootElement);
+
+        Assert.Equal(ReviewState.Approved, result["alice"]);
+    }
+
+    [Fact]
+    public void ParseReviewerStates_DismissedOrPendingReviews_AreIgnored()
+    {
+        const string json = """
+            {
+              "reviews": {
+                "nodes": [
+                  { "author": { "login": "alice" }, "state": "DISMISSED", "submittedAt": "2026-01-01T00:00:00Z" },
+                  { "author": { "login": "bob" }, "state": "PENDING", "submittedAt": "2026-01-01T00:00:00Z" }
+                ]
+              }
+            }
+            """;
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseReviewerStates(doc.RootElement);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ParseReviewerStates_MultipleReviewsFromSameAuthor_KeepsLatestBySubmittedAt()
+    {
+        const string json = """
+            {
+              "reviews": {
+                "nodes": [
+                  { "author": { "login": "alice" }, "state": "CHANGES_REQUESTED", "submittedAt": "2026-01-01T00:00:00Z" },
+                  { "author": { "login": "alice" }, "state": "APPROVED", "submittedAt": "2026-01-02T00:00:00Z" }
+                ]
+              }
+            }
+            """;
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseReviewerStates(doc.RootElement);
+
+        Assert.Equal(ReviewState.Approved, result["alice"]);
+    }
+
+    [Fact]
+    public void ParseReviewerStates_CopilotReviewer_IsFiltered()
+    {
+        const string json = """
+            {
+              "reviews": {
+                "nodes": [
+                  { "author": { "login": "copilot-pull-request-reviewer" }, "state": "APPROVED", "submittedAt": "2026-01-01T00:00:00Z" }
+                ]
+              }
+            }
+            """;
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseReviewerStates(doc.RootElement);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ParseReviewerStates_ActivePendingRequest_OverridesOlderReview()
+    {
+        // A fresh re-review request always overrides a stale prior review state to Pending.
+        const string json = """
+            {
+              "reviews": {
+                "nodes": [
+                  { "author": { "login": "alice" }, "state": "CHANGES_REQUESTED", "submittedAt": "2026-01-01T00:00:00Z" }
+                ]
+              },
+              "reviewRequests": {
+                "nodes": [
+                  { "requestedReviewer": { "__typename": "User", "login": "alice" } }
+                ]
+              }
+            }
+            """;
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseReviewerStates(doc.RootElement);
+
+        Assert.Equal(ReviewState.Pending, result["alice"]);
+    }
+
+    [Fact]
+    public void ParseReviewerStates_TeamReviewRequest_UsesSlugAsPending()
+    {
+        const string json = """
+            {
+              "reviewRequests": {
+                "nodes": [
+                  { "requestedReviewer": { "__typename": "Team", "slug": "platform-team" } }
+                ]
+              }
+            }
+            """;
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseReviewerStates(doc.RootElement);
+
+        Assert.Equal(ReviewState.Pending, result["platform-team"]);
+    }
+
+    [Fact]
     public void ParseReviewPrs_DirectUserReviewRequest_IsNotTeamOnly()
     {
         var json = BuildReviewPrsJson(BuildReviewPrNode(number: 10, reviewerName: "alice", reviewerType: "User"));

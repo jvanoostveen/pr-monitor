@@ -9,6 +9,7 @@ using PrMonitor.Services;
 using PrMonitor.Settings;
 using PrMonitor.ViewModels;
 using PrMonitor.Views;
+using PrMonitor.Models;
 using WinForms = System.Windows.Forms;
 
 namespace PrMonitor;
@@ -88,10 +89,12 @@ public partial class MainWindow : Window
     private const uint ID_PR_ENABLE_AUTOMERGE= 1013;
     private const uint ID_PR_HIDE            = 1014;
 
-    // Assign-reviewer submenu — 2000..2009 assigned, 2010..2019 recent, 2020 search
-    private const uint ID_PR_ASSIGN_BASE     = 2000;
-    private const uint ID_PR_RECENT_BASE     = 2010;
-    private const uint ID_PR_REVIEWER_SEARCH = 2020;
+    // Assign-reviewer submenu — each assigned reviewer opens a nested submenu with two actions:
+    // 2000..2009 re-request review, 2010..2019 remove reviewer, 2020..2029 recent (unassigned), 2030 search
+    private const uint ID_PR_ASSIGN_REREQUEST_BASE = 2000;
+    private const uint ID_PR_ASSIGN_REMOVE_BASE    = 2010;
+    private const uint ID_PR_RECENT_BASE     = 2020;
+    private const uint ID_PR_REVIEWER_SEARCH = 2030;
 
     public MainWindow(MainViewModel viewModel, AppSettings settings, GitHubService github, NotificationService notifications, DiagnosticsLogger logger)
     {
@@ -828,9 +831,19 @@ public partial class MainWindow : Window
                         : login;
 
                 var assignMenu = CreatePopupMenu();
-                // Assigned reviewers (checked — click removes)
+                // Assigned reviewers — each opens a nested submenu with "Re-request review" / "Remove reviewer",
+                // with the inapplicable action greyed out based on the reviewer's current review state.
                 for (int i = 0; i < assignedLogins.Length; i++)
-                    AppendMenuW(assignMenu, MF_STRING | MF_CHECKED, (UIntPtr)(ID_PR_ASSIGN_BASE + (uint)i), ReviewerLabel(assignedLogins[i]));
+                {
+                    var state = vm.ReviewerStates.TryGetValue(assignedLogins[i], out var s) ? s : ReviewState.Pending;
+                    var reviewerMenu = CreatePopupMenu();
+                    var reRequestFlags = state == ReviewState.Pending ? MF_STRING | MF_GRAYED : MF_STRING;
+                    var removeFlags = state == ReviewState.Pending ? MF_STRING : MF_STRING | MF_GRAYED;
+                    AppendMenuW(reviewerMenu, reRequestFlags, (UIntPtr)(ID_PR_ASSIGN_REREQUEST_BASE + (uint)i), "Re-request review");
+                    AppendMenuW(reviewerMenu, removeFlags, (UIntPtr)(ID_PR_ASSIGN_REMOVE_BASE + (uint)i), "Remove reviewer");
+                    var label = $"{ReviewerLabel(assignedLogins[i])} — {state.ToDisplayString()}";
+                    AppendMenuW(assignMenu, MF_POPUP | MF_CHECKED, (UIntPtr)(ulong)reviewerMenu.ToInt64(), label);
+                }
                 // Recent reviewers not yet assigned
                 if (recentLogins.Length > 0)
                 {
@@ -845,6 +858,7 @@ public partial class MainWindow : Window
                 AppendMenuW(assignMenu, MF_STRING, (UIntPtr)ID_PR_REVIEWER_SEARCH, "Search…");
                 AppendMenuW(hMenu, MF_POPUP, (UIntPtr)(ulong)assignMenu.ToInt64(), "Assign reviewer");
             }
+
 
             if (isHidden)
             {
@@ -941,10 +955,16 @@ public partial class MainWindow : Window
                         _ = SetPrDraftAsync(vm);
                     break;
                 default:
-                    // Assigned reviewer range: remove reviewer
-                    if (cmd >= ID_PR_ASSIGN_BASE && cmd < ID_PR_ASSIGN_BASE + (uint)assignedLogins.Length)
+                    // Assigned reviewer range: re-request review
+                    if (cmd >= ID_PR_ASSIGN_REREQUEST_BASE && cmd < ID_PR_ASSIGN_REREQUEST_BASE + (uint)assignedLogins.Length)
                     {
-                        var login = assignedLogins[cmd - ID_PR_ASSIGN_BASE];
+                        var login = assignedLogins[cmd - ID_PR_ASSIGN_REREQUEST_BASE];
+                        _ = ReRequestReviewerAsync(vm, login);
+                    }
+                    // Assigned reviewer range: remove reviewer
+                    else if (cmd >= ID_PR_ASSIGN_REMOVE_BASE && cmd < ID_PR_ASSIGN_REMOVE_BASE + (uint)assignedLogins.Length)
+                    {
+                        var login = assignedLogins[cmd - ID_PR_ASSIGN_REMOVE_BASE];
                         _ = RemoveReviewerAsync(vm, login);
                     }
                     // Recent reviewer range: assign reviewer
@@ -1223,6 +1243,39 @@ public partial class MainWindow : Window
             DarkMessageBox.Show(
                 $"Could not remove reviewer.\n\nDetails: {ex.Message}",
                 "Remove reviewer",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error,
+                this);
+        }
+    }
+
+    private async Task ReRequestReviewerAsync(PrItemViewModel vm, string login)
+    {
+        if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
+            return;
+        try
+        {
+            var success = await _github.RequestReviewerAsync(owner, repo, vm.Number, login);
+            if (success)
+            {
+                _notifications.Notify("Review re-requested", $"{login} → {vm.Repository} #{vm.Number}");
+                await ViewModel.RefreshAsync();
+            }
+            else
+            {
+                DarkMessageBox.Show(
+                    $"Could not re-request a review from {login}.",
+                    "Re-request review",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning,
+                    this);
+            }
+        }
+        catch (Exception ex)
+        {
+            DarkMessageBox.Show(
+                $"Could not re-request review.\n\nDetails: {ex.Message}",
+                "Re-request review",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error,
                 this);

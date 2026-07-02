@@ -67,6 +67,13 @@ public sealed class GitHubService
                     author { login }
                   }
                 }
+                reviews(last: 20) {
+                  nodes {
+                    author { login }
+                    state
+                    submittedAt
+                  }
+                }
                                 reviewThreads(first: 50) {
                                     nodes {
                                         isResolved
@@ -992,6 +999,7 @@ public sealed class GitHubService
                     && rd1.GetString() == "APPROVED",
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
                 ReviewerLogins = ParseReviewerLogins(node),
+                ReviewerStates = ParseReviewerStates(node),
             });
         }
 
@@ -1141,6 +1149,79 @@ public sealed class GitHubService
         }
 
         return [.. loginsSet];
+    }
+
+    internal static IReadOnlyDictionary<string, ReviewState> ParseReviewerStates(JsonElement node)
+    {
+        var states = new Dictionary<string, ReviewState>(StringComparer.OrdinalIgnoreCase);
+
+        // Pass 1: latest non-dismissed submitted review per author from `reviews`.
+        if (node.TryGetProperty("reviews", out var reviews)
+            && reviews.ValueKind == JsonValueKind.Object
+            && reviews.TryGetProperty("nodes", out var reviewNodes)
+            && reviewNodes.ValueKind == JsonValueKind.Array)
+        {
+            var latestByAuthor = new Dictionary<string, (DateTimeOffset SubmittedAt, string State)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var reviewNode in reviewNodes.EnumerateArray())
+            {
+                if (!reviewNode.TryGetProperty("author", out var author) || author.ValueKind != JsonValueKind.Object) continue;
+                if (!author.TryGetProperty("login", out var loginEl)) continue;
+                var login = loginEl.GetString();
+                if (string.IsNullOrEmpty(login)) continue;
+                if (login.StartsWith("copilot", StringComparison.OrdinalIgnoreCase)) continue;
+
+                if (!reviewNode.TryGetProperty("state", out var stateEl)) continue;
+                var state = stateEl.GetString() ?? "";
+                if (state is "" or "DISMISSED" or "PENDING") continue;
+
+                var submittedAt = reviewNode.TryGetProperty("submittedAt", out var saEl)
+                    && DateTimeOffset.TryParse(saEl.GetString(), out var parsedSa)
+                    ? parsedSa
+                    : DateTimeOffset.MinValue;
+
+                if (!latestByAuthor.TryGetValue(login, out var existing) || submittedAt >= existing.SubmittedAt)
+                    latestByAuthor[login] = (submittedAt, state);
+            }
+
+            foreach (var (login, value) in latestByAuthor)
+            {
+                states[login] = value.State switch
+                {
+                    "APPROVED" => ReviewState.Approved,
+                    "CHANGES_REQUESTED" => ReviewState.ChangesRequested,
+                    "COMMENTED" => ReviewState.Commented,
+                    _ => ReviewState.Pending,
+                };
+            }
+        }
+
+        // Pass 2: an active pending review request always overrides to Pending,
+        // even if the reviewer has an older non-dismissed review (fresh request awaiting a new response).
+        if (node.TryGetProperty("reviewRequests", out var reviewRequests)
+            && reviewRequests.ValueKind == JsonValueKind.Object
+            && reviewRequests.TryGetProperty("nodes", out var requestNodes)
+            && requestNodes.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var requestNode in requestNodes.EnumerateArray())
+            {
+                if (!requestNode.TryGetProperty("requestedReviewer", out var reviewer)) continue;
+                if (!reviewer.TryGetProperty("__typename", out var typename)) continue;
+
+                var type = typename.GetString();
+                string? login = null;
+                if (type == "User" && reviewer.TryGetProperty("login", out var loginEl))
+                    login = loginEl.GetString();
+                else if (type == "Team" && reviewer.TryGetProperty("slug", out var slugEl))
+                    login = slugEl.GetString();
+
+                if (string.IsNullOrEmpty(login)) continue;
+                if (login.StartsWith("copilot", StringComparison.OrdinalIgnoreCase)) continue;
+
+                states[login] = ReviewState.Pending;
+            }
+        }
+
+        return states;
     }
 
     internal static int ParseUnresolvedReviewCommentCount(JsonElement node)

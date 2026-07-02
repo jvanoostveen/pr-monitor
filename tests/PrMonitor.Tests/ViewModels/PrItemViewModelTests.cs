@@ -160,7 +160,7 @@ public class PrItemViewModelTests
     public void PrTooltip_OwnPrWithReviewer_IncludesReviewerNames()
     {
         var vm = MakeVm(ciState: CIState.Success, isMyPr: true, reviewerLogins: ["alice", "bob"]);
-        Assert.Contains("Reviewers: alice, bob", vm.PrTooltip);
+        Assert.Contains("Reviewers: alice (Pending), bob (Pending)", vm.PrTooltip);
     }
 
     [Fact]
@@ -249,6 +249,83 @@ public class PrItemViewModelTests
         Assert.Equal(expected, vm.CanConvertToDraft);
     }
 
+    // ── Reviewer-state icons ────────────────────────────────────────
+
+    [Fact]
+    public void ShowChangesRequestedIcon_TrueWhenOwnPrAndReviewerRequestedChanges()
+    {
+        var vm = MakeVm(isMyPr: true, reviewerLogins: ["alice"],
+            reviewerStates: new Dictionary<string, ReviewState> { ["alice"] = ReviewState.ChangesRequested });
+        Assert.True(vm.ShowChangesRequestedIcon);
+    }
+
+    [Fact]
+    public void ShowChangesRequestedIcon_FalseWhenNotOwnPr()
+    {
+        var vm = MakeVm(isMyPr: false, reviewerLogins: ["alice"],
+            reviewerStates: new Dictionary<string, ReviewState> { ["alice"] = ReviewState.ChangesRequested });
+        Assert.False(vm.ShowChangesRequestedIcon);
+    }
+
+    [Fact]
+    public void ShowChangesRequestedIcon_FalseWhenUnresolvedCommentsTakePriority()
+    {
+        var vm = MakeVm(isMyPr: true, reviewerLogins: ["alice"], unresolvedComments: 1,
+            reviewerStates: new Dictionary<string, ReviewState> { ["alice"] = ReviewState.ChangesRequested });
+        Assert.False(vm.ShowChangesRequestedIcon);
+    }
+
+    [Fact]
+    public void ShowReviewPendingIcon_TrueWhenOwnPrAndAllReviewersPending()
+    {
+        var vm = MakeVm(isMyPr: true, reviewerLogins: ["alice", "bob"]);
+        Assert.True(vm.ShowReviewPendingIcon);
+    }
+
+    [Fact]
+    public void ShowReviewPendingIcon_FalseWhenAnyReviewerResponded()
+    {
+        var vm = MakeVm(isMyPr: true, reviewerLogins: ["alice", "bob"],
+            reviewerStates: new Dictionary<string, ReviewState> { ["alice"] = ReviewState.Commented });
+        Assert.False(vm.ShowReviewPendingIcon);
+    }
+
+    [Fact]
+    public void ShowReviewPendingIcon_FalseWhenChangesRequestedTakesPriority()
+    {
+        var vm = MakeVm(isMyPr: true, reviewerLogins: ["alice"],
+            reviewerStates: new Dictionary<string, ReviewState> { ["alice"] = ReviewState.ChangesRequested });
+        Assert.False(vm.ShowReviewPendingIcon);
+    }
+
+    [Fact]
+    public void ShowCommentedIcon_TrueWhenReviewerCommentedWithoutApprovalOrChangesRequested()
+    {
+        var vm = MakeVm(isMyPr: true, reviewerLogins: ["alice"],
+            reviewerStates: new Dictionary<string, ReviewState> { ["alice"] = ReviewState.Commented });
+        Assert.True(vm.ShowCommentedIcon);
+    }
+
+    [Fact]
+    public void ShowCommentedIcon_FalseWhenApproved()
+    {
+        var vm = MakeVm(isMyPr: true, isApproved: true, reviewerLogins: ["alice"],
+            reviewerStates: new Dictionary<string, ReviewState> { ["alice"] = ReviewState.Commented });
+        Assert.False(vm.ShowCommentedIcon);
+    }
+
+    [Fact]
+    public void ShowCommentedIcon_FalseWhenChangesRequestedTakesPriority()
+    {
+        var vm = MakeVm(isMyPr: true, reviewerLogins: ["alice", "bob"],
+            reviewerStates: new Dictionary<string, ReviewState>
+            {
+                ["alice"] = ReviewState.Commented,
+                ["bob"] = ReviewState.ChangesRequested,
+            });
+        Assert.False(vm.ShowCommentedIcon);
+    }
+
     private static PrItemViewModel MakeVm(
         CIState ciState = CIState.Unknown,
         bool isDraft = false,
@@ -256,6 +333,7 @@ public class PrItemViewModelTests
         bool isApproved = false,
         int unresolvedComments = 0,
         IEnumerable<string>? reviewerLogins = null,
+        IReadOnlyDictionary<string, ReviewState>? reviewerStates = null,
         bool isMyPr = false,
         bool isAutoMerge = false,
         bool isHotfix = false,
@@ -278,6 +356,7 @@ public class PrItemViewModelTests
             IsApproved = isApproved,
             UnresolvedReviewCommentCount = unresolvedComments,
             ReviewerLogins = (reviewerLogins ?? []).ToList(),
+            ReviewerStates = reviewerStates ?? new Dictionary<string, ReviewState>(),
             IsMyPr = isMyPr,
             IsAutoMergePr = isAutoMerge,
             IsHotfixPr = isHotfix,
