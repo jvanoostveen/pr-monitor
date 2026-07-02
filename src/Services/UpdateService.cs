@@ -451,8 +451,14 @@ public sealed class UpdateService
         var zipUrl = $"{ReleaseDownloadBaseUrl}/v{version}/{zipFileName}";
         var tempDir = Path.Combine(Path.GetTempPath(), "PrMonitor_update");
         Directory.CreateDirectory(tempDir);
-        var zipPath = Path.Combine(tempDir, zipFileName);
+
+        // Use a unique file name per attempt so a locked/leftover zip from a previous failed
+        // attempt (e.g. still being scanned by antivirus, or from a crashed prior run) can never
+        // collide with the file this attempt needs to create.
+        var zipPath = Path.Combine(tempDir, $"{Guid.NewGuid():N}_{zipFileName}");
         var extractedExePath = Path.Combine(tempDir, "PrMonitor_new.exe");
+
+        CleanupStaleUpdateZips(tempDir);
 
         _logger.Info($"UpdateService downloading {zipUrl} → {zipPath}");
 
@@ -461,36 +467,88 @@ public sealed class UpdateService
 
         var totalBytes = response.Content.Headers.ContentLength ?? -1L;
         await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
-        await using var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 81920, useAsync: true);
-
-        var buffer = new byte[81920];
         long bytesRead = 0;
-        int read;
-        while ((read = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), ct)) > 0)
+        await using (var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 81920, useAsync: true))
         {
-            await fileStream.WriteAsync(buffer.AsMemory(0, read), ct);
-            bytesRead += read;
-            if (totalBytes > 0)
-                progress.Report((int)(bytesRead * 100 / totalBytes));
+            var buffer = new byte[81920];
+            int read;
+            while ((read = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), ct)) > 0)
+            {
+                await fileStream.WriteAsync(buffer.AsMemory(0, read), ct);
+                bytesRead += read;
+                if (totalBytes > 0)
+                    progress.Report((int)(bytesRead * 100 / totalBytes));
+            }
         }
 
         _logger.Info($"UpdateService download complete ({bytesRead} bytes). Extracting…");
 
-        if (File.Exists(extractedExePath))
-            File.Delete(extractedExePath);
-
-        using (var archive = ZipFile.OpenRead(zipPath))
+        // A freshly-downloaded file can briefly be locked by antivirus/SmartScreen for scanning
+        // right after the write stream closes, and a leftover extracted exe from a previous
+        // attempt may still be locked too. Retry the whole extraction with backoff instead of
+        // failing outright.
+        await RetryOnFileLockedAsync(() =>
         {
+            if (File.Exists(extractedExePath))
+                File.Delete(extractedExePath);
+
+            using var archive = ZipFile.OpenRead(zipPath);
             var entry = archive.GetEntry("PrMonitor.exe")
                 ?? throw new FileNotFoundException("PrMonitor.exe not found in release zip.", zipPath);
             entry.ExtractToFile(extractedExePath, overwrite: true);
-        }
+        }, ct);
 
         try { File.Delete(zipPath); } catch { /* non-critical */ }
 
         _logger.Info($"UpdateService extraction complete → {extractedExePath}");
         return extractedExePath;
     }
+
+    /// <summary>
+    /// Best-effort removal of zip files left behind by previous failed update attempts.
+    /// Files still locked (e.g. by antivirus) are silently skipped.
+    /// </summary>
+    private void CleanupStaleUpdateZips(string tempDir)
+    {
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(tempDir, "*_PrMonitor-*-win-x64.zip"))
+            {
+                try { File.Delete(file); }
+                catch (Exception ex) { _logger.Warn($"UpdateService could not remove stale update zip '{file}'. {DiagnosticsLogger.SummarizeException(ex)}"); }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn($"UpdateService stale update zip cleanup failed. {DiagnosticsLogger.SummarizeException(ex)}");
+        }
+    }
+
+    /// <summary>
+    /// Retries <paramref name="action"/> when it fails with an <see cref="IOException"/> caused
+    /// by another process holding a lock on the file (common with antivirus scanning), using
+    /// short exponential backoff. Rethrows on the final attempt or for unrelated errors.
+    /// </summary>
+    private async Task RetryOnFileLockedAsync(Action action, CancellationToken ct, int maxAttempts = 5)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                action();
+                return;
+            }
+            catch (IOException ex) when (attempt < maxAttempts && IsFileLockedException(ex))
+            {
+                _logger.Warn($"UpdateService file locked, retrying ({attempt}/{maxAttempts})… {ex.Message}");
+                await Task.Delay(TimeSpan.FromMilliseconds(400 * attempt), ct);
+            }
+        }
+    }
+
+    private static bool IsFileLockedException(IOException ex) =>
+        ex.Message.Contains("being used by another process", StringComparison.OrdinalIgnoreCase)
+        || ex.Message.Contains("cannot access the file", StringComparison.OrdinalIgnoreCase);
 
     internal static string BuildUpdateBatScript(int pid, string newExePath, string currentExePath)
     {

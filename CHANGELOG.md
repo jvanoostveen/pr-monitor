@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Statistics window: right-click a reviewer to permanently hide them from the breakdown.
 - Settings → Statistics: list of hidden reviewers with option to remove them.
 
+### Fixed
+- **Auto-update download failing with "the process cannot access the file"**: each update download now writes the release zip to a uniquely-named temp file instead of a fixed name, so a locked/leftover zip from a previous failed attempt can no longer block a new download. Extraction (which can be briefly blocked by antivirus/SmartScreen scanning a freshly-downloaded file) now retries automatically with backoff instead of failing immediately, and stale zip files from earlier failed attempts are cleaned up best-effort before each new download.
+
 ## [1.10.0] - 2026-06-29
 
 ### Added
