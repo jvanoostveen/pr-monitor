@@ -103,6 +103,19 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set { _settings.VerboseLogging = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VerboseLogging))); }
     }
 
+    public bool AlwaysOnTop
+    {
+        get => _settings.AlwaysOnTop;
+        set { _settings.AlwaysOnTop = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AlwaysOnTop))); }
+    }
+
+    /// <summary>
+    /// Re-raises PropertyChanged for <see cref="AlwaysOnTop"/> so an open Settings window
+    /// reflects a change made elsewhere (e.g. the pin icon in the main window header).
+    /// </summary>
+    public void NotifyAlwaysOnTopChanged() =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AlwaysOnTop)));
+
     // ── Notification toggles ─────────────────────────────────────────
 
     private bool _notifyCiFailed;

@@ -361,6 +361,12 @@
                                   Content="Compact mode (smaller rows)"/>
 
                         <CheckBox Margin="0,8,0,0"
+                                  IsChecked="{Binding AlwaysOnTop}"
+                                  Content="Always on top (floating window)"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,2,0,0" TextWrapping="Wrap"
+                                   Text="When enabled, the PR Monitor window stays above other windows. Disable to let other windows cover it; the same option is also available as the pin icon in the window header."/>
+
+                        <CheckBox Margin="0,8,0,0"
                                   IsChecked="{Binding VerboseLogging}"
                                   Content="Verbose logging"/>
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,2,0,0" TextWrapping="Wrap"

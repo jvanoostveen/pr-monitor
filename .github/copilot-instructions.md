@@ -248,8 +248,9 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - Windows toast notifications should display the app name as **PR Monitor** (configured via project metadata in `src/PrMonitor.csproj`).
 
 ### Main Window behavior
-- Borderless, transparent, `Topmost=True`, `SizeToContent=Height`, `MaxHeight=700`
+- Borderless, transparent, `SizeToContent=Height`, `MaxHeight=700`
 - **No auto-hide on deactivate** — stays visible until user clicks X or tray icon
+- **Always-on-top is configurable**: `AppSettings.AlwaysOnTop` (default `true`) controls `MainWindow.Topmost` only — all other floating traits (borderless, transparent, no taskbar icon, corner-snapping) are unaffected by this setting in either state. Toggle from **Settings → General → "Always on top (floating window)"** or the pin icon in the window header (leftmost header icon, `PinButton`/`PinIcon`, glyphs `\uF10D` pinned / `\uE6F9` unpinned). Both apply live via `MainWindow.ApplyAlwaysOnTop(bool)` — no restart required. `MainWindow.AlwaysOnTopChanged` is wired in `App.xaml.cs` to refresh an open Settings window's checkbox (`SettingsViewModel.NotifyAlwaysOnTopChanged()`) when the header icon is toggled directly. Missing `alwaysOnTop` in older `settings.json` files defaults to `true`, preserving the previous always-on-top behavior after upgrading.
 - **Tray left-click** toggles window visibility
 - Tray context menu order starts with **Open PR Monitor**, then **About…**, then **Settings…**, then **Statistics…**.
 - PR row right-click actions use a native Win32 popup menu from `MainWindow` (not WPF `ContextMenu`) to match tray-menu rendering and Windows dark/light behavior.
@@ -439,6 +440,7 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "mainWindowLeft": 1440.0,
   "mainWindowTop": 120.0,
   "mainWindowSnappedCorner": null,
+  "alwaysOnTop": true,
   "statsWindowLeft": null,
   "statsWindowTop": null,
   "statsWindowWidth": null,

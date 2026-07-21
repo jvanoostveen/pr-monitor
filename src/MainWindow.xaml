@@ -12,7 +12,6 @@
         AllowsTransparency="True"
         Background="Transparent"
         ShowInTaskbar="False"
-        Topmost="True"
         ResizeMode="NoResize"
         SizeChanged="Window_SizeChanged"
         KeyDown="Window_KeyDown">
@@ -236,6 +235,26 @@
             <Border Grid.Row="0" Background="#161B22" CornerRadius="8,8,0,0" Padding="12,8">
                 <DockPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
+                        <!-- Pin (always on top) toggle button -->
+                        <Border x:Name="PinButton" CornerRadius="4" Padding="5,3"
+                                Cursor="Hand" ToolTip="Always on top"
+                                MouseLeftButtonUp="PinButton_Click"
+                                Background="#21262D" Margin="0,0,4,0">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#30363D"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock x:Name="PinIcon"
+                                       Style="{StaticResource IconText}"
+                                       Text="&#xF10D;"
+                                       FontSize="16"
+                                       Foreground="#8B949E"/>
+                        </Border>
                         <!-- Statistics button -->
                         <Border CornerRadius="4" Padding="5,3"
                                 Cursor="Hand" ToolTip="Statistics"

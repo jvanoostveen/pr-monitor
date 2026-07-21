@@ -156,6 +156,52 @@ public class SettingsViewModelTests
         Assert.True(vm.NotificationModeNever);
     }
 
+    // ── AlwaysOnTop passthrough ───────────────────────────────────────
+
+    [Fact]
+    public void AlwaysOnTop_DefaultsToTrue()
+    {
+        var vm = new SettingsViewModel(MakeSettings());
+
+        Assert.True(vm.AlwaysOnTop);
+    }
+
+    [Fact]
+    public void AlwaysOnTop_SetFalse_PersistsToSettings()
+    {
+        var settings = MakeSettings();
+        var vm = new SettingsViewModel(settings);
+
+        vm.AlwaysOnTop = false;
+
+        Assert.False(vm.AlwaysOnTop);
+        Assert.False(settings.AlwaysOnTop);
+    }
+
+    [Fact]
+    public void AlwaysOnTop_Set_RaisesPropertyChanged()
+    {
+        var vm = new SettingsViewModel(MakeSettings());
+        var raised = false;
+        vm.PropertyChanged += (_, e) => raised |= e.PropertyName == nameof(SettingsViewModel.AlwaysOnTop);
+
+        vm.AlwaysOnTop = false;
+
+        Assert.True(raised);
+    }
+
+    [Fact]
+    public void NotifyAlwaysOnTopChanged_RaisesPropertyChanged()
+    {
+        var vm = new SettingsViewModel(MakeSettings());
+        var raised = false;
+        vm.PropertyChanged += (_, e) => raised |= e.PropertyName == nameof(SettingsViewModel.AlwaysOnTop);
+
+        vm.NotifyAlwaysOnTopChanged();
+
+        Assert.True(raised);
+    }
+
     // ── DeleteRule ────────────────────────────────────────────────────
 
     [Fact]

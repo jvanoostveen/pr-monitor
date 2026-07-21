@@ -17,6 +17,7 @@ public class AppSettingsTests
         Assert.Equal(120, result.PollingIntervalSeconds);
         Assert.True(result.AutoMergeExpanded);
         Assert.True(result.ReviewExpanded);
+        Assert.True(result.AlwaysOnTop);
     }
 
     [Fact]
@@ -35,6 +36,7 @@ public class AppSettingsTests
                 NotifyCiFailed = false,
                 FlakinessAnalysisEnabled = true,
                 FlakinessMaxReruns = 5,
+                AlwaysOnTop = false,
             };
 
             settings.SaveTo(path);
@@ -48,6 +50,7 @@ public class AppSettingsTests
             Assert.False(loaded.NotifyCiFailed);
             Assert.True(loaded.FlakinessAnalysisEnabled);
             Assert.Equal(5, loaded.FlakinessMaxReruns);
+            Assert.False(loaded.AlwaysOnTop);
         }
         finally { File.Delete(path); }
     }

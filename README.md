@@ -71,6 +71,8 @@ PR row right-click actions now use a native Win32 popup menu (same rendering pat
 
 The window can be **snapped to any corner** of any monitor by dragging it near a corner — the border turns blue to preview the snap, and the window locks into position on release. Snapped placement uses a compact 6 px edge inset. When a monitor is disconnected the window recovers to the same corner on the primary display.
 
+By default the window **stays on top** of other windows (floating behaviour). Click the pin icon in the window header, or toggle **Settings → General → "Always on top (floating window)"**, to let other windows cover it instead — the change applies immediately, no restart needed. This setting defaults to enabled, so upgrading from an older build keeps the current floating behaviour.
+
 PR Monitor now also remembers whether the window was open, plus its last position. If it was visible when you last used the app, it opens automatically on startup and restores the previous location. If monitor layout changed, the window is moved by the smallest possible amount so it is fully visible.
 On first show after startup, the saved position is applied before any fallback corner alignment, so secondary-monitor placement is retained across restarts.
 Startup ignores pre-restore size-driven auto-alignment, and snapped windows keep a monitor anchor derived from restored coordinates so early layout passes cannot drift them to another screen.

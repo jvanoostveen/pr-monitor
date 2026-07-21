@@ -90,6 +90,13 @@ public sealed class AppSettings
     /// <summary>Last known snapped corner (None/TopLeft/TopRight/BottomLeft/BottomRight).</summary>
     public string? MainWindowSnappedCorner { get; set; }
 
+    /// <summary>
+    /// Whether the PR window stays on top of other windows (floating behaviour).
+    /// Defaults to true so existing settings.json files without this key keep the current
+    /// always-on-top behaviour after upgrading.
+    /// </summary>
+    public bool AlwaysOnTop { get; set; } = true;
+
     /// <summary>Last known Statistics window left position in WPF units.</summary>
     public double? StatsWindowLeft { get; set; }
 

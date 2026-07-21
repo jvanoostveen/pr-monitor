@@ -107,12 +107,18 @@ public partial class App : System.Windows.Application
         _trayIcon.Subscribe(_polling);
         mainVm.OnHiddenPrsChanged = () => _trayIcon.RefreshFromLatestSnapshot();
         _mainWindow.OpenStatisticsRequested = ShowStatsWindow;
+        _mainWindow.AlwaysOnTopChanged = () => _settingsWindow?.ViewModel.NotifyAlwaysOnTopChanged();
         _trayIcon.OnOpenWindow(() =>
         {
-            if (_mainWindow.IsVisible)
+            // With Always-on-top enabled the window is guaranteed to be visually in
+            // front whenever it's visible, so a plain visibility toggle is reliable.
+            // With Always-on-top disabled the window can be covered by other windows,
+            // so the tray icon always brings it to the foreground instead (use the
+            // window's close button to hide it in that mode).
+            if (_settings!.AlwaysOnTop && _mainWindow.IsVisible)
                 _mainWindow.HideToTray();
             else
-                _mainWindow.ShowAtTray();
+                _mainWindow.BringToFront();
         });
         _trayIcon.OnWindowVisibility(() => _mainWindow.IsVisible);
         _trayIcon.OnOpenSettings(() =>
@@ -137,6 +143,8 @@ public partial class App : System.Windows.Application
                 _ = _polling.RefreshAsync();
                 // Sync verbose-logging flag to logger without restart
                 if (_logger is not null) _logger.VerboseLogging = settings.VerboseLogging;
+                // Apply always-on-top change live without restart
+                _mainWindow.ApplyAlwaysOnTop(settings.AlwaysOnTop);
                 // Re-apply corner snap after WPF has processed the layout change
                 // caused by compact mode toggling (window height changes).
                 _mainWindow.Dispatcher.BeginInvoke(

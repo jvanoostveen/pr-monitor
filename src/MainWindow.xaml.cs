@@ -106,6 +106,8 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         InitializeComponent();
 
+        ApplyAlwaysOnTop(_settings.AlwaysOnTop);
+
         // Drive refresh icon from IsRefreshing property
         viewModel.PropertyChanged += (_, e) =>
         {
@@ -131,6 +133,50 @@ public partial class MainWindow : Window
     {
         if (_snappedCorner != SnapCorner.None)
             ApplyCornerSnap(_snappedCorner);
+    }
+
+    /// <summary>Invoked after the pin icon toggles <see cref="AppSettings.AlwaysOnTop"/>. Wired in App.xaml.cs to keep an open Settings window in sync.</summary>
+    public Action? AlwaysOnTopChanged { get; set; }
+
+    /// <summary>
+    /// Applies the always-on-top (floating) behaviour live, updating the window's
+    /// <see cref="Topmost"/> property and the header pin icon/tooltip to match.
+    /// </summary>
+    internal void ApplyAlwaysOnTop(bool alwaysOnTop)
+    {
+        Topmost = alwaysOnTop;
+        PinIcon.Text = alwaysOnTop ? "\uF10D" : "\uE6F9";
+        PinIcon.Foreground = alwaysOnTop ? RefreshBlueBrush : RefreshGreyBrush;
+        PinButton.ToolTip = alwaysOnTop ? "Always on top (click to disable)" : "Not always on top (click to enable)";
+    }
+
+    /// <summary>
+    /// Brings the window to the foreground, showing it first if it is currently hidden.
+    /// Used for both tray-icon clicks: plain <see cref="Activate"/> can be silently
+    /// ignored by Windows' foreground-lock rules, so Topmost is briefly toggled on to
+    /// force the window above the current foreground window (e.g. Explorer pinned as
+    /// always-on-top). Reverting the flag is deferred to the next dispatcher frame so
+    /// the Z-order change actually applies before Topmost is dropped back down.
+    /// </summary>
+    public void BringToFront()
+    {
+        LogPlacement("BringToFront");
+
+        if (!IsVisible)
+        {
+            ShowAtTray();
+            return;
+        }
+
+        Topmost = true;
+        Activate();
+        Focus();
+
+        if (!_settings.AlwaysOnTop)
+        {
+            Dispatcher.BeginInvoke(new Action(() => Topmost = _settings.AlwaysOnTop),
+                System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+        }
     }
 
     /// <summary>
@@ -747,6 +793,14 @@ public partial class MainWindow : Window
     private void RefreshButton_Click(object sender, MouseButtonEventArgs e)
     {
         _ = ViewModel.RefreshAsync();
+    }
+
+    private void PinButton_Click(object sender, MouseButtonEventArgs e)
+    {
+        _settings.AlwaysOnTop = !_settings.AlwaysOnTop;
+        _settings.Save();
+        ApplyAlwaysOnTop(_settings.AlwaysOnTop);
+        AlwaysOnTopChanged?.Invoke();
     }
 
     /// <summary>Invoked when the statistics button in the header is clicked. Wired in App.xaml.cs.</summary>

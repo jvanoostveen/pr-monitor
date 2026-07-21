@@ -17,6 +17,9 @@ public partial class SettingsWindow : Window
     private readonly Action? _onSaved;
     private readonly Action? _onResetStatistics;
 
+    /// <summary>Exposes the settings view model so a live window can be kept in sync from outside (e.g. App.xaml.cs).</summary>
+    public SettingsViewModel ViewModel => _viewModel;
+
     public SettingsWindow(SettingsViewModel viewModel, Action? onSaved = null, Action? onResetStatistics = null)
     {
         _viewModel = viewModel;
