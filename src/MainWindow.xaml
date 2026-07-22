@@ -234,7 +234,30 @@
             <!-- Header bar -->
             <Border Grid.Row="0" Background="#161B22" CornerRadius="8,8,0,0" Padding="12,8">
                 <DockPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
+                    <StackPanel x:Name="HeaderButtonsPanel" Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Opacity" Value="0"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMouseOver, ElementName=OuterBorder}" Value="True">
+                                        <DataTrigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.15"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.EnterActions>
+                                        <DataTrigger.ExitActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.15"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.ExitActions>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
                         <!-- Pin (always on top) toggle button -->
                         <Border x:Name="PinButton" CornerRadius="4" Padding="5,3"
                                 Cursor="Hand" ToolTip="Always on top"
