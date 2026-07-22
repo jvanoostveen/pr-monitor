@@ -94,6 +94,54 @@ public sealed class MainViewModel : INotifyPropertyChanged
         private set => SetField(ref _draftPrsCount, value);
     }
 
+    private bool _hasLoadedOnce;
+    public bool HasLoadedOnce
+    {
+        get => _hasLoadedOnce;
+        private set
+        {
+            if (_hasLoadedOnce == value) return;
+            _hasLoadedOnce = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsInitialLoading));
+            OnPropertyChanged(nameof(IsEmptyState));
+        }
+    }
+
+    /// <summary>True before the first poll has completed — drives the subtle startup loading overlay.</summary>
+    public bool IsInitialLoading => !HasLoadedOnce;
+
+    /// <summary>Sum of every section's count, including Later/snoozed (Hidden).</summary>
+    public int TotalPrCount =>
+ HotfixCount + AutoMergeCount + ReviewCount + TeamReviewCount + MyPrsCount + DependabotCount + DraftPrsCount + HiddenCount;
+
+    /// <summary>True once loaded and there is truly nothing anywhere (incl. Later) — drives the playful empty-state overlay.</summary>
+    public bool IsEmptyState => HasLoadedOnce && TotalPrCount == 0;
+
+    private static readonly string[] EmptyStateHeadlines =
+    [
+        "All clear. Suspiciously quiet out there.",
+        "Zero PRs. Look at you go.",
+        "Nothing pending. Feels illegal somehow.",
+        "Empty queue. Treat yourself.",
+        "No PRs in sight. Weird flex, but okay.",
+        "Clean slate. Don't jinx it.",
+        "Nada. Zilch. Go outside.",
+        "Everything's merged. Suspicious, but I'll allow it.",
+        "No reviews needed. The bots are proud of you.",
+        "Inbox zero. Achievement unlocked.",
+    ];
+
+    private readonly Random _emptyStateRandom = new();
+    private bool _wasEmpty;
+
+    private string _emptyStateHeadline = EmptyStateHeadlines[0];
+    public string EmptyStateHeadline
+    {
+        get => _emptyStateHeadline;
+        private set => SetField(ref _emptyStateHeadline, value);
+    }
+
     private string _lastUpdated = "—";
     public string LastUpdated
     {
@@ -682,6 +730,16 @@ public sealed class MainViewModel : INotifyPropertyChanged
         DependabotCount = DependabotPrs.Count;
         HiddenCount = HiddenPrs.Count;
         LastUpdated = DateTime.Now.ToString("HH:mm:ss");
+
+        OnPropertyChanged(nameof(TotalPrCount));
+        OnPropertyChanged(nameof(IsEmptyState));
+
+        var isEmptyNow = TotalPrCount == 0;
+        if (isEmptyNow && !_wasEmpty)
+            EmptyStateHeadline = EmptyStateHeadlines[_emptyStateRandom.Next(EmptyStateHeadlines.Length)];
+        _wasEmpty = isEmptyNow;
+
+        HasLoadedOnce = true;
     }
 
     private static void OpenUrl(string url)

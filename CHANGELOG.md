@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Configurable always-on-top window**: the PR Monitor window's floating (always-on-top) behaviour can now be toggled off, letting other windows cover it. Available from **Settings → General → "Always on top (floating window)"** and a new pin icon in the window header; applies immediately, no restart required. Defaults to enabled, so existing installations keep the current floating behaviour after upgrading. With Always-on-top enabled, clicking the tray icon toggles the window open/closed as before. With it disabled, the window can be covered by other windows, so the tray icon always brings it to the foreground instead (use the window's close button to hide it in that mode).
+- **Subtle startup loading indicator and playful empty state**: the PR list area now shows a small, slowly-rotating refresh icon with a dimmed "Loading pull requests…" caption while waiting for the first poll to complete. Once loaded, if there are truly no PRs anywhere (including snoozed/Later items), a short, randomly-picked one-liner ("Zero PRs. Look at you go.", "Inbox zero. Achievement unlocked.", etc.) is shown instead of a blank window.
 
 ## [1.11.0] - 2026-07-02
 

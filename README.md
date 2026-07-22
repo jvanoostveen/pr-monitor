@@ -21,7 +21,9 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 
 Each PR row keeps its CI status circle and also shows a message icon when unresolved review comments exist; hovering the icon shows the unresolved comment count.
 
-Empty sections are hidden automatically. The tray icon badge changes colour to reflect the worst state:
+Empty sections are hidden automatically. While the very first poll is in progress, the window shows a subtle spinning-icon "Loading pull requests…" indicator instead of a blank list. If, once loaded, there are truly no PRs anywhere (including snoozed **Later** items), a short, randomly-picked one-liner is shown instead (e.g. "Zero PRs. Look at you go.").
+
+The tray icon badge changes colour to reflect the worst state:
 
 - 🔴 Red — one or more CI failures
 - 🟡 Amber — reviews pending or unresolved review comments on your own PRs, no CI failures

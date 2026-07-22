@@ -333,8 +333,9 @@
                 </DockPanel>
             </Border>
 
-            <!-- Scrollable content -->
-            <ScrollViewer Grid.Row="1" Style="{StaticResource OverlayScrollViewer}" Padding="12,8">
+            <!-- Scrollable content + loading/empty overlays -->
+            <Grid Grid.Row="1">
+            <ScrollViewer Style="{StaticResource OverlayScrollViewer}" Padding="12,8">
                 <StackPanel>
 
                     <!-- Section: Hotfixes (only visible when HotfixCount > 0) -->
@@ -1187,6 +1188,56 @@
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
+
+            <!-- Initial loading overlay (subtle, before the first poll completes) -->
+            <StackPanel Visibility="{Binding IsInitialLoading, Converter={StaticResource BoolToVisibility}}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource IconText}"
+                           Text="&#xE5D5;"
+                           FontSize="20"
+                           Foreground="#6E7681"
+                           Opacity="0.6"
+                           HorizontalAlignment="Center"
+                           RenderTransformOrigin="0.5,0.5">
+                    <TextBlock.RenderTransform>
+                        <RotateTransform Angle="0"/>
+                    </TextBlock.RenderTransform>
+                    <TextBlock.Triggers>
+                        <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle"
+                                                     From="0" To="360" Duration="0:0:2"
+                                                     RepeatBehavior="Forever"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </TextBlock.Triggers>
+                </TextBlock>
+                <TextBlock Text="Loading pull requests…"
+                           FontSize="11" Foreground="#6E7681" Opacity="0.7"
+                           HorizontalAlignment="Center" Margin="0,6,0,0"/>
+            </StackPanel>
+
+            <!-- Empty state overlay (loaded, but nothing anywhere incl. Later) -->
+            <StackPanel Visibility="{Binding IsEmptyState, Converter={StaticResource BoolToVisibility}}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource IconText}"
+                           Text="&#xF0BE;"
+                           FontSize="22"
+                           Foreground="#3FB950"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding EmptyStateHeadline}"
+                           FontSize="13" FontWeight="SemiBold" Foreground="#C9D1D9"
+                           HorizontalAlignment="Center" TextAlignment="Center"
+                           TextWrapping="Wrap" MaxWidth="260"/>
+                <TextBlock Text="No PRs need your attention right now."
+                           FontSize="11" Foreground="#6E7681"
+                           HorizontalAlignment="Center" TextAlignment="Center"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+            </Grid>
 
             <!-- Footer -->
             <Border Grid.Row="2" Background="#161B22" CornerRadius="0,0,8,8" Padding="12,6">
