@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-07-22
+
 ### Added
 - **Configurable always-on-top window**: the PR Monitor window's floating (always-on-top) behaviour can now be toggled off, letting other windows cover it. Available from **Settings → General → "Always on top (floating window)"** and a new pin icon in the window header; applies immediately, no restart required. Defaults to enabled, so existing installations keep the current floating behaviour after upgrading. With Always-on-top enabled, clicking the tray icon toggles the window open/closed as before. With it disabled, the window can be covered by other windows, so the tray icon always brings it to the foreground instead (use the window's close button to hide it in that mode).
 - **Header buttons now hidden until hover**: the pin, statistics, refresh, and close buttons in the window header fade in only while the mouse is over the PR Monitor window, and fade out otherwise, reducing visual clutter when the window is idle.
