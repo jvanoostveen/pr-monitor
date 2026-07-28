@@ -291,6 +291,16 @@ Each PR row shows a colored 10×10 `Ellipse`:
 
 For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CIState` — draft PRs always return `CIState.Unknown` so their indicator is grey regardless of actual build state. When `HasConflicts` is true, `EffectiveCIState` returns `CIState.Failure` regardless of the actual CI state. The tray icon also counts `HasConflicts` PRs as failed CI. The PR tooltip preserves the real CI state (e.g. `CI: Success`) and appends a separate `Merge conflicts` line when `HasConflicts` is true.
 
+### Stacked PRs
+- A PR is "stacked" when its `BaseRefName` equals another open PR's `HeadRefName` in the same repository (the gh-stack model). Detection is entirely local — `PollingService.ApplyStackRelations(IReadOnlyList<PullRequestInfo>)` builds a `(repository, headRef) → PR` lookup over every section's PRs and links children to parents. Costs **no extra API calls**; `MyPrsQuery` was extended with `baseRefName` (the review queries already had it).
+- `ApplyStackRelations` resets and then fills `StackParentKey`, `StackParentNumber`, `StackParentUrl`, `StackRootKey`, `StackDepth` (0 = bottom PR) and `StackSize` on **every** supplied instance, because the same PR key can appear as separate object instances in different sections. Walking up the parent chain uses a visited set so cyclic base/head combinations cannot loop forever.
+- `PullRequestInfo.IsStacked` (`StackSize > 1`) and `IsBlockedByStack` (`StackParentKey` set) are derived properties.
+- `PollingService.OrderByStack` regroups a section so stack members are consecutive, ordered by `StackDepth` then `Number`, while preserving the original relative order of unrelated PRs. Applied to all seven section lists when `ShowStackRelations` is enabled.
+- `PrItemViewModel` exposes `StackPosition` (`StackDepth + 1`), `ShowStackIndicator`, `StackBadgeText` (` · stack 2/3`), `StackIndentMargin` (14 px per depth level) and `CanOpenStackParent`. The `PrRow` style binds `Margin` to `StackIndentMargin`, so indentation applies to all eight sections from one place; each section template adds the badge `<Run>` to its repository line (no explicit `Foreground`, so it inherits the grey `RepoText` colour).
+- `EffectiveCIState` order: conflicts → Failure, draft → Unknown, otherwise the real CI state. Stack-blocked PRs deliberately keep their own colour — a green PR waiting on its parent stays green.
+- `TrayIconManager` excludes stack-blocked PRs from the purple pending count unless `StackBlockedCountsForTrayIcon` is enabled.
+- PR row context menus gain **Open parent PR** and **Open whole stack** for stacked PRs; `MainViewModel.AllPrs` enumerates every visible row so siblings can be resolved by `StackRootKey`.
+
 ### Unresolved review comments indicator
 - PR rows keep the CI circle unchanged and can show an additional message icon (`Segoe MDL2 Assets`, `E8BD`) when unresolved review comments are present.
 - Each PR row has a combined `PrTooltip` (bound to the row `Border`) showing CI state, reviewer info (for own PRs), unresolved comment count, and approved state. Individual icons carry no separate tooltips.
@@ -327,7 +337,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 ### Tray icon colors
 - Red `#F85149` — CI failures present
 - Amber `#D29922` — reviews pending or unresolved comments on My PRs, no CI failures
-- Purple `#8957E5` — pipeline running (Pending CI on visible PRs), no failures or review actions
+- Purple `#8957E5` — pipeline running (Pending CI on visible PRs), no failures or review actions; PRs only waiting on an open stack parent are excluded unless `StackBlockedCountsForTrayIcon` is enabled
 - Green `#3FB950` — all clear
 - Blue `#005FAA` — only Later-items, nothing active
 - Gray `#8B949E` — idle / not polled yet
@@ -441,6 +451,8 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "draftExpanded": false,
   "showTeamReviewSection": true,
   "teamReviewCountsForTrayIcon": false,
+  "showStackRelations": true,
+  "stackBlockedCountsForTrayIcon": false,
   "laterExpanded": false,
   "mainWindowVisible": false,
   "mainWindowLeft": 1440.0,

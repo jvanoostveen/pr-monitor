@@ -21,6 +21,14 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 
 Each PR row keeps its CI status circle and also shows a message icon when unresolved review comments exist; hovering the icon shows the unresolved comment count.
 
+### Stacked PRs
+
+PRs created as a [stack](https://github.github.com/gh-stack/) — where a PR's base branch is another open PR's head branch — are detected automatically from the polled data (no extra API calls). Within their section they are listed together, bottom PR first, indented one level per stack depth, and their repository line shows a `· stack 2/3` badge.
+
+A stacked PR keeps its own CI colour, so a PR that is green but still waiting on the PR below it stays green. Right-clicking such a PR offers **Open parent PR** and **Open whole stack**.
+
+Both the grouping and whether stack-blocked PRs count towards the tray icon can be configured in **Settings → Sections → Stacked PRs**.
+
 Empty sections are hidden automatically. While the very first poll is in progress, the window shows a subtle spinning-icon "Loading pull requests…" indicator instead of a blank list. If, once loaded, there are truly no PRs anywhere (including snoozed **Later** items), a short, randomly-picked one-liner is shown instead (e.g. "Zero PRs. Look at you go.").
 
 The tray icon badge changes colour to reflect the worst state:

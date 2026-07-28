@@ -40,6 +40,7 @@ public sealed class GitHubService
                 updatedAt
                 isDraft
                 mergeable
+                baseRefName
                 headRefName
                 reviewDecision
                 autoMergeRequest { enabledAt }
@@ -988,6 +989,9 @@ public sealed class GitHubService
                 UpdatedAt = DateTimeOffset.TryParse(node.TryGetProperty("updatedAt", out var upd1) ? upd1.GetString() : null, out var updVal1) ? updVal1 : DateTimeOffset.MinValue,
                 HasAutoMerge = hasAutoMerge,
                 IsDraft = isDraft,
+                BaseRefName = node.TryGetProperty("baseRefName", out var brn1)
+                    ? brn1.GetString() ?? ""
+                    : "",
                 HeadRefName = node.TryGetProperty("headRefName", out var hrn1)
                     ? hrn1.GetString() ?? ""
                     : "",

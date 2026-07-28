@@ -78,6 +78,12 @@ public sealed class AppSettings
     /// <summary>Whether team review requests count towards the tray icon status (amber) when the section is enabled.</summary>
     public bool TeamReviewCountsForTrayIcon { get; set; } = false;
 
+    /// <summary>Whether stacked PRs are grouped, indented and marked in the main window.</summary>
+    public bool ShowStackRelations { get; set; } = true;
+
+    /// <summary>Whether PRs waiting on an open stack parent still count towards the tray icon status.</summary>
+    public bool StackBlockedCountsForTrayIcon { get; set; } = false;
+
     /// <summary>Whether the PR window was visible when last toggled/exited.</summary>
     public bool MainWindowVisible { get; set; } = false;
 

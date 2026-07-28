@@ -88,6 +88,8 @@ public partial class MainWindow : Window
     private const uint ID_SNOOZE_INDEFINITELY= 1012;
     private const uint ID_PR_ENABLE_AUTOMERGE= 1013;
     private const uint ID_PR_HIDE            = 1014;
+    private const uint ID_PR_OPEN_PARENT     = 1015;
+    private const uint ID_PR_OPEN_STACK      = 1016;
 
     // Assign-reviewer submenu — each assigned reviewer opens a nested submenu with two actions:
     // 2000..2009 re-request review, 2010..2019 remove reviewer, 2020..2029 recent (unassigned), 2030 search
@@ -842,6 +844,26 @@ public partial class MainWindow : Window
         ShowNativePrContextMenu(vm);
     }
 
+    private static void OpenPrUrl(string url)
+    {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    private static void OpenStackParent(PrItemViewModel vm) => OpenPrUrl(vm.StackParentUrl);
+
+    private void OpenWholeStack(PrItemViewModel vm)
+    {
+        var members = ViewModel.AllPrs
+            .Where(p => p.StackRootKey.Equals(vm.StackRootKey, StringComparison.OrdinalIgnoreCase))
+            .DistinctBy(p => p.Key)
+            .OrderBy(p => p.StackDepth)
+            .ToList();
+
+        foreach (var member in members)
+            OpenPrUrl(member.Url);
+    }
+
     private void ShowNativePrContextMenu(PrItemViewModel vm)
     {
         var hMenu = CreatePopupMenu();
@@ -865,6 +887,16 @@ public partial class MainWindow : Window
 
             AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_COPY_URL, "Copy PR URL");
             AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_COPY_BRANCH, "Copy branch name");
+            if (vm.IsStacked)
+            {
+                AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
+                var parentFlags = vm.CanOpenStackParent ? MF_STRING : MF_STRING | MF_GRAYED;
+                var parentLabel = vm.CanOpenStackParent
+                    ? $"Open parent PR (#{vm.StackParentNumber})"
+                    : "Open parent PR";
+                AppendMenuW(hMenu, parentFlags, (UIntPtr)ID_PR_OPEN_PARENT, parentLabel);
+                AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_OPEN_STACK, $"Open whole stack ({vm.StackSize} PRs)");
+            }
             AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
             AppendMenuW(hMenu, rerunFlags, (UIntPtr)ID_PR_RERUN_FAILED, "Rerun failed jobs");
             AppendMenuW(hMenu, copilotFlags, (UIntPtr)ID_PR_COPILOT, "Request Copilot review");
@@ -960,6 +992,13 @@ public partial class MainWindow : Window
                     break;
                 case ID_PR_COPY_BRANCH:
                     System.Windows.Clipboard.SetText(vm.HeadRefName);
+                    break;
+                case ID_PR_OPEN_PARENT:
+                    if (vm.CanOpenStackParent)
+                        OpenStackParent(vm);
+                    break;
+                case ID_PR_OPEN_STACK:
+                    OpenWholeStack(vm);
                     break;
                 case ID_PR_RERUN_FAILED:
                     if (vm.CanRerunFailedJobs)

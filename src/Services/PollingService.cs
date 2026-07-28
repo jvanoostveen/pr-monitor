@@ -192,6 +192,23 @@ public sealed class PollingService : IDisposable
             hotfixPrs         = ResolveConflicts(hotfixPrs);
             dependabotPrs     = ResolveConflicts(dependabotPrs);
 
+            // Derive stacked-PR relations across every section, then group each section by stack
+            ApplyStackRelations([
+                .. autoMergePrs, .. myPrs, .. draftPrs, .. combinedReviewPrs,
+                .. teamReviewPrs, .. hotfixPrs, .. dependabotPrs,
+            ]);
+
+            if (_settings.ShowStackRelations)
+            {
+                autoMergePrs      = OrderByStack(autoMergePrs);
+                myPrs             = OrderByStack(myPrs);
+                draftPrs          = OrderByStack(draftPrs);
+                combinedReviewPrs = OrderByStack(combinedReviewPrs);
+                teamReviewPrs     = OrderByStack(teamReviewPrs);
+                hotfixPrs         = OrderByStack(hotfixPrs);
+                dependabotPrs     = OrderByStack(dependabotPrs);
+            }
+
             var allOpenPrKeys = allMyPrs.Select(p => p.Key).ToHashSet();
             DetectAutoMergeChanges(autoMergePrs, allOpenPrKeys);
             DetectReviewChanges(combinedReviewPrs);
@@ -249,6 +266,108 @@ public sealed class PollingService : IDisposable
         return hotfixPrs
             .Where(p => myPrKeys.Contains(p.Key) || assignedPrKeys.Contains(p.Key))
             .ToList();
+    }
+
+    /// <summary>
+    /// Derives stacked-PR relations (gh-stack style) from the base/head branch names of all
+    /// currently known open PRs: a PR is stacked on another when its base branch equals that
+    /// PR's head branch in the same repository. Purely local — costs no extra API calls.
+    /// Mutates the stack fields on every supplied instance (the same PR can appear in several lists).
+    /// </summary>
+    internal static void ApplyStackRelations(IReadOnlyList<PullRequestInfo> allPrs)
+    {
+        foreach (var pr in allPrs)
+        {
+            pr.StackParentKey = null;
+            pr.StackParentNumber = 0;
+            pr.StackParentUrl = "";
+            pr.StackRootKey = pr.Key;
+            pr.StackDepth = 0;
+            pr.StackSize = 1;
+        }
+
+        var unique = allPrs
+            .GroupBy(p => p.Key, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+        var byHead = new Dictionary<string, PullRequestInfo>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pr in unique.Values)
+        {
+            if (string.IsNullOrWhiteSpace(pr.HeadRefName)) continue;
+            byHead.TryAdd(BranchKey(pr.Repository, pr.HeadRefName), pr);
+        }
+
+        var parents = new Dictionary<string, PullRequestInfo>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pr in unique.Values)
+        {
+            if (string.IsNullOrWhiteSpace(pr.BaseRefName)) continue;
+            if (byHead.TryGetValue(BranchKey(pr.Repository, pr.BaseRefName), out var parent)
+                && !parent.Key.Equals(pr.Key, StringComparison.OrdinalIgnoreCase))
+            {
+                parents[pr.Key] = parent;
+            }
+        }
+
+        var depths = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var roots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pr in unique.Values)
+        {
+            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var current = pr;
+            int depth = 0;
+            while (visited.Add(current.Key) && parents.TryGetValue(current.Key, out var parent))
+            {
+                current = parent;
+                depth++;
+            }
+            depths[pr.Key] = depth;
+            roots[pr.Key] = current.Key;
+        }
+
+        var sizes = roots.Values
+            .GroupBy(r => r, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var pr in allPrs)
+        {
+            if (!roots.TryGetValue(pr.Key, out var root)) continue;
+            pr.StackRootKey = root;
+            pr.StackDepth = depths[pr.Key];
+            pr.StackSize = sizes.GetValueOrDefault(root, 1);
+            if (parents.TryGetValue(pr.Key, out var parent))
+            {
+                pr.StackParentKey = parent.Key;
+                pr.StackParentNumber = parent.Number;
+                pr.StackParentUrl = parent.Url;
+            }
+        }
+    }
+
+    private static string BranchKey(string repository, string branch) => $"{repository}\u0000{branch}";
+
+    /// <summary>
+    /// Reorders a section so PRs belonging to the same stack appear consecutively,
+    /// bottom PR first. The relative order of unrelated PRs (and of stacks as a whole)
+    /// is preserved based on first appearance.
+    /// </summary>
+    internal static List<PullRequestInfo> OrderByStack(IReadOnlyList<PullRequestInfo> prs)
+    {
+        var groups = prs
+            .GroupBy(p => p.StackRootKey ?? p.Key, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(p => p.StackDepth).ThenBy(p => p.Number).ToList(),
+                StringComparer.OrdinalIgnoreCase);
+
+        var result = new List<PullRequestInfo>(prs.Count);
+        var emitted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pr in prs)
+        {
+            var root = pr.StackRootKey ?? pr.Key;
+            if (!emitted.Add(root)) continue;
+            result.AddRange(groups[root]);
+        }
+        return result;
     }
 
     /// <summary>

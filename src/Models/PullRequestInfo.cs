@@ -60,6 +60,32 @@ public sealed class PullRequestInfo
     /// <summary>True when the review was requested for a team only, not directly from this user.</summary>
     public bool IsTeamReviewRequested { get; init; }
 
+    // ── Stacked-PR relations (derived locally, see PollingService.ApplyStackRelations) ──
+
+    /// <summary>Key of the PR this one is stacked on: its base branch is that PR's head branch.</summary>
+    public string? StackParentKey { get; set; }
+
+    /// <summary>Number of the stack parent PR, or 0 when there is none.</summary>
+    public int StackParentNumber { get; set; }
+
+    /// <summary>URL of the stack parent PR, or empty when there is none.</summary>
+    public string StackParentUrl { get; set; } = "";
+
+    /// <summary>Key of the bottom-most PR of the stack; equals <see cref="Key"/> for the root itself.</summary>
+    public string? StackRootKey { get; set; }
+
+    /// <summary>0 for the bottom PR of a stack, incremented per level upwards.</summary>
+    public int StackDepth { get; set; }
+
+    /// <summary>Total number of open PRs in this stack; 1 when the PR is not stacked.</summary>
+    public int StackSize { get; set; } = 1;
+
+    /// <summary>True when this PR belongs to a stack of two or more open PRs.</summary>
+    public bool IsStacked => StackSize > 1;
+
+    /// <summary>True when an open parent PR has to be merged before this one can be merged.</summary>
+    public bool IsBlockedByStack => !string.IsNullOrEmpty(StackParentKey);
+
     /// <summary>
     /// Logins/slugs of pending reviewer requests, excluding Copilot.
     /// Users are identified by login; teams by slug.

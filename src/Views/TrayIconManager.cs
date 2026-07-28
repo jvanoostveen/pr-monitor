@@ -201,10 +201,15 @@ public sealed class TrayIconManager : IDisposable
                        + (_settings.TeamReviewCountsForTrayIcon ? visibleTeamReview : 0)
                        + unresolvedOnMyPrs;
 
-        // Purple: pipeline still running (pending CI on non-draft, non-hidden PRs)
-        int pendingCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Pending)
-                      + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && p.CIState == CIState.Pending)
-                      + snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && !p.IsDraft && p.CIState == CIState.Pending);
+        // Purple: pipeline still running (pending CI on non-draft, non-hidden PRs).
+        // PRs that are only waiting on an open stack parent are excluded unless enabled in settings.
+        bool CountsAsPending(PullRequestInfo p) =>
+            p.CIState == CIState.Pending
+            && (_settings.StackBlockedCountsForTrayIcon || !p.IsBlockedByStack);
+
+        int pendingCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && CountsAsPending(p))
+                      + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && CountsAsPending(p))
+                      + snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && !p.IsDraft && CountsAsPending(p));
 
         bool hasLaterPrs = snapshot.AutoMergePrs.Any(p => hidden.Contains(p.Key))
                         || snapshot.MyPrs.Any(p => hidden.Contains(p.Key))

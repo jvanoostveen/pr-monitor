@@ -400,6 +400,19 @@
                                    IsEnabled="{Binding ShowTeamReviewSection}"
                                    Text="When enabled, team review requests contribute to the amber tray icon colour."/>
 
+                        <TextBlock Text="STACKED PRS" Style="{StaticResource SectionLabel}" Margin="0,18,0,6"/>
+                        <CheckBox IsChecked="{Binding ShowStackRelations}"
+                                  Content="Group and indent stacked PRs"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,4,0,0" TextWrapping="Wrap"
+                                   Text="A PR is stacked when its base branch is another open PR&#x2019;s head branch. Stacked PRs are listed together, indented per level, and get a blue status dot while they wait for the PR below them."/>
+                        <CheckBox Margin="24,10,0,0"
+                                  IsChecked="{Binding StackBlockedCountsForTrayIcon}"
+                                  Content="Count stack-blocked PRs in tray icon status"
+                                  IsEnabled="{Binding ShowStackRelations}"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="48,4,0,0" TextWrapping="Wrap"
+                                   IsEnabled="{Binding ShowStackRelations}"
+                                   Text="When disabled, a PR that is only waiting on its stack parent no longer turns the tray icon purple."/>
+
                     </StackPanel>
                 </TabItem>
 

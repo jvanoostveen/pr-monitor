@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Stacked PR support (gh-stack style)**: a PR whose base branch is another open PR's head branch is now recognised as part of a stack. Stacked PRs are grouped together in their section (bottom PR first), indented one level per stack depth, and their repository line shows a `· stack 2/3` badge. The PR tooltip shows the stack position and which PR it is waiting on. A stacked PR keeps its own CI colour, so a healthy PR waiting on the one below it still shows green.
+- **Stack actions in the PR context menu**: **Open parent PR** and **Open whole stack** for PRs that are part of a stack.
+- **Settings → Sections → Stacked PRs**: toggle stack grouping/indentation and choose whether stack-blocked PRs count towards the tray icon status.
+
+### Changed
+- Own PRs now also fetch `baseRefName`, which is required to derive stack relations. Stack detection is done locally from the already-fetched PR data and costs no extra GitHub API calls.
+
 ## [1.12.0] - 2026-07-22
 
 ### Added

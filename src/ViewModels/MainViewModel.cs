@@ -38,6 +38,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<PrItemViewModel> HiddenPrs { get; } = [];
     public ObservableCollection<PrItemViewModel> DraftPrs { get; } = [];
 
+    /// <summary>Every PR row currently shown in the window, across all sections.</summary>
+    internal IEnumerable<PrItemViewModel> AllPrs =>
+        HotfixPrs.Concat(AutoMergePrs).Concat(ReviewRequestedPrs).Concat(MyPrs)
+                 .Concat(DependabotPrs).Concat(TeamReviewRequestedPrs).Concat(DraftPrs).Concat(HiddenPrs);
+
     private int _autoMergeCount;
     public int AutoMergeCount
     {
@@ -655,54 +660,55 @@ public sealed class MainViewModel : INotifyPropertyChanged
             RestoreItem(k);
 
         var hidden = _settings.HiddenPrKeys;
+        var showStacks = _settings.ShowStackRelations;
 
         AutoMergePrs.Clear();
         foreach (var pr in snapshot.AutoMergePrs)
         {
             if (!hidden.Contains(pr.Key))
-                AutoMergePrs.Add(PrItemViewModel.From(pr, isAutoMerge: true));
+                AutoMergePrs.Add(PrItemViewModel.From(pr, isAutoMerge: true, showStackRelations: showStacks));
         }
 
         MyPrs.Clear();
         foreach (var pr in snapshot.MyPrs)
         {
             if (!hidden.Contains(pr.Key))
-                MyPrs.Add(PrItemViewModel.From(pr, isMyPr: true));
+                MyPrs.Add(PrItemViewModel.From(pr, isMyPr: true, showStackRelations: showStacks));
         }
 
         ReviewRequestedPrs.Clear();
         foreach (var pr in snapshot.ReviewRequestedPrs)
         {
             if (!hidden.Contains(pr.Key))
-                ReviewRequestedPrs.Add(PrItemViewModel.From(pr, isAutoMerge: false));
+                ReviewRequestedPrs.Add(PrItemViewModel.From(pr, isAutoMerge: false, showStackRelations: showStacks));
         }
 
         TeamReviewRequestedPrs.Clear();
         foreach (var pr in snapshot.TeamReviewRequestedPrs)
         {
             if (!hidden.Contains(pr.Key))
-                TeamReviewRequestedPrs.Add(PrItemViewModel.From(pr, isTeamReview: true));
+                TeamReviewRequestedPrs.Add(PrItemViewModel.From(pr, isTeamReview: true, showStackRelations: showStacks));
         }
 
         DependabotPrs.Clear();
         foreach (var pr in snapshot.DependabotPrs)
         {
             if (!hidden.Contains(pr.Key))
-                DependabotPrs.Add(PrItemViewModel.From(pr, isDependabot: true));
+                DependabotPrs.Add(PrItemViewModel.From(pr, isDependabot: true, showStackRelations: showStacks));
         }
 
         HotfixPrs.Clear();
         foreach (var pr in snapshot.HotfixPrs)
         {
             if (!hidden.Contains(pr.Key))
-                HotfixPrs.Add(PrItemViewModel.From(pr, isHotfix: true));
+                HotfixPrs.Add(PrItemViewModel.From(pr, isHotfix: true, showStackRelations: showStacks));
         }
 
         DraftPrs.Clear();
         foreach (var pr in snapshot.DraftPrs)
         {
             if (!hidden.Contains(pr.Key))
-                DraftPrs.Add(PrItemViewModel.From(pr, isDraftSection: true));
+                DraftPrs.Add(PrItemViewModel.From(pr, isDraftSection: true, showStackRelations: showStacks));
         }
 
         // Rebuild hidden list from all PRs in this snapshot
@@ -718,7 +724,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
                      .Where(x => hidden.Contains(x.pr.Key) && _settings.SnoozedPrs.ContainsKey(x.pr.Key)))
         {
             HiddenPrs.Add(PrItemViewModel.From(x.pr, isAutoMerge: x.isAm, isMyPr: x.isMyPr, isHotfix: x.isHotfix, isTeamReview: x.isTeamReview, isDependabot: x.isDependabot, isDraftSection: x.isDraftSection,
-                snoozedUntilText: FormatSnoozedUntil(_settings.SnoozedPrs.GetValueOrDefault(x.pr.Key, DateTimeOffset.MaxValue))));
+                snoozedUntilText: FormatSnoozedUntil(_settings.SnoozedPrs.GetValueOrDefault(x.pr.Key, DateTimeOffset.MaxValue)),
+                showStackRelations: showStacks));
         }
 
         AutoMergeCount = AutoMergePrs.Count;
@@ -818,6 +825,37 @@ public sealed class PrItemViewModel
     public bool IsDraft { get; init; }
     public string HeadRefName { get; init; } = "";
     public string HeadCommitSha { get; init; } = "";
+
+    // ── Stacked-PR relations ──
+    public int StackDepth { get; init; }
+    public int StackSize { get; init; } = 1;
+    public string StackRootKey { get; init; } = "";
+    public int StackParentNumber { get; init; }
+    public string StackParentUrl { get; init; } = "";
+    public bool IsBlockedByStack { get; init; }
+
+    /// <summary>Whether stack grouping/indentation is enabled in settings.</summary>
+    public bool ShowStackRelations { get; init; } = true;
+
+    /// <summary>True when this PR belongs to a stack of two or more open PRs.</summary>
+    public bool IsStacked => StackSize > 1;
+
+    /// <summary>1-based position of this PR within its stack.</summary>
+    public int StackPosition => StackDepth + 1;
+
+    /// <summary>Whether the stack visuals (indent, badge) should be rendered.</summary>
+    public bool ShowStackIndicator => IsStacked && ShowStackRelations;
+
+    /// <summary>Suffix appended to the repository line, e.g. " · stack 2/3".</summary>
+    public string StackBadgeText => ShowStackIndicator ? $" · stack {StackPosition}/{StackSize}" : "";
+
+    /// <summary>Row margin: indents one level per stack depth.</summary>
+    public System.Windows.Thickness StackIndentMargin =>
+        new(ShowStackIndicator ? StackDepth * 14 : 0, 2, 0, 2);
+
+    /// <summary>Whether the "Open parent PR" action is available.</summary>
+    public bool CanOpenStackParent => IsBlockedByStack && !string.IsNullOrWhiteSpace(StackParentUrl);
+
     public bool HasAutoMerge { get; init; }
     public bool IsApproved { get; init; }
     public IReadOnlyList<string> ReviewerLogins { get; init; } = [];
@@ -856,6 +894,12 @@ public sealed class PrItemViewModel
             var parts = new System.Collections.Generic.List<string>();
             parts.Add($"Opened: {CreatedAtFormatted}");
             parts.Add($"CI: {CIState}");
+            if (IsStacked)
+            {
+                parts.Add(IsBlockedByStack
+                    ? $"Stack: {StackPosition} of {StackSize} — waiting on #{StackParentNumber}"
+                    : $"Stack: {StackPosition} of {StackSize} — bottom of the stack");
+            }
             if (HasConflicts)
                 parts.Add("Merge conflicts");
             if (IsOwnPr)
@@ -879,9 +923,14 @@ public sealed class PrItemViewModel
     public bool ShowApprovedIcon => IsApproved && !HasUnresolvedReviewComments && !HasChangesRequested;
 
     /// <summary>
-    /// CI state used for the indicator: always Unknown (grey) for draft PRs; Failure when PR has merge conflicts.
+    /// CI state used for the indicator: always Unknown (grey) for draft PRs and Failure when the PR
+    /// has merge conflicts. A PR that only waits for an open parent PR in its stack keeps its own
+    /// CI colour, so a healthy stacked PR still shows green.
     /// </summary>
-    public CIState EffectiveCIState => HasConflicts ? CIState.Failure : IsDraft ? CIState.Unknown : CIState;
+    public CIState EffectiveCIState =>
+        HasConflicts ? CIState.Failure
+        : IsDraft ? CIState.Unknown
+        : CIState;
 
     public void OpenInBrowser()
     {
@@ -889,7 +938,7 @@ public sealed class PrItemViewModel
             Process.Start(new ProcessStartInfo(Url) { UseShellExecute = true });
     }
 
-    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "") => new()
+    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "", bool showStackRelations = true) => new()
     {
         Key = pr.Key,
         Repository = pr.Repository,
@@ -909,6 +958,13 @@ public sealed class PrItemViewModel
         IsDraft = pr.IsDraft,
         HeadRefName = pr.HeadRefName,
         HeadCommitSha = pr.HeadCommitSha,
+        StackDepth = pr.StackDepth,
+        StackSize = pr.StackSize,
+        StackRootKey = pr.StackRootKey ?? pr.Key,
+        StackParentNumber = pr.StackParentNumber,
+        StackParentUrl = pr.StackParentUrl,
+        IsBlockedByStack = pr.IsBlockedByStack,
+        ShowStackRelations = showStackRelations,
         HasAutoMerge = pr.HasAutoMerge,
         IsApproved = pr.IsApproved,
         ReviewerLogins = pr.ReviewerLogins,

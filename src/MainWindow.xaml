@@ -29,7 +29,7 @@
         <Style x:Key="PrRow" TargetType="Border">
             <Setter Property="Background" Value="#161B22"/>
             <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Margin" Value="{Binding StackIndentMargin, FallbackValue='0,2'}"/>
             <Setter Property="Padding" Value="{DynamicResource PrRowPadding}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <EventSetter Event="PreviewMouseRightButtonUp" Handler="PrRow_PreviewMouseRightButtonUp"/>
@@ -461,6 +461,7 @@
                                                         <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
                                                         <Run Text=" by "/>
                                                         <Run Text="{Binding Author, Mode=OneWay}"/>
+                                                        <Run Text="{Binding StackBadgeText, Mode=OneWay}"/>
                                                     </TextBlock>
                                                     <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
                                                 </StackPanel>
@@ -579,6 +580,7 @@
                                                     <TextBlock Style="{StaticResource RepoText}">
                                                         <Run Text="{Binding Repository, Mode=OneWay}"/>
                                                         <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
+                                                        <Run Text="{Binding StackBadgeText, Mode=OneWay}"/>
                                                     </TextBlock>
                                                     <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
                                                 </StackPanel>
@@ -671,6 +673,7 @@
                                                         <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
                                                         <Run Text=" by "/>
                                                         <Run Text="{Binding Author, Mode=OneWay}"/>
+                                                        <Run Text="{Binding StackBadgeText, Mode=OneWay}"/>
                                                     </TextBlock>
                                                     <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
                                                 </StackPanel>
@@ -786,6 +789,7 @@
                                                     <TextBlock Style="{StaticResource RepoText}">
                                                         <Run Text="{Binding Repository, Mode=OneWay}"/>
                                                         <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
+                                                        <Run Text="{Binding StackBadgeText, Mode=OneWay}"/>
                                                     </TextBlock>
                                                     <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
                                                 </StackPanel>
@@ -878,6 +882,7 @@
                                                         <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
                                                         <Run Text=" by "/>
                                                         <Run Text="{Binding Author, Mode=OneWay}"/>
+                                                        <Run Text="{Binding StackBadgeText, Mode=OneWay}"/>
                                                     </TextBlock>
                                                     <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
                                                 </StackPanel>
@@ -970,6 +975,7 @@
                                                         <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
                                                         <Run Text=" by "/>
                                                         <Run Text="{Binding Author, Mode=OneWay}"/>
+                                                        <Run Text="{Binding StackBadgeText, Mode=OneWay}"/>
                                                     </TextBlock>
                                                     <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
                                                 </StackPanel>
@@ -1080,6 +1086,7 @@
                                                     <TextBlock Style="{StaticResource RepoText}">
                                                         <Run Text="{Binding Repository, Mode=OneWay}"/>
                                                         <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
+                                                        <Run Text="{Binding StackBadgeText, Mode=OneWay}"/>
                                                     </TextBlock>
                                                     <TextBlock Style="{StaticResource TitleText}" Text="{Binding Title}"/>
                                                 </StackPanel>
@@ -1194,6 +1201,7 @@
                                                 <TextBlock Style="{StaticResource RepoText}">
                                                     <Run Text="{Binding Repository, Mode=OneWay}"/>
                                                     <Run Text="{Binding Number, StringFormat='#{0}', Mode=OneWay}"/>
+                                                    <Run Text="{Binding StackBadgeText, Mode=OneWay}"/>
                                                 </TextBlock>
                                                 <TextBlock Style="{StaticResource TitleText}"
                                                            Text="{Binding Title}" Opacity="0.6"/>
