@@ -78,10 +78,17 @@ public class PrItemViewModelStackTests
     }
 
     [Fact]
-    public void StackIndentMargin_IndentsPerDepthLevel()
+    public void StackIndentMargin_DeeperLevels_KeepSingleIndent()
     {
         var vm = Make(CIState.Success, blocked: true, stackDepth: 2, stackSize: 3);
-        Assert.Equal(28, vm.StackIndentMargin.Left);
+        Assert.Equal(14, vm.StackIndentMargin.Left);
+    }
+
+    [Fact]
+    public void StackIndentMargin_BottomOfStack_IsNotIndented()
+    {
+        var vm = Make(CIState.Success, blocked: false, stackDepth: 0, stackSize: 3);
+        Assert.Equal(0, vm.StackIndentMargin.Left);
     }
 
     [Fact]

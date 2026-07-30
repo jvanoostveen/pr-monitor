@@ -849,9 +849,9 @@ public sealed class PrItemViewModel
     /// <summary>Suffix appended to the repository line, e.g. " · stack 2/3".</summary>
     public string StackBadgeText => ShowStackIndicator ? $" · stack {StackPosition}/{StackSize}" : "";
 
-    /// <summary>Row margin: indents one level per stack depth.</summary>
+    /// <summary>Row margin: a single indent level for every PR that sits on top of another one.</summary>
     public System.Windows.Thickness StackIndentMargin =>
-        new(ShowStackIndicator ? StackDepth * 14 : 0, 2, 0, 2);
+        new(ShowStackIndicator && StackDepth > 0 ? 14 : 0, 2, 0, 2);
 
     /// <summary>Whether the "Open parent PR" action is available.</summary>
     public bool CanOpenStackParent => IsBlockedByStack && !string.IsNullOrWhiteSpace(StackParentUrl);

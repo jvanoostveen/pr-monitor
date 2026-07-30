@@ -23,7 +23,7 @@ Each PR row keeps its CI status circle and also shows a message icon when unreso
 
 ### Stacked PRs
 
-PRs created as a [stack](https://github.github.com/gh-stack/) — where a PR's base branch is another open PR's head branch — are detected automatically from the polled data (no extra API calls). Within their section they are listed together, bottom PR first, indented one level per stack depth, and their repository line shows a `· stack 2/3` badge.
+PRs created as a [stack](https://github.github.com/gh-stack/) — where a PR's base branch is another open PR's head branch — are detected automatically from the polled data (no extra API calls). Within their section they are listed together, bottom PR first, with everything above the bottom PR indented one level, and their repository line shows a `· stack 2/3` badge.
 
 A stacked PR keeps its own CI colour, so a PR that is green but still waiting on the PR below it stays green. Right-clicking such a PR offers **Open parent PR** and **Open whole stack**.
 
