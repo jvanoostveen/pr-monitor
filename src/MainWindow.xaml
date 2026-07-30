@@ -704,7 +704,7 @@
                                     </TextBlock.RenderTransform>
                                 </TextBlock>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE81E;"
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF500;"
                                                FontSize="16" Foreground="#58A6FF"
                                                Margin="0,0,6,0"/>
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#C9D1D9"
@@ -725,6 +725,7 @@
                                             <Border Height="1" Background="#21262D" Margin="0,6,0,6"
                                                     Visibility="{Binding ShowStackGroupSeparator, Converter={StaticResource BoolToVisibility}}"/>
                                             <Border Style="{StaticResource PrRow}"
+                                                    Margin="{Binding StackIndentMargin}"
                                                     MouseLeftButtonUp="PrItem_Click"
                                                     ToolTip="{Binding PrTooltip}"
                                                     Tag="{Binding}">

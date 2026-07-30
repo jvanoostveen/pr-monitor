@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using PrMonitor.Models;
 using PrMonitor.Services;
 using PrMonitor.Settings;
@@ -860,8 +861,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         string? previousRoot = null;
         foreach (var item in ordered)
         {
-            item.ShowStackGroupSeparator = previousRoot is not null
-                && !previousRoot.Equals(item.StackRootKey, StringComparison.OrdinalIgnoreCase);
+            var isNewGroup = previousRoot is null
+                || !previousRoot.Equals(item.StackRootKey, StringComparison.OrdinalIgnoreCase);
+            item.IsStackGroupStart = isNewGroup;
+            item.ShowStackGroupSeparator = isNewGroup && previousRoot is not null;
             previousRoot = item.StackRootKey;
         }
         return ordered;
@@ -954,6 +957,12 @@ public sealed class PrItemViewModel
 
     /// <summary>Set for the first row of every stack but the first one in the Stacks section.</summary>
     public bool ShowStackGroupSeparator { get; internal set; }
+
+    /// <summary>True for the topmost visible row of a stack group in the Stacks section.</summary>
+    public bool IsStackGroupStart { get; internal set; }
+
+    /// <summary>Row margin in the Stacks section: every row but the group's first is indented one level.</summary>
+    public Thickness StackIndentMargin => new(IsStackGroupStart ? 0 : 14, 2, 0, 2);
 
     /// <summary>Whether stack grouping/indentation is enabled in settings.</summary>
     public bool ShowStackRelations { get; init; } = true;

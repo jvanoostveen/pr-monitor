@@ -41,6 +41,23 @@ public class MainViewModelStackSectionTests
     }
 
     [Fact]
+    public void OrderStackSection_IndentsEveryRowExceptEachGroupsFirst()
+    {
+        var items = new[]
+        {
+            Item(1, root: "org/repo#1", depth: 0),
+            Item(2, root: "org/repo#1", depth: 1),
+            Item(8, root: "org/repo#8", depth: 0),
+        };
+
+        var ordered = MainViewModel.OrderStackSection(items);
+
+        Assert.Equal(0, ordered[0].StackIndentMargin.Left);
+        Assert.Equal(14, ordered[1].StackIndentMargin.Left);
+        Assert.Equal(0, ordered[2].StackIndentMargin.Left);
+    }
+
+    [Fact]
     public void BuildStackChainTooltip_ListsEveryMemberAndMarksCurrent()
     {
         var bottom = Pr(41, depth: 0, author: "alice", state: CIState.Success);
