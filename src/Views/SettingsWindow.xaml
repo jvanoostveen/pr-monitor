@@ -402,9 +402,9 @@
 
                         <TextBlock Text="STACKED PRS" Style="{StaticResource SectionLabel}" Margin="0,18,0,6"/>
                         <CheckBox IsChecked="{Binding ShowStackRelations}"
-                                  Content="Group and indent stacked PRs"/>
+                                  Content="Show stacked PRs in a separate Stacks section"/>
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,4,0,0" TextWrapping="Wrap"
-                                   Text="A PR is stacked when its base branch is another open PR&#x2019;s head branch. Stacked PRs are listed together, indented per level, and get a blue status dot while they wait for the PR below them."/>
+                                   Text="A PR is stacked when its base branch is another open PR&#x2019;s head branch. Stacked PRs are moved out of their regular section into one Stacks section, bottom PR first, regardless of who authored them."/>
                         <CheckBox Margin="24,10,0,0"
                                   IsChecked="{Binding StackBlockedCountsForTrayIcon}"
                                   Content="Count stack-blocked PRs in tray icon status"

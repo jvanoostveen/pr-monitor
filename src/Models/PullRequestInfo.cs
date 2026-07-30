@@ -71,6 +71,9 @@ public sealed class PullRequestInfo
     /// <summary>URL of the stack parent PR, or empty when there is none.</summary>
     public string StackParentUrl { get; set; } = "";
 
+    /// <summary>Author of the stack parent PR, or empty when there is none.</summary>
+    public string StackParentAuthor { get; set; } = "";
+
     /// <summary>Key of the bottom-most PR of the stack; equals <see cref="Key"/> for the root itself.</summary>
     public string? StackRootKey { get; set; }
 

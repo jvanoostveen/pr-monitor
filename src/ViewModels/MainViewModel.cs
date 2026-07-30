@@ -38,9 +38,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<PrItemViewModel> HiddenPrs { get; } = [];
     public ObservableCollection<PrItemViewModel> DraftPrs { get; } = [];
 
+    /// <summary>PRs that belong to a stack, pulled out of their regular section and grouped per stack.</summary>
+    public ObservableCollection<PrItemViewModel> StackedPrs { get; } = [];
+
     /// <summary>Every PR row currently shown in the window, across all sections.</summary>
     internal IEnumerable<PrItemViewModel> AllPrs =>
-        HotfixPrs.Concat(AutoMergePrs).Concat(ReviewRequestedPrs).Concat(MyPrs)
+        HotfixPrs.Concat(AutoMergePrs).Concat(ReviewRequestedPrs).Concat(StackedPrs).Concat(MyPrs)
                  .Concat(DependabotPrs).Concat(TeamReviewRequestedPrs).Concat(DraftPrs).Concat(HiddenPrs);
 
     private int _autoMergeCount;
@@ -99,6 +102,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         private set => SetField(ref _draftPrsCount, value);
     }
 
+    private int _stackedCount;
+    public int StackedCount
+    {
+        get => _stackedCount;
+        private set => SetField(ref _stackedCount, value);
+    }
+
     private bool _hasLoadedOnce;
     public bool HasLoadedOnce
     {
@@ -118,7 +128,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     /// <summary>Sum of every section's count, including Later/snoozed (Hidden).</summary>
     public int TotalPrCount =>
- HotfixCount + AutoMergeCount + ReviewCount + TeamReviewCount + MyPrsCount + DependabotCount + DraftPrsCount + HiddenCount;
+ HotfixCount + AutoMergeCount + ReviewCount + TeamReviewCount + MyPrsCount + DependabotCount + DraftPrsCount + StackedCount + HiddenCount;
 
     /// <summary>True once loaded and there is truly nothing anywhere (incl. Later) — drives the playful empty-state overlay.</summary>
     public bool IsEmptyState => HasLoadedOnce && TotalPrCount == 0;
@@ -372,6 +382,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool StacksExpanded
+    {
+        get => _settings.StacksExpanded;
+        set
+        {
+            if (_settings.StacksExpanded == value) return;
+            _settings.StacksExpanded = value;
+            _settings.Save();
+            OnPropertyChanged();
+        }
+    }
+
     public bool ShowTeamReviewSection
     {
         get => _settings.ShowTeamReviewSection;
@@ -395,6 +417,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void ToggleTeamReviewExpanded() => TeamReviewExpanded = !TeamReviewExpanded;
     public void ToggleDependabotExpanded() => DependabotExpanded = !DependabotExpanded;
     public void ToggleDraftExpanded() => DraftExpanded = !DraftExpanded;
+    public void ToggleStacksExpanded() => StacksExpanded = !StacksExpanded;
     public void HideCompletely(string key)
     {
         _settings.HiddenPrKeys.Add(key);
@@ -661,55 +684,75 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         var hidden = _settings.HiddenPrKeys;
         var showStacks = _settings.ShowStackRelations;
+        var (chains, parentIsMine) = BuildStackContext(snapshot);
+        var stacked = new List<PrItemViewModel>();
+
+        PrItemViewModel Make(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false,
+            bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "") =>
+            PrItemViewModel.From(pr, isAutoMerge: isAutoMerge, isMyPr: isMyPr, isHotfix: isHotfix, isTeamReview: isTeamReview,
+                isDependabot: isDependabot, isDraftSection: isDraftSection, snoozedUntilText: snoozedUntilText,
+                showStackRelations: showStacks, stackChainTooltip: chains.GetValueOrDefault(pr.Key, ""),
+                stackParentIsMine: parentIsMine.Contains(pr.Key));
+
+        // Stacked PRs are collected in their own section instead of their regular one.
+        void Route(ObservableCollection<PrItemViewModel> section, PullRequestInfo pr, PrItemViewModel item)
+        {
+            if (showStacks && pr.IsStacked) stacked.Add(item);
+            else section.Add(item);
+        }
 
         AutoMergePrs.Clear();
         foreach (var pr in snapshot.AutoMergePrs)
         {
             if (!hidden.Contains(pr.Key))
-                AutoMergePrs.Add(PrItemViewModel.From(pr, isAutoMerge: true, showStackRelations: showStacks));
+                Route(AutoMergePrs, pr, Make(pr, isAutoMerge: true));
         }
 
         MyPrs.Clear();
         foreach (var pr in snapshot.MyPrs)
         {
             if (!hidden.Contains(pr.Key))
-                MyPrs.Add(PrItemViewModel.From(pr, isMyPr: true, showStackRelations: showStacks));
+                Route(MyPrs, pr, Make(pr, isMyPr: true));
         }
 
         ReviewRequestedPrs.Clear();
         foreach (var pr in snapshot.ReviewRequestedPrs)
         {
             if (!hidden.Contains(pr.Key))
-                ReviewRequestedPrs.Add(PrItemViewModel.From(pr, isAutoMerge: false, showStackRelations: showStacks));
+                Route(ReviewRequestedPrs, pr, Make(pr));
         }
 
         TeamReviewRequestedPrs.Clear();
         foreach (var pr in snapshot.TeamReviewRequestedPrs)
         {
             if (!hidden.Contains(pr.Key))
-                TeamReviewRequestedPrs.Add(PrItemViewModel.From(pr, isTeamReview: true, showStackRelations: showStacks));
+                Route(TeamReviewRequestedPrs, pr, Make(pr, isTeamReview: true));
         }
 
         DependabotPrs.Clear();
         foreach (var pr in snapshot.DependabotPrs)
         {
             if (!hidden.Contains(pr.Key))
-                DependabotPrs.Add(PrItemViewModel.From(pr, isDependabot: true, showStackRelations: showStacks));
+                Route(DependabotPrs, pr, Make(pr, isDependabot: true));
         }
 
         HotfixPrs.Clear();
         foreach (var pr in snapshot.HotfixPrs)
         {
             if (!hidden.Contains(pr.Key))
-                HotfixPrs.Add(PrItemViewModel.From(pr, isHotfix: true, showStackRelations: showStacks));
+                Route(HotfixPrs, pr, Make(pr, isHotfix: true));
         }
 
         DraftPrs.Clear();
         foreach (var pr in snapshot.DraftPrs)
         {
             if (!hidden.Contains(pr.Key))
-                DraftPrs.Add(PrItemViewModel.From(pr, isDraftSection: true, showStackRelations: showStacks));
+                Route(DraftPrs, pr, Make(pr, isDraftSection: true));
         }
+
+        StackedPrs.Clear();
+        foreach (var item in OrderStackSection(stacked))
+            StackedPrs.Add(item);
 
         // Rebuild hidden list from all PRs in this snapshot
         HiddenPrs.Clear();
@@ -725,7 +768,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             HiddenPrs.Add(PrItemViewModel.From(x.pr, isAutoMerge: x.isAm, isMyPr: x.isMyPr, isHotfix: x.isHotfix, isTeamReview: x.isTeamReview, isDependabot: x.isDependabot, isDraftSection: x.isDraftSection,
                 snoozedUntilText: FormatSnoozedUntil(_settings.SnoozedPrs.GetValueOrDefault(x.pr.Key, DateTimeOffset.MaxValue)),
-                showStackRelations: showStacks));
+                showStackRelations: showStacks,
+                stackChainTooltip: chains.GetValueOrDefault(x.pr.Key, ""),
+                stackParentIsMine: parentIsMine.Contains(x.pr.Key)));
         }
 
         AutoMergeCount = AutoMergePrs.Count;
@@ -735,6 +780,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         TeamReviewCount = TeamReviewRequestedPrs.Count;
         HotfixCount = HotfixPrs.Count;
         DependabotCount = DependabotPrs.Count;
+        StackedCount = StackedPrs.Count;
         HiddenCount = HiddenPrs.Count;
         LastUpdated = DateTime.Now.ToString("HH:mm:ss");
 
@@ -753,6 +799,72 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    /// <summary>Per-PR stack chain tooltips and the set of PRs whose stack parent is authored by me.</summary>
+    private (Dictionary<string, string> Chains, HashSet<string> ParentIsMine) BuildStackContext(PollSnapshot snapshot)
+    {
+        var all = snapshot.AutoMergePrs
+            .Concat(snapshot.MyPrs).Concat(snapshot.DraftPrs).Concat(snapshot.ReviewRequestedPrs)
+            .Concat(snapshot.TeamReviewRequestedPrs).Concat(snapshot.HotfixPrs).Concat(snapshot.DependabotPrs)
+            .DistinctBy(p => p.Key, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var me = _settings.GitHubUsername;
+        var parentIsMine = all
+            .Where(p => !string.IsNullOrWhiteSpace(me)
+                     && p.StackParentAuthor.Equals(me, StringComparison.OrdinalIgnoreCase))
+            .Select(p => p.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var chains = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var group in all.Where(p => p.IsStacked)
+                                 .GroupBy(p => p.StackRootKey ?? p.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            var members = group.OrderBy(p => p.StackDepth).ThenBy(p => p.Number).ToList();
+            foreach (var pr in members)
+                chains[pr.Key] = BuildStackChainTooltip(pr, members);
+        }
+
+        return (chains, parentIsMine);
+    }
+
+    internal static string BuildStackChainTooltip(PullRequestInfo pr, IReadOnlyList<PullRequestInfo> members)
+    {
+        var lines = new List<string> { $"Stack ({members.Count} PRs):" };
+        foreach (var m in members)
+        {
+            var marker = m.Key.Equals(pr.Key, StringComparison.OrdinalIgnoreCase) ? "\u25b8" : " ";
+            var state = m.IsDraft ? "Draft" : m.HasConflicts ? "Conflicts" : m.CIState.ToString();
+            lines.Add($" {marker} {m.StackDepth + 1}/{members.Count}  #{m.Number} {m.Author} — {state}");
+        }
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    /// <summary>Groups the Stacks section per stack (first seen first), bottom PR first within a stack.</summary>
+    internal static List<PrItemViewModel> OrderStackSection(IReadOnlyList<PrItemViewModel> items)
+    {
+        var rootOrder = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in items)
+        {
+            if (!rootOrder.ContainsKey(item.StackRootKey))
+                rootOrder[item.StackRootKey] = rootOrder.Count;
+        }
+
+        var ordered = items
+            .OrderBy(i => rootOrder[i.StackRootKey])
+            .ThenBy(i => i.StackDepth)
+            .ThenBy(i => i.Number)
+            .ToList();
+
+        string? previousRoot = null;
+        foreach (var item in ordered)
+        {
+            item.ShowStackGroupSeparator = previousRoot is not null
+                && !previousRoot.Equals(item.StackRootKey, StringComparison.OrdinalIgnoreCase);
+            previousRoot = item.StackRootKey;
+        }
+        return ordered;
     }
 
     private void ShowStartupSummary()
@@ -834,6 +946,15 @@ public sealed class PrItemViewModel
     public string StackParentUrl { get; init; } = "";
     public bool IsBlockedByStack { get; init; }
 
+    /// <summary>True when the PR directly below this one in the stack is authored by the current user.</summary>
+    public bool StackParentIsMine { get; init; }
+
+    /// <summary>Pre-rendered overview of the whole stack, appended to the tooltip.</summary>
+    public string StackChainTooltip { get; init; } = "";
+
+    /// <summary>Set for the first row of every stack but the first one in the Stacks section.</summary>
+    public bool ShowStackGroupSeparator { get; internal set; }
+
     /// <summary>Whether stack grouping/indentation is enabled in settings.</summary>
     public bool ShowStackRelations { get; init; } = true;
 
@@ -846,12 +967,18 @@ public sealed class PrItemViewModel
     /// <summary>Whether the stack visuals (indent, badge) should be rendered.</summary>
     public bool ShowStackIndicator => IsStacked && ShowStackRelations;
 
-    /// <summary>Suffix appended to the repository line, e.g. " · stack 2/3".</summary>
-    public string StackBadgeText => ShowStackIndicator ? $" · stack {StackPosition}/{StackSize}" : "";
-
-    /// <summary>Row margin: a single indent level for every PR that sits on top of another one.</summary>
-    public System.Windows.Thickness StackIndentMargin =>
-        new(ShowStackIndicator && StackDepth > 0 ? 14 : 0, 2, 0, 2);
+    /// <summary>Suffix appended to the repository line, e.g. " · stack 2/3 · waits on #41 (you)".</summary>
+    public string StackBadgeText
+    {
+        get
+        {
+            if (!ShowStackIndicator) return "";
+            var badge = $" · stack {StackPosition}/{StackSize}";
+            if (IsBlockedByStack && StackParentNumber > 0)
+                badge += $" · waits on #{StackParentNumber}{(StackParentIsMine ? " (you)" : "")}";
+            return badge;
+        }
+    }
 
     /// <summary>Whether the "Open parent PR" action is available.</summary>
     public bool CanOpenStackParent => IsBlockedByStack && !string.IsNullOrWhiteSpace(StackParentUrl);
@@ -896,9 +1023,11 @@ public sealed class PrItemViewModel
             parts.Add($"CI: {CIState}");
             if (IsStacked)
             {
-                parts.Add(IsBlockedByStack
-                    ? $"Stack: {StackPosition} of {StackSize} — waiting on #{StackParentNumber}"
-                    : $"Stack: {StackPosition} of {StackSize} — bottom of the stack");
+                parts.Add(string.IsNullOrEmpty(StackChainTooltip)
+                    ? IsBlockedByStack
+                        ? $"Stack: {StackPosition} of {StackSize} — waiting on #{StackParentNumber}"
+                        : $"Stack: {StackPosition} of {StackSize} — bottom of the stack"
+                    : StackChainTooltip);
             }
             if (HasConflicts)
                 parts.Add("Merge conflicts");
@@ -938,7 +1067,7 @@ public sealed class PrItemViewModel
             Process.Start(new ProcessStartInfo(Url) { UseShellExecute = true });
     }
 
-    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "", bool showStackRelations = true) => new()
+    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "", bool showStackRelations = true, string stackChainTooltip = "", bool stackParentIsMine = false) => new()
     {
         Key = pr.Key,
         Repository = pr.Repository,
@@ -963,6 +1092,8 @@ public sealed class PrItemViewModel
         StackRootKey = pr.StackRootKey ?? pr.Key,
         StackParentNumber = pr.StackParentNumber,
         StackParentUrl = pr.StackParentUrl,
+        StackParentIsMine = stackParentIsMine,
+        StackChainTooltip = stackChainTooltip,
         IsBlockedByStack = pr.IsBlockedByStack,
         ShowStackRelations = showStackRelations,
         HasAutoMerge = pr.HasAutoMerge,

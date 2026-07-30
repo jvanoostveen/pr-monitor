@@ -1123,6 +1123,12 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void StacksHeader_Click(object sender, MouseButtonEventArgs e)
+    {
+        ViewModel.ToggleStacksExpanded();
+        e.Handled = true;
+    }
+
     private void PrRow_Hide_Click(object sender, RoutedEventArgs e)
     {
         if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })

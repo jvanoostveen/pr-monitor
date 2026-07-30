@@ -17,17 +17,18 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 | **Dependabot** | Dependabot PRs awaiting your review (collapsed by default) |
 | **Team Review Requests** | PRs where a review was requested from a team you belong to (collapsed by default; can be disabled in Settings) |
 | **My Draft PRs** | Your own draft PRs (collapsed by default) |
+| **Stacks** | PRs that are part of a stack, grouped per stack (see below) |
 | **Later** | PRs you've snoozed with "Move to later" |
 
 Each PR row keeps its CI status circle and also shows a message icon when unresolved review comments exist; hovering the icon shows the unresolved comment count.
 
 ### Stacked PRs
 
-PRs created as a [stack](https://github.github.com/gh-stack/) — where a PR's base branch is another open PR's head branch — are detected automatically from the polled data (no extra API calls). Within their section they are listed together, bottom PR first, with everything above the bottom PR indented one level, and their repository line shows a `· stack 2/3` badge.
+PRs created as a [stack](https://github.github.com/gh-stack/) — where a PR's base branch is another open PR's head branch — are detected automatically from the polled data (no extra API calls). They are moved out of their regular section into a dedicated **Stacks** section, grouped per stack with the bottom PR first and a thin separator between stacks, regardless of who authored them. The repository line shows a `· stack 2/3 · waits on #8632 (you)` badge, and the tooltip lists the whole chain with each member's number, author and status (`▸` marks the PR you're hovering).
 
 A stacked PR keeps its own CI colour, so a PR that is green but still waiting on the PR below it stays green. Right-clicking such a PR offers **Open parent PR** and **Open whole stack**.
 
-Both the grouping and whether stack-blocked PRs count towards the tray icon can be configured in **Settings → Sections → Stacked PRs**.
+The separate section and whether stack-blocked PRs count towards the tray icon can be configured in **Settings → Sections → Stacked PRs**.
 
 Empty sections are hidden automatically. While the very first poll is in progress, the window shows a subtle spinning-icon "Loading pull requests…" indicator instead of a blank list. If, once loaded, there are truly no PRs anywhere (including snoozed **Later** items), a short, randomly-picked one-liner is shown instead (e.g. "Zero PRs. Look at you go.").
 

@@ -72,13 +72,16 @@ public sealed class AppSettings
     /// <summary>Whether the "My Draft PRs" section is expanded in the window.</summary>
     public bool DraftExpanded { get; set; } = false;
 
+    /// <summary>Whether the "Stacks" section is expanded in the window.</summary>
+    public bool StacksExpanded { get; set; } = true;
+
     /// <summary>Whether to show a separate "Team Review Requests" section (versus folding into Awaiting My Review).</summary>
     public bool ShowTeamReviewSection { get; set; } = true;
 
     /// <summary>Whether team review requests count towards the tray icon status (amber) when the section is enabled.</summary>
     public bool TeamReviewCountsForTrayIcon { get; set; } = false;
 
-    /// <summary>Whether stacked PRs are grouped, indented and marked in the main window.</summary>
+    /// <summary>Whether stacked PRs are collected in a separate "Stacks" section and marked with a badge.</summary>
     public bool ShowStackRelations { get; set; } = true;
 
     /// <summary>Whether PRs waiting on an open stack parent still count towards the tray icon status.</summary>

@@ -56,10 +56,24 @@ public class PrItemViewModelStackTests
     }
 
     [Fact]
-    public void StackBadgeText_StackedAndEnabled_ShowsPosition()
+    public void StackBadgeText_StackedAndEnabled_ShowsPositionAndParent()
     {
         var vm = Make(CIState.Success, blocked: true, stackDepth: 1, stackSize: 3);
-        Assert.Equal(" · stack 2/3", vm.StackBadgeText);
+        Assert.Equal(" · stack 2/3 · waits on #41", vm.StackBadgeText);
+    }
+
+    [Fact]
+    public void StackBadgeText_ParentAuthoredByMe_MarksItAsMine()
+    {
+        var vm = Make(CIState.Success, blocked: true, stackDepth: 1, stackSize: 3, stackParentIsMine: true);
+        Assert.Equal(" · stack 2/3 · waits on #41 (you)", vm.StackBadgeText);
+    }
+
+    [Fact]
+    public void StackBadgeText_BottomOfStack_HasNoWaitsOnSuffix()
+    {
+        var vm = Make(CIState.Success, blocked: false, stackDepth: 0, stackSize: 3);
+        Assert.Equal(" · stack 1/3", vm.StackBadgeText);
     }
 
     [Fact]
@@ -67,7 +81,6 @@ public class PrItemViewModelStackTests
     {
         var vm = Make(CIState.Success, blocked: true, stackDepth: 1, stackSize: 3, showStackRelations: false);
         Assert.Equal("", vm.StackBadgeText);
-        Assert.Equal(0, vm.StackIndentMargin.Left);
     }
 
     [Fact]
@@ -78,17 +91,12 @@ public class PrItemViewModelStackTests
     }
 
     [Fact]
-    public void StackIndentMargin_DeeperLevels_KeepSingleIndent()
+    public void PrTooltip_WithChain_ShowsChainInsteadOfSingleLine()
     {
-        var vm = Make(CIState.Success, blocked: true, stackDepth: 2, stackSize: 3);
-        Assert.Equal(14, vm.StackIndentMargin.Left);
-    }
-
-    [Fact]
-    public void StackIndentMargin_BottomOfStack_IsNotIndented()
-    {
-        var vm = Make(CIState.Success, blocked: false, stackDepth: 0, stackSize: 3);
-        Assert.Equal(0, vm.StackIndentMargin.Left);
+        var vm = Make(CIState.Success, blocked: true, stackDepth: 1, stackSize: 2,
+            stackChainTooltip: "Stack (2 PRs):\n  1/2  #41 alice — Success");
+        Assert.Contains("Stack (2 PRs):", vm.PrTooltip);
+        Assert.DoesNotContain("Stack: 2 of 2", vm.PrTooltip);
     }
 
     [Fact]
@@ -119,7 +127,9 @@ public class PrItemViewModelStackTests
         bool isDraft = false,
         int stackDepth = 1,
         int stackSize = 2,
-        bool showStackRelations = true)
+        bool showStackRelations = true,
+        bool stackParentIsMine = false,
+        string stackChainTooltip = "")
     {
         var pr = new PullRequestInfo
         {
@@ -143,6 +153,7 @@ public class PrItemViewModelStackTests
             pr.StackParentUrl = "https://github.com/org/repo/pull/41";
         }
 
-        return PrItemViewModel.From(pr, isMyPr: true, showStackRelations: showStackRelations);
+        return PrItemViewModel.From(pr, isMyPr: true, showStackRelations: showStackRelations,
+            stackChainTooltip: stackChainTooltip, stackParentIsMine: stackParentIsMine);
     }
 }

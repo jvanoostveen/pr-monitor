@@ -281,6 +281,7 @@ public sealed class PollingService : IDisposable
             pr.StackParentKey = null;
             pr.StackParentNumber = 0;
             pr.StackParentUrl = "";
+            pr.StackParentAuthor = "";
             pr.StackRootKey = pr.Key;
             pr.StackDepth = 0;
             pr.StackSize = 1;
@@ -339,6 +340,7 @@ public sealed class PollingService : IDisposable
                 pr.StackParentKey = parent.Key;
                 pr.StackParentNumber = parent.Number;
                 pr.StackParentUrl = parent.Url;
+                pr.StackParentAuthor = parent.Author;
             }
         }
     }
