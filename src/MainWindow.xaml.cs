@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     private readonly NotificationService _notifications;
     private readonly DiagnosticsLogger _logger;
     private DoubleAnimation? _spinAnimation;
+    private bool _loadingSpinnerRunning;
     private bool _userMoved;
 
     private static readonly SolidColorBrush RefreshBlueBrush;
@@ -115,12 +116,20 @@ public partial class MainWindow : Window
         {
             if (e.PropertyName == nameof(MainViewModel.IsRefreshing))
                 UpdateRefreshIcon(viewModel.IsRefreshing);
+            else if (e.PropertyName is nameof(MainViewModel.IsInitialLoading) or nameof(MainViewModel.HasLoadedOnce))
+                UpdateLoadingSpinner();
         };
+
+        // A running animation keeps WPF's render loop alive permanently. On this window
+        // (AllowsTransparency = software-rendered layered window) that burns CPU and leaks
+        // native surface memory, so the spinner must never animate while it is not on screen.
+        IsVisibleChanged += (_, _) => UpdateLoadingSpinner();
 
         Loaded += (_, _) =>
         {
             LogPlacement("Loaded:start", includeScreens: true);
             RestoreStartupPlacement();
+            UpdateLoadingSpinner();
             Microsoft.Win32.SystemEvents.DisplaySettingsChanging += OnDisplaySettingsChanging;
             Microsoft.Win32.SystemEvents.DisplaySettingsChanged  += OnDisplaySettingsChanged;
         };
@@ -770,6 +779,34 @@ public partial class MainWindow : Window
     private static string FormatNullable(double? value)
     {
         return value is double actual ? FormatDouble(actual) : "null";
+    }
+
+    /// <summary>
+    /// Starts the initial-loading spinner only while the overlay is genuinely on screen, and stops
+    /// it otherwise. An always-running <see cref="RepeatBehavior.Forever"/> animation keeps WPF
+    /// rendering every frame for the lifetime of the process.
+    /// </summary>
+    private void UpdateLoadingSpinner()
+    {
+        var shouldSpin = IsVisible && ViewModel.IsInitialLoading;
+        if (shouldSpin == _loadingSpinnerRunning)
+            return;
+
+        _loadingSpinnerRunning = shouldSpin;
+
+        if (shouldSpin)
+        {
+            var animation = new DoubleAnimation(0, 360, new Duration(TimeSpan.FromSeconds(2)))
+            {
+                RepeatBehavior = RepeatBehavior.Forever,
+            };
+            LoadingRotate.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, animation);
+        }
+        else
+        {
+            LoadingRotate.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, null);
+            LoadingRotate.Angle = 0;
+        }
     }
 
     private void UpdateRefreshIcon(bool isRefreshing)

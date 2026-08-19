@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The periodic memory trim now also runs while the window is open once private bytes exceed 400 MB, instead of waiting for the window to be hidden.
 
 ### Fixed
+- **The app no longer consumes several gigabytes of memory after running for a while.** The startup loading spinner's animation was started once and never stopped, so it kept running invisibly for the entire lifetime of the process. Because the PR window is a transparent (software-rendered) window, that forced WPF to redraw it continuously, burning roughly 16% of a CPU core while idle and leaking about 3 GB of native memory per hour. The spinner now only animates while the loading overlay is actually on screen; an idle instance sits at 0% CPU with a stable working set.
 - Tray icon updates leaked a GDI icon handle on every poll (roughly 700 per day), which slowly degraded rendering and could eventually exhaust the process's GDI object quota.
 - A hung or stalled `gh` command could keep its output buffers and child processes alive indefinitely; `gh` invocations now time out after two minutes and the process tree is killed.
 
