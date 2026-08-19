@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Navigation;
+using PrMonitor.Services;
 
 namespace PrMonitor.Views;
 
@@ -44,6 +45,24 @@ public partial class AboutWindow : Window
     private void CheckForUpdates_Click(object sender, RoutedEventArgs e)
     {
         _checkForUpdatesAction?.Invoke();
+    }
+
+    /// <summary>Puts the current memory/handle counters on the clipboard so users can report them.</summary>
+    private void CopyDiagnostics_Click(object sender, RoutedEventArgs e)
+    {
+        var report = $"PR Monitor {VersionText}{Environment.NewLine}" +
+                     $"Uptime: {DateTime.Now - Process.GetCurrentProcess().StartTime:d\\.hh\\:mm\\:ss}{Environment.NewLine}" +
+                     MemoryDiagnostics.Capture();
+
+        try
+        {
+            System.Windows.Clipboard.SetText(report);
+            DarkMessageBox.Show("Diagnostics copied to the clipboard.", "Diagnostics", owner: this);
+        }
+        catch (Exception ex)
+        {
+            DarkMessageBox.Show($"Could not copy diagnostics: {ex.Message}", "Diagnostics", owner: this);
+        }
     }
 
     private void Close_Click(object sender, RoutedEventArgs e)

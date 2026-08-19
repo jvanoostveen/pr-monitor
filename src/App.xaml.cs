@@ -105,6 +105,8 @@ public partial class App : System.Windows.Application
 
         _trayIcon = new TrayIconManager(settings);
         _trayIcon.Subscribe(_polling);
+        // The periodic trim runs a blocking gen2 collection — only while the window is hidden.
+        _polling.CanTrimMemory = () => !Dispatcher.Invoke(() => _mainWindow?.IsVisible ?? false);
         mainVm.OnHiddenPrsChanged = () => _trayIcon.RefreshFromLatestSnapshot();
         _mainWindow.OpenStatisticsRequested = ShowStatsWindow;
         _mainWindow.AlwaysOnTopChanged = () => _settingsWindow?.ViewModel.NotifyAlwaysOnTopChanged();

@@ -47,6 +47,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         HotfixPrs.Concat(AutoMergePrs).Concat(ReviewRequestedPrs).Concat(StackedPrs).Concat(MyPrs)
                  .Concat(DependabotPrs).Concat(TeamReviewRequestedPrs).Concat(DraftPrs).Concat(HiddenPrs);
 
+    /// <summary>Rendered content of the last applied snapshot; see <see cref="BuildDisplaySignature"/>.</summary>
+    private string? _lastDisplaySignature;
+
     private int _autoMergeCount;
     public int AutoMergeCount
     {
@@ -451,6 +454,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _settings.SnoozedPrs[key] = until ?? DateTimeOffset.MaxValue;
         _settings.ManuallyHiddenPrKeys.Remove(key);
         _settings.Save();
+        _lastDisplaySignature = null;
 
         // Find item in active lists, move it to HiddenPrs immediately
         var item = FindAndRemove(HotfixPrs, key)
@@ -481,6 +485,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _settings.SnoozedPrs.Remove(key);
         _settings.ManuallyHiddenPrKeys.Remove(key);
         _settings.Save();
+        _lastDisplaySignature = null;
         var item = FindAndRemove(HiddenPrs, key);
         if (item is not null)
         {
@@ -558,6 +563,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public void RefreshFromSnapshot(PollSnapshot snapshot)
     {
+        // Triggered by a settings change, which can alter rendering in ways the row signature
+        // does not capture — force a full rebuild.
+        _lastDisplaySignature = null;
         UpdateFromSnapshot(snapshot);
         OnHiddenPrsChanged?.Invoke();
     }
@@ -673,7 +681,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     // ── Internals ───────────────────────────────────────────────────
 
-    private void UpdateFromSnapshot(PollSnapshot snapshot)
+    internal void UpdateFromSnapshot(PollSnapshot snapshot)
     {
         // Auto-restore snoozed PRs whose timer has expired
         var wakingKeys = _settings.SnoozedPrs
@@ -688,6 +696,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var (chains, parentIsMine) = BuildStackContext(snapshot);
         var stacked = new List<PrItemViewModel>();
 
+        // Rows are built off to the side first: applying them to the bound collections tears down
+        // and regenerates every row's visual tree, so it is skipped when nothing visibly changed.
+        var autoMerge = new List<PrItemViewModel>();
+        var myPrs = new List<PrItemViewModel>();
+        var review = new List<PrItemViewModel>();
+        var teamReview = new List<PrItemViewModel>();
+        var dependabot = new List<PrItemViewModel>();
+        var hotfix = new List<PrItemViewModel>();
+        var drafts = new List<PrItemViewModel>();
+        var hiddenItems = new List<PrItemViewModel>();
+
         PrItemViewModel Make(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false,
             bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "") =>
             PrItemViewModel.From(pr, isAutoMerge: isAutoMerge, isMyPr: isMyPr, isHotfix: isHotfix, isTeamReview: isTeamReview,
@@ -696,67 +715,57 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 stackParentIsMine: parentIsMine.Contains(pr.Key));
 
         // Stacked PRs are collected in their own section instead of their regular one.
-        void Route(ObservableCollection<PrItemViewModel> section, PullRequestInfo pr, PrItemViewModel item)
+        void Route(List<PrItemViewModel> section, PullRequestInfo pr, PrItemViewModel item)
         {
             if (showStacks && pr.IsStacked) stacked.Add(item);
             else section.Add(item);
         }
 
-        AutoMergePrs.Clear();
         foreach (var pr in snapshot.AutoMergePrs)
         {
             if (!hidden.Contains(pr.Key))
-                Route(AutoMergePrs, pr, Make(pr, isAutoMerge: true));
+                Route(autoMerge, pr, Make(pr, isAutoMerge: true));
         }
 
-        MyPrs.Clear();
         foreach (var pr in snapshot.MyPrs)
         {
             if (!hidden.Contains(pr.Key))
-                Route(MyPrs, pr, Make(pr, isMyPr: true));
+                Route(myPrs, pr, Make(pr, isMyPr: true));
         }
 
-        ReviewRequestedPrs.Clear();
         foreach (var pr in snapshot.ReviewRequestedPrs)
         {
             if (!hidden.Contains(pr.Key))
-                Route(ReviewRequestedPrs, pr, Make(pr));
+                Route(review, pr, Make(pr));
         }
 
-        TeamReviewRequestedPrs.Clear();
         foreach (var pr in snapshot.TeamReviewRequestedPrs)
         {
             if (!hidden.Contains(pr.Key))
-                Route(TeamReviewRequestedPrs, pr, Make(pr, isTeamReview: true));
+                Route(teamReview, pr, Make(pr, isTeamReview: true));
         }
 
-        DependabotPrs.Clear();
         foreach (var pr in snapshot.DependabotPrs)
         {
             if (!hidden.Contains(pr.Key))
-                Route(DependabotPrs, pr, Make(pr, isDependabot: true));
+                Route(dependabot, pr, Make(pr, isDependabot: true));
         }
 
-        HotfixPrs.Clear();
         foreach (var pr in snapshot.HotfixPrs)
         {
             if (!hidden.Contains(pr.Key))
-                Route(HotfixPrs, pr, Make(pr, isHotfix: true));
+                Route(hotfix, pr, Make(pr, isHotfix: true));
         }
 
-        DraftPrs.Clear();
         foreach (var pr in snapshot.DraftPrs)
         {
             if (!hidden.Contains(pr.Key))
-                Route(DraftPrs, pr, Make(pr, isDraftSection: true));
+                Route(drafts, pr, Make(pr, isDraftSection: true));
         }
 
-        StackedPrs.Clear();
-        foreach (var item in OrderStackSection(stacked))
-            StackedPrs.Add(item);
+        var orderedStacked = OrderStackSection(stacked).ToList();
 
         // Rebuild hidden list from all PRs in this snapshot
-        HiddenPrs.Clear();
         foreach (var x in snapshot.AutoMergePrs.Select(p => (pr: p, isAm: true, isMyPr: false, isHotfix: false, isTeamReview: false, isDependabot: false, isDraftSection: false))
                      .Concat(snapshot.MyPrs.Select(p => (pr: p, isAm: false, isMyPr: true, isHotfix: false, isTeamReview: false, isDependabot: false, isDraftSection: false)))
                      .Concat(snapshot.DraftPrs.Select(p => (pr: p, isAm: false, isMyPr: false, isHotfix: false, isTeamReview: false, isDependabot: false, isDraftSection: true)))
@@ -767,11 +776,28 @@ public sealed class MainViewModel : INotifyPropertyChanged
                      .DistinctBy(x => x.pr.Key)
                      .Where(x => hidden.Contains(x.pr.Key) && _settings.SnoozedPrs.ContainsKey(x.pr.Key)))
         {
-            HiddenPrs.Add(PrItemViewModel.From(x.pr, isAutoMerge: x.isAm, isMyPr: x.isMyPr, isHotfix: x.isHotfix, isTeamReview: x.isTeamReview, isDependabot: x.isDependabot, isDraftSection: x.isDraftSection,
+            hiddenItems.Add(PrItemViewModel.From(x.pr, isAutoMerge: x.isAm, isMyPr: x.isMyPr, isHotfix: x.isHotfix, isTeamReview: x.isTeamReview, isDependabot: x.isDependabot, isDraftSection: x.isDraftSection,
                 snoozedUntilText: FormatSnoozedUntil(_settings.SnoozedPrs.GetValueOrDefault(x.pr.Key, DateTimeOffset.MaxValue)),
                 showStackRelations: showStacks,
                 stackChainTooltip: chains.GetValueOrDefault(x.pr.Key, ""),
                 stackParentIsMine: parentIsMine.Contains(x.pr.Key)));
+        }
+
+        var signature = BuildDisplaySignature(
+            autoMerge, myPrs, review, teamReview, dependabot, hotfix, drafts, orderedStacked, hiddenItems);
+
+        if (signature != _lastDisplaySignature)
+        {
+            _lastDisplaySignature = signature;
+            Replace(AutoMergePrs, autoMerge);
+            Replace(MyPrs, myPrs);
+            Replace(ReviewRequestedPrs, review);
+            Replace(TeamReviewRequestedPrs, teamReview);
+            Replace(DependabotPrs, dependabot);
+            Replace(HotfixPrs, hotfix);
+            Replace(DraftPrs, drafts);
+            Replace(StackedPrs, orderedStacked);
+            Replace(HiddenPrs, hiddenItems);
         }
 
         AutoMergeCount = AutoMergePrs.Count;
@@ -794,6 +820,32 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _wasEmpty = isEmptyNow;
 
         HasLoadedOnce = true;
+    }
+
+    /// <summary>
+    /// Concatenation of everything rendered in the PR list. Identical signatures mean a rebuild
+    /// of the bound collections would produce visually identical rows, so it can be skipped.
+    /// </summary>
+    private static string BuildDisplaySignature(params IReadOnlyList<PrItemViewModel>[] sections)
+    {
+        var builder = new System.Text.StringBuilder();
+        foreach (var section in sections)
+        {
+            foreach (var item in section)
+            {
+                builder.Append(item.DisplaySignature);
+                builder.Append('\u001E');
+            }
+            builder.Append('\u001D');
+        }
+        return builder.ToString();
+    }
+
+    private static void Replace(ObservableCollection<PrItemViewModel> target, List<PrItemViewModel> items)
+    {
+        target.Clear();
+        foreach (var item in items)
+            target.Add(item);
     }
 
     private static void OpenUrl(string url)
@@ -1075,6 +1127,16 @@ public sealed class PrItemViewModel
         if (Uri.TryCreate(Url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
             Process.Start(new ProcessStartInfo(Url) { UseShellExecute = true });
     }
+
+    /// <summary>
+    /// Every value this row renders, joined into one string. Two rows with equal signatures are
+    /// visually identical, so the bound collections can be left untouched.
+    /// </summary>
+    internal string DisplaySignature => string.Join('\u001F',
+        Key, Repository, Title, Author, TimeAgo, SnoozedUntilText, CIIcon, EffectiveCIState,
+        StackBadgeText, IsStackGroupStart, ShowStackGroupSeparator,
+        HasUnresolvedReviewComments, ShowChangesRequestedIcon, ShowNoReviewerWarning,
+        ShowReviewPendingIcon, ShowCommentedIcon, ShowApprovedIcon, PrTooltip);
 
     public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "", bool showStackRelations = true, string stackChainTooltip = "", bool stackParentIsMine = false) => new()
     {

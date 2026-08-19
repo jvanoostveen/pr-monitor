@@ -11,9 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stacked PR support (gh-stack style)**: a PR whose base branch is another open PR's head branch is now recognised as part of a stack. All stacked PRs — regardless of author — are moved out of their regular sections into a dedicated collapsible **Stacks** section, grouped per stack with the bottom PR first, a thin separator between stacks and every row but each stack's first indented one level. The repository line shows a `· stack 2/3 · waits on #8632 (you)` badge, and the tooltip lists the whole chain with each member's number, author and status (the current PR is marked with `▸`). A stacked PR keeps its own CI colour, so a healthy PR waiting on the one below it still shows green.
 - **Stack actions in the PR context menu**: **Open parent PR** and **Open whole stack** for PRs that are part of a stack.
 - **Settings → Sections → Stacked PRs**: toggle the separate Stacks section and choose whether stack-blocked PRs count towards the tray icon status.
+- **Copy diagnostics** button in the About dialog: copies the current managed-heap, working-set, handle, thread and GDI/USER object counts to the clipboard, so memory reports can include concrete numbers.
+- Memory counters are now written to the diagnostics log after every poll, escalating to a warning when the working set exceeds 500 MB or GDI objects exceed 2000.
 
 ### Changed
 - Own PRs now also fetch `baseRefName`, which is required to derive stack relations. Stack detection is done locally from the already-fetched PR data and costs no extra GitHub API calls.
+- **Substantially reduced memory usage.** The app now targets a small, promptly-released heap instead of allocation throughput:
+  - The GC is configured for a tray app (non-concurrent workstation GC, `System.GC.Conserve`), and an LOH-compacting collection followed by a working-set trim runs when the window is hidden and periodically while it stays hidden.
+  - The PR list is no longer torn down and rebuilt on every poll. Rows are built off to the side and only applied to the UI when something visibly changed, avoiding a full visual-tree regeneration of all sections every two minutes.
+  - CI logs for flakiness analysis are streamed and sanitized line by line with a bounded tail buffer, instead of loading the entire (potentially hundreds of megabytes) log into memory to keep the last few thousand characters.
+  - Log-sanitization regexes are compiled once instead of on every analysis, so repeated CI failures no longer grow the process's code heaps.
+  - The merge-conflict cache is pruned to the PRs still present in the latest poll.
+  - Buffered notifications are capped and always drained, even when showing a toast fails.
+
+### Fixed
+- Tray icon updates leaked a GDI icon handle on every poll (roughly 700 per day), which slowly degraded rendering and could eventually exhaust the process's GDI object quota.
+- A hung or stalled `gh` command could keep its output buffers and child processes alive indefinitely; `gh` invocations now time out after two minutes and the process tree is killed.
 
 ## [1.12.0] - 2026-07-22
 

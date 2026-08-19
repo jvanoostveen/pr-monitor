@@ -223,6 +223,11 @@ public partial class MainWindow : Window
         PersistWindowPosition();
         Hide();
         PersistWindowState(isVisible: false);
+
+        // Hiding is the app's idle moment: reclaim the render/layout allocations now
+        // instead of letting them sit in the working set until the next gen2 collection.
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle,
+            () => MemoryDiagnostics.TrimMemory(_logger, "hide-to-tray"));
     }
 
     /// <summary>

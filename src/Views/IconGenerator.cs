@@ -1,6 +1,7 @@
 ﻿using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace PrMonitor.Views;
@@ -11,6 +12,8 @@ namespace PrMonitor.Views;
 /// </summary>
 public static class IconGenerator
 {
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyIcon(IntPtr hIcon);
     private static readonly Color ColorRed    = Color.FromArgb(0xF8, 0x51, 0x49); // #F85149 – CI failure
     private static readonly Color ColorAmber  = Color.FromArgb(0xD2, 0x99, 0x22); // #D29922 – reviews pending
     private static readonly Color ColorPurple = Color.FromArgb(0x89, 0x57, 0xE5); // #8957E5 – CI pending (pipeline running)
@@ -60,7 +63,17 @@ public static class IconGenerator
         }
 
         var hIcon = bmp.GetHicon();
-        return Icon.FromHandle(hIcon);
+        try
+        {
+            // Icon.FromHandle does not own the handle and Icon.Dispose won't free it,
+            // so clone into a self-contained icon and release the GDI handle here.
+            using var borrowed = Icon.FromHandle(hIcon);
+            return (Icon)borrowed.Clone();
+        }
+        finally
+        {
+            DestroyIcon(hIcon);
+        }
     }
 
     /// <summary>

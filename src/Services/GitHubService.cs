@@ -18,6 +18,52 @@ public sealed class GitHubService
     private static readonly System.Text.RegularExpressions.Regex _safeSha =
         new(@"^[0-9a-fA-F]{1,40}$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
+    // ── Log-sanitization patterns ───────────────────────────────────────
+    // All compiled once: RegexOptions.Compiled emits dynamic IL, so constructing these
+    // per call would grow the process's code heaps on every analysed CI failure.
+
+    /// <summary>GitHub Actions prepends an ISO-8601 timestamp to every log line.</summary>
+    private static readonly Regex _timestampPrefix =
+        new(@"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s*", RegexOptions.Compiled);
+
+    /// <summary>ANSI escape sequences (colors, cursor movement) used by some test runners.</summary>
+    private static readonly Regex _ansiEscape =
+        new(@"\x1B(?:\[[0-9;]*[mGKHFJABCDH]|[()][0-9A-Za-z])", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Lines that have no diagnostic value but tend to trigger the Azure OpenAI
+    /// jailbreak / content-filter. Matched case-insensitively against individual lines.
+    /// </summary>
+    private static readonly Regex[] _redactPatterns =
+    [
+        // Explicit prompt-injection phrases
+        new(@"ignore\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|prompts?|context|rules?)", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+        new(@"(you\s+are\s+now|act\s+as|pretend\s+(to\s+be|you\s+are)|roleplay)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+        new(@"(system\s+prompt|initial\s+prompt|forget\s+your\s+(instructions?|training))", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+        new(@"(jailbreak|DAN\b|do\s+anything\s+now)", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+        new(@"(disregard|override|bypass|circumvent)\s+(all\s+)?(your\s+)?(safety|restrictions?|guidelines?|policies?|rules?)", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+        // XSS / HTML-injection payloads in test data
+        new(@"<script[^>]*>", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+        new(@"\bon(error|load|click|mouseover|focus)\s*=\s*[""'(]", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+        new(@"javascript\s*:\s*(void|alert|eval|document)\s*[\[(]", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+        // Long base64 / hex data blobs (≥60 contiguous encoded chars) — pure data, no analysis value
+        new(@"[A-Za-z0-9+/=]{60,}={0,2}(?:\s|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+    ];
+
+    /// <summary>Diagnostically relevant log lines: errors, stack traces, assertions, timeouts.</summary>
+    private static readonly Regex _diagnosticPattern = new(
+        @"error|fail|exception|assert|timeout|crash|abort|fatal|warning|warn|" +
+        @"unable\s+to|could\s+not|unexpected|stack\s+trace|\bat\s+\w|" +
+        @"FAILED|ERROR|WARN|ASSERT|NullReference|OutOfMemory|unhandled",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>Rewrites a notifications API PR url to its web url.</summary>
+    private static readonly Regex _apiPullUrl =
+        new(@"^https://api\.github\.com/repos/(.+)/pulls/(\d+)$", RegexOptions.Compiled);
+
+    /// <summary>Characters allowed in a free-text search fragment passed to <c>gh</c>.</summary>
+    private static readonly Regex _unsafeQueryChars = new(@"[^\w\-.]", RegexOptions.Compiled);
+
     public GitHubService(DiagnosticsLogger logger)
     {
         _logger = logger;
@@ -370,10 +416,7 @@ public sealed class GitHubService
                 if (subject.TryGetProperty("url", out var urlProp))
                 {
                     var apiUrl = urlProp.GetString() ?? "";
-                    prUrl = System.Text.RegularExpressions.Regex.Replace(
-                        apiUrl,
-                        @"^https://api\.github\.com/repos/(.+)/pulls/(\d+)$",
-                        "https://github.com/$1/pull/$2");
+                    prUrl = _apiPullUrl.Replace(apiUrl, "https://github.com/$1/pull/$2");
                     if (!prUrl.StartsWith("https://github.com/")) prUrl = "";
                 }
                 if (id is not null && title is not null && repo is not null)
@@ -445,23 +488,28 @@ public sealed class GitHubService
     /// Fetches the failed job log output for a workflow run, sanitized and truncated to 4000 chars.
     /// Truncation keeps the TAIL of the log (where actual test errors appear) and drops the head
     /// (where setup/security-scanner output — the most likely content-filter triggers — lives).
+    /// The log is streamed and only a bounded tail is ever held in memory: raw CI logs can be
+    /// hundreds of megabytes, which would otherwise land on the large object heap.
     /// </summary>
     public async Task<string> FetchFailedLogAsync(string owner, string repo, long runId)
     {
         if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo"))
             return "";
-        var (output, _, exitCode) = await RunGhAsync("run", "view", runId.ToString(), "--log-failed", "--repo", $"{owner}/{repo}");
-        if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
+
+        var (tail, redacted, exitCode) = await RunGhStreamingTailAsync(
+            LogTailBudgetChars,
+            "run", "view", runId.ToString(), "--log-failed", "--repo", $"{owner}/{repo}");
+
+        if (exitCode != 0 || string.IsNullOrWhiteSpace(tail))
             return "";
 
-        var (sanitized, redacted) = SanitizeLogForAI(output);
         if (redacted > 0)
             _logger.Info($"FetchFailedLogAsync: redacted {redacted} line(s) from log for {owner}/{repo} run {runId}.");
 
         const int MaxLength = 4000;
-        return sanitized.Length <= MaxLength
-            ? sanitized
-            : "[beginning of log omitted]\n" + sanitized[^MaxLength..];
+        return tail.Length <= MaxLength
+            ? tail
+            : "[beginning of log omitted]\n" + tail[^MaxLength..];
     }
 
     /// <summary>
@@ -471,62 +519,37 @@ public sealed class GitHubService
     /// </summary>
     internal static (string Sanitized, int Redacted) SanitizeLogForAI(string log)
     {
-        // GitHub Actions prepends an ISO-8601 timestamp to every line, e.g.:
-        //   2026-03-31T11:52:10.1234567Z  ##[error] npm test failed
-        // Stripping it recovers ~32 chars per line within the 4000-char budget.
-        var timestampPrefix = new Regex(
-            @"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s*",
-            RegexOptions.Compiled);
-
-        // ANSI escape sequences (colors, cursor movement) used by some test runners.
-        var ansiEscape = new Regex(
-            @"\x1B(?:\[[0-9;]*[mGKHFJABCDH]|[()][0-9A-Za-z])",
-            RegexOptions.Compiled);
-
-        // Lines that have no diagnostic value but tend to trigger the Azure OpenAI
-        // jailbreak / content-filter. Matched case-insensitively against individual lines.
-        var redactPatterns = new[]
-        {
-            // Explicit prompt-injection phrases
-            @"ignore\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|prompts?|context|rules?)",
-            @"(you\s+are\s+now|act\s+as|pretend\s+(to\s+be|you\s+are)|roleplay)\b",
-            @"(system\s+prompt|initial\s+prompt|forget\s+your\s+(instructions?|training))",
-            @"(jailbreak|DAN\b|do\s+anything\s+now)",
-            @"(disregard|override|bypass|circumvent)\s+(all\s+)?(your\s+)?(safety|restrictions?|guidelines?|policies?|rules?)",
-            // XSS / HTML-injection payloads in test data
-            @"<script[^>]*>",
-            @"\bon(error|load|click|mouseover|focus)\s*=\s*[""'(]",
-            @"javascript\s*:\s*(void|alert|eval|document)\s*[\[(]",
-            // Long base64 / hex data blobs (≥60 contiguous encoded chars) — pure data, no analysis value
-            @"[A-Za-z0-9+/=]{60,}={0,2}(?:\s|$)",
-        };
-
-        var compiled = redactPatterns
-            .Select(p => new Regex(p, RegexOptions.IgnoreCase | RegexOptions.Compiled))
-            .ToArray();
-
-        var lines = log.Split('\n');
         var result = new System.Text.StringBuilder(log.Length);
         int redacted = 0;
 
-        foreach (var rawLine in lines)
+        foreach (var rawLine in log.Split('\n'))
         {
-            // Strip metadata prefixes first (no semantic loss)
-            var line = timestampPrefix.Replace(rawLine, "");
-            line = ansiEscape.Replace(line, "");
-
-            if (compiled.Any(r => r.IsMatch(line)))
-            {
-                result.AppendLine("[line redacted]");
-                redacted++;
-            }
-            else
-            {
-                result.AppendLine(line);
-            }
+            result.AppendLine(SanitizeLogLine(rawLine, ref redacted));
         }
 
         return (result.ToString(), redacted);
+    }
+
+    /// <summary>
+    /// Strips metadata prefixes from a single log line and replaces it with a redaction
+    /// marker when it matches a content-filter trigger. Increments <paramref name="redacted"/>.
+    /// </summary>
+    private static string SanitizeLogLine(string rawLine, ref int redacted)
+    {
+        // Strip metadata prefixes first (no semantic loss)
+        var line = _timestampPrefix.Replace(rawLine, "");
+        line = _ansiEscape.Replace(line, "");
+
+        foreach (var pattern in _redactPatterns)
+        {
+            if (pattern.IsMatch(line))
+            {
+                redacted++;
+                return "[line redacted]";
+            }
+        }
+
+        return line;
     }
 
     /// <summary>
@@ -537,19 +560,13 @@ public sealed class GitHubService
     /// </summary>
     internal static string ExtractErrorLines(string log, int maxLength = 2000)
     {
-        var diagnosticPattern = new Regex(
-            @"error|fail|exception|assert|timeout|crash|abort|fatal|warning|warn|" +
-            @"unable\s+to|could\s+not|unexpected|stack\s+trace|\bat\s+\w|" +
-            @"FAILED|ERROR|WARN|ASSERT|NullReference|OutOfMemory|unhandled",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
         var lines = log.Split('\n');
         var kept = new List<string>(capacity: lines.Length / 4);
         string? lastLine = null;
 
         // If fewer than 3 lines match the diagnostic pattern at all, the filter cannot
         // meaningfully reduce the log — return unchanged so the caller gets the full context.
-        var rawMatchCount = lines.Count(l => diagnosticPattern.IsMatch(l.TrimEnd('\r')));
+        var rawMatchCount = lines.Count(l => _diagnosticPattern.IsMatch(l.TrimEnd('\r')));
         if (rawMatchCount < 3)
             return log;
 
@@ -559,7 +576,7 @@ public sealed class GitHubService
             // Skip consecutive duplicate lines (common in test runners)
             if (trimmed == lastLine)
                 continue;
-            if (diagnosticPattern.IsMatch(trimmed))
+            if (_diagnosticPattern.IsMatch(trimmed))
             {
                 kept.Add(trimmed);
                 lastLine = trimmed;
@@ -709,7 +726,7 @@ public sealed class GitHubService
         }
 
         // No org configured: use GitHub's global user search
-        var safeQuery = System.Text.RegularExpressions.Regex.Replace(query.Trim(), @"[^\w\-.]", "");
+        var safeQuery = _unsafeQueryChars.Replace(query.Trim(), "");
         if (string.IsNullOrEmpty(safeQuery))
             return [];
 
@@ -1300,6 +1317,14 @@ public sealed class GitHubService
 
     // ── Process helpers ─────────────────────────────────────────────────
 
+    /// <summary>Sanitized tail of a CI log kept in memory; only the last 4000 chars are ever used.</summary>
+    private const int LogTailBudgetChars = 64 * 1024;
+
+    /// <summary>Hard cap on characters read from a streamed subprocess before it is killed.</summary>
+    private const int StreamingReadCapChars = 32 * 1024 * 1024;
+
+    private static readonly TimeSpan GhTimeout = TimeSpan.FromMinutes(2);
+
     private async Task<(string? Output, string? Stderr, int ExitCode)> RunGhAsync(params string[] arguments)
     {
         try
@@ -1319,11 +1344,22 @@ public sealed class GitHubService
                 process.StartInfo.ArgumentList.Add(arg);
 
             process.Start();
-            var outputTask = process.StandardOutput.ReadToEndAsync();
-            var stderrTask = process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-            var output = await outputTask;
-            var stderr = await stderrTask;
+            using var timeout = new CancellationTokenSource(GhTimeout);
+            var outputTask = process.StandardOutput.ReadToEndAsync(timeout.Token);
+            var stderrTask = process.StandardError.ReadToEndAsync(timeout.Token);
+
+            string output, stderr;
+            try
+            {
+                await process.WaitForExitAsync(timeout.Token);
+                output = await outputTask;
+                stderr = await stderrTask;
+            }
+            catch (OperationCanceledException)
+            {
+                KillProcessTree(process, arguments);
+                return (null, null, -1);
+            }
 
             if (process.ExitCode != 0)
             {
@@ -1337,6 +1373,107 @@ public sealed class GitHubService
             // gh CLI not installed or not on PATH
             _logger.Error("GitHubService failed to start gh process.", ex);
             return (null, null, -1);
+        }
+    }
+
+    /// <summary>
+    /// Runs <c>gh</c> and streams stdout line by line, sanitizing each line immediately and
+    /// retaining only the last <paramref name="tailBudgetChars"/> characters. Used for CI logs,
+    /// which can be hundreds of megabytes while only their tail is of interest.
+    /// </summary>
+    private async Task<(string Tail, int Redacted, int ExitCode)> RunGhStreamingTailAsync(
+        int tailBudgetChars, params string[] arguments)
+    {
+        try
+        {
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = "gh",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                StandardOutputEncoding = System.Text.Encoding.UTF8,
+                StandardErrorEncoding = System.Text.Encoding.UTF8,
+            };
+            foreach (var arg in arguments)
+                process.StartInfo.ArgumentList.Add(arg);
+
+            process.Start();
+            using var timeout = new CancellationTokenSource(GhTimeout);
+
+            // Drained but discarded: an unread stderr pipe would block the child process.
+            var stderrTask = process.StandardError.ReadToEndAsync(timeout.Token);
+
+            var tail = new Queue<string>();
+            var tailChars = 0;
+            var totalChars = 0;
+            var redacted = 0;
+            var capped = false;
+
+            try
+            {
+                while (await process.StandardOutput.ReadLineAsync(timeout.Token) is { } rawLine)
+                {
+                    totalChars += rawLine.Length + 1;
+                    if (totalChars > StreamingReadCapChars)
+                    {
+                        capped = true;
+                        break;
+                    }
+
+                    var line = SanitizeLogLine(rawLine, ref redacted);
+                    tail.Enqueue(line);
+                    tailChars += line.Length + 1;
+
+                    while (tailChars > tailBudgetChars && tail.Count > 1)
+                        tailChars -= tail.Dequeue().Length + 1;
+                }
+
+                if (capped)
+                {
+                    _logger.Warn($"GitHubService: output cap reached for 'gh {string.Join(" ", arguments)}' — killing process.");
+                    KillProcessTree(process, arguments);
+                }
+                else
+                {
+                    await process.WaitForExitAsync(timeout.Token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                KillProcessTree(process, arguments);
+                return ("", redacted, -1);
+            }
+
+            var stderr = capped ? "" : await stderrTask;
+            var exitCode = capped ? 0 : process.ExitCode;
+            if (exitCode != 0)
+                _logger.Error($"GitHubService gh command failed (exit={exitCode}). args: {string.Join(" ", arguments)}. stderr: {stderr?.Trim()}");
+
+            return (string.Join(Environment.NewLine, tail), redacted, exitCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("GitHubService failed to stream gh process output.", ex);
+            return ("", 0, -1);
+        }
+    }
+
+    private void KillProcessTree(Process process, string[] arguments)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                _logger.Warn($"GitHubService: killing unresponsive 'gh {string.Join(" ", arguments)}'.");
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn($"GitHubService: failed to kill gh process: {DiagnosticsLogger.SummarizeException(ex)}");
         }
     }
 

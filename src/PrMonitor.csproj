@@ -15,7 +15,18 @@
     <Description>PR Monitor</Description>
     <Product>PR Monitor</Product>
     <RootNamespace>PrMonitor</RootNamespace>
+
+    <!-- Tray app: prioritise a small, promptly-released heap over allocation throughput. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
+    <TieredPGO>true</TieredPGO>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Levels 1-9; makes the GC collect more eagerly and give pages back to the OS. -->
+    <RuntimeHostConfigurationOption Include="System.GC.Conserve" Value="5" Trim="false" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />

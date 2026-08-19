@@ -212,6 +212,12 @@ Those traces are also used to diagnose drag-time snap issues; while the window i
 
 Update-check failures are logged there as well (including HTTP status or exception details), and the manual **Check for updates…** action in **About…** shows the concrete error reason.
 
+#### Memory usage
+
+PR Monitor is designed to stay small while running for days in the tray. The garbage collector is configured to release memory back to the OS, and an aggressive memory trim runs whenever the window is hidden. Memory counters (managed heap, working set, handles, GDI objects) are written to the log after every poll, escalating to `WARN` above 500 MB working set or 2000 GDI objects.
+
+If the app still grows unexpectedly, use **About… → Copy diagnostics** to put the current counters and uptime on your clipboard and include them in a bug report.
+
 Shutdown reliability note: app exit now guards single-instance mutex release, so a tray-menu exit/right-click shutdown path will not crash if the current thread does not own the mutex.
 
 For flakiness analysis, PR Monitor uses `gpt-4o-mini` through GitHub Models.

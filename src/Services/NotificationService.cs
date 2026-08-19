@@ -19,6 +19,9 @@ public sealed class NotificationService : IDisposable
     // Buffer of events collected within the current poll cycle.
     private readonly List<PrChangeEventArgs> _pending = [];
 
+    /// <summary>Upper bound on buffered changes awaiting a flush.</summary>
+    private const int MaxPendingNotifications = 200;
+
     public NotificationService(AppSettings settings)
     {
         _settings = settings;
@@ -57,8 +60,14 @@ public sealed class NotificationService : IDisposable
     /// </summary>
     public void Subscribe(PollingService polling)
     {
-        // Collect individual changes into the buffer.
-        polling.PrChanged += (_, e) => _pending.Add(e);
+        // Collect individual changes into the buffer. A poll that fails never raises Polled, so the
+        // buffer is capped to keep a run of failing polls from retaining PR objects indefinitely.
+        polling.PrChanged += (_, e) =>
+        {
+            if (_pending.Count >= MaxPendingNotifications)
+                _pending.RemoveAt(0);
+            _pending.Add(e);
+        };
 
         // After each poll, flush the buffer as grouped notifications.
         polling.Polled += (_, _) =>
@@ -116,6 +125,19 @@ public sealed class NotificationService : IDisposable
     {
         if (_pending.Count == 0) return;
 
+        try
+        {
+            FlushPendingGroups();
+        }
+        finally
+        {
+            // Always drain: a failed toast must not leave the buffer to grow and re-fire next poll.
+            _pending.Clear();
+        }
+    }
+
+    private void FlushPendingGroups()
+    {
         // Each notification "bucket" is identified by its header text.
         var groups = _pending
             .Select(e => (Header: GetHeader(e), e))
@@ -150,8 +172,6 @@ public sealed class NotificationService : IDisposable
                     items[0].PullRequest.Url); // open first PR on click
             }
         }
-
-        _pending.Clear();
     }
 
     internal static string? GetHeader(PrChangeEventArgs e) => e.Kind switch

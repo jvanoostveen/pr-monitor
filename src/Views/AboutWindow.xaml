@@ -108,17 +108,28 @@
             </TextBlock>
 
             <!-- Buttons -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
-                <Button Content="Check for updates…"
-                        Width="160" Margin="0,0,8,0"
+            <Grid Margin="0,20,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0"
+                        Content="Check for updates…"
                         Style="{StaticResource SecondaryButton}"
                         Click="CheckForUpdates_Click"/>
-                <Button Content="Close"
-                        Width="90"
-                        Style="{StaticResource PrimaryButton}"
-                        Click="Close_Click"
-                        IsCancel="True"/>
-            </StackPanel>
+                <Button Grid.Column="2"
+                        Content="Copy diagnostics"
+                        Style="{StaticResource SecondaryButton}"
+                        Click="CopyDiagnostics_Click"/>
+            </Grid>
+
+            <Button Content="Close"
+                    Width="120" Margin="0,8,0,0"
+                    HorizontalAlignment="Center"
+                    Style="{StaticResource PrimaryButton}"
+                    Click="Close_Click"
+                    IsCancel="True"/>
 
         </StackPanel>
     </Border>

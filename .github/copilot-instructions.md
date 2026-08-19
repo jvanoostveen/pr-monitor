@@ -72,6 +72,7 @@ pr-monitor/
 │   │   ├── UpdateService.cs            # GitHub latest release check + version compare
 │   │   ├── CopilotService.cs           # GitHub Models API (gpt-4o-mini) flakiness analysis
 │   │   ├── StatisticsService.cs        # Event/snapshot-based activity statistics collector
+│   │   ├── MemoryDiagnostics.cs        # Heap/handle/GDI counters + idle memory trim
 │   │   └── FlakinessService.cs         # CI failure analysis orchestrator + auto-rerun
 │   ├── Settings/
 │   │   ├── AppSettings.cs              # JSON-backed settings
@@ -83,7 +84,7 @@ pr-monitor/
 │   └── Views/
 │       ├── TrayIconManager.cs          # NotifyIcon + context menu
 │       ├── IconGenerator.cs            # Generates 16×16 icon with colored badge
-│       ├── AboutWindow.xaml / .cs      # About dialog (version/repo/update check)
+│       ├── AboutWindow.xaml / .cs      # About dialog (version/repo/update check/copy diagnostics)
 │       ├── ChangelogWindow.xaml / .cs  # In-app changelog view (filtered version range)
 │       ├── AssignReviewerSearchWindow.xaml / .cs  # Org-member search dialog for reviewer assignment
 │       ├── FlakinessRulesWindow.xaml / .cs  # Resizable/scrollable window for managing flakiness rules
@@ -247,6 +248,18 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 ### Notification app name
 - Windows toast notifications should display the app name as **PR Monitor** (configured via project metadata in `src/PrMonitor.csproj`).
 
+### Memory management
+The app runs for days in the tray, so allocation *retention* matters more than throughput. Relevant pieces:
+- `MemoryDiagnostics` ([src/Services/MemoryDiagnostics.cs](../src/Services/MemoryDiagnostics.cs)) — `Capture()` returns a `Snapshot` record struct with managed heap / committed / fragmented / LOH / POH / working-set / private bytes, gen0-2 collection counts, handle + thread counts, and GDI/USER object counts (`GetGuiResources`). `Log(logger, context)` writes it as INFO, or WARN when the working set exceeds 500 MB or GDI objects exceed 2000. `TrimMemory(logger, context)` does an LOH-compacting blocking gen2 collection, waits for finalizers, collects again, then calls `EmptyWorkingSet` and logs the after-state.
+- **When trimming happens**: `MainWindow.HideToTray()` queues a trim at `DispatcherPriority.ApplicationIdle`, and `PollingService.MaybeTrimMemory()` trims at most every 10 minutes. The periodic trim is gated by `PollingService.CanTrimMemory` (wired in `App.xaml.cs` to `!_mainWindow.IsVisible`) so a blocking gen2 collection never freezes a visible window.
+- **GC configuration** in `src/PrMonitor.csproj`: `ServerGarbageCollection=false`, `ConcurrentGarbageCollection=false`, `RetainVMGarbageCollection=false`, `TieredPGO=true`, plus `<RuntimeHostConfigurationOption Include="System.GC.Conserve" Value="5" />`.
+- **No per-poll UI rebuild**: `MainViewModel.UpdateFromSnapshot` (now `internal` for testing) builds rows into local `List<PrItemViewModel>`s, computes a `BuildDisplaySignature(...)` over `PrItemViewModel.DisplaySignature` (every rendered value: text, times, icons, tooltip, stack badge/indent), and only clears and refills the nine `ObservableCollection`s when the signature changed. This keeps relative `TimeAgo` text correct — a changed time string changes the signature — while skipping visual-tree regeneration of all non-virtualizing `ItemsControl`s. `_lastDisplaySignature` is reset to `null` in `HideItem`, `RestoreItem` and `RefreshFromSnapshot` (settings changes can alter rendering in ways the row signature does not capture).
+- **Bounded `gh` output**: `GitHubService.RunGhStreamingTailAsync(tailBudgetChars, args)` streams stdout line by line, sanitizes each line inline, and keeps only a 64 KB tail queue (`LogTailBudgetChars`), killing the process past a 32 MB hard read cap (`StreamingReadCapChars`). `FetchFailedLogAsync` uses it, so a multi-hundred-MB CI log never lands on the LOH. `RunGhAsync` enforces a 2-minute `GhTimeout` and calls `KillProcessTree(process, args)` on timeout.
+- **Hoisted regexes**: all log-sanitization patterns in `GitHubService` are `static readonly` — `RegexOptions.Compiled` emits dynamic IL, so constructing them per call permanently grows the code heaps.
+- **GDI handles**: `IconGenerator.CreateTrayIcon` must `DestroyIcon` the `GetHicon()` handle. `Icon.FromHandle` does not own the handle, so the icon is cloned into a self-contained one and the raw handle released in a `finally`.
+- **Bounded caches/buffers**: `PollingService.PruneConflictCache` drops `{Key}:{HeadCommitSha}` entries no longer in the latest poll; `NotificationService._pending` is capped at `MaxPendingNotifications` (200) and always drained in a `finally`.
+- **About → Copy diagnostics** copies version, uptime and a `MemoryDiagnostics.Capture()` line to the clipboard for user-submitted reports.
+
 ### Main Window behavior
 - Borderless, transparent, `SizeToContent=Height`, `MaxHeight=700`
 - **No auto-hide on deactivate** — stays visible until user clicks X or tray icon
@@ -374,7 +387,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
   - `push` to `main`
 - Behavior:
   - Restores and builds the full solution (`pr-monitor.slnx`) in `Release` with .NET 10 on `windows-latest`
-  - Runs `dotnet test` on `tests/PrMonitor.Tests` (343 xUnit tests)
+  - Runs `dotnet test` on `tests/PrMonitor.Tests` (409 xUnit tests)
   - Build + test validation only (no tag/release/upload steps)
 
 - Release workflow: `.github/workflows/release-on-version-change.yml`

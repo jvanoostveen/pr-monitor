@@ -59,6 +59,15 @@ public sealed class PollingService : IDisposable
     // Key: "{prKey}:{headCommitSha}". Used to preserve conflict state when GitHub returns "UNKNOWN".
     private readonly Dictionary<string, bool> _conflictCache = new();
 
+    private static readonly TimeSpan MemoryTrimInterval = TimeSpan.FromMinutes(10);
+    private DateTimeOffset _lastMemoryTrim = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Optional gate for the periodic memory trim. The trim runs a blocking gen2 collection,
+    /// so the host only allows it while the app is idle (window hidden).
+    /// </summary>
+    public Func<bool>? CanTrimMemory { get; set; }
+
     private readonly DateTimeOffset _startedAt = DateTimeOffset.UtcNow;
 
     public PollingService(GitHubService github, AppSettings settings, DiagnosticsLogger logger)
@@ -198,6 +207,11 @@ public sealed class PollingService : IDisposable
                 .. teamReviewPrs, .. hotfixPrs, .. dependabotPrs,
             ]);
 
+            PruneConflictCache([
+                .. autoMergePrs, .. myPrs, .. draftPrs, .. combinedReviewPrs,
+                .. teamReviewPrs, .. hotfixPrs, .. dependabotPrs,
+            ]);
+
             if (_settings.ShowStackRelations)
             {
                 autoMergePrs      = OrderByStack(autoMergePrs);
@@ -254,6 +268,8 @@ public sealed class PollingService : IDisposable
         }
         finally
         {
+            MemoryDiagnostics.Log(_logger, "poll-end");
+            MaybeTrimMemory();
             _pollLock.Release();
         }
     }
@@ -396,6 +412,26 @@ public sealed class PollingService : IDisposable
             result.Add(pr);
         }
         return result;
+    }
+
+    /// <summary>
+    /// Drops cache entries for PR/commit combinations that no longer appear in any section,
+    /// so the cache cannot grow without bound over long-running sessions.
+    /// </summary>
+    private void PruneConflictCache(IEnumerable<PullRequestInfo> livePrs)
+    {
+        var live = livePrs.Select(p => $"{p.Key}:{p.HeadCommitSha}").ToHashSet(StringComparer.Ordinal);
+        foreach (var staleKey in _conflictCache.Keys.Where(k => !live.Contains(k)).ToList())
+            _conflictCache.Remove(staleKey);
+    }
+
+    private void MaybeTrimMemory()
+    {
+        if (DateTimeOffset.UtcNow - _lastMemoryTrim < MemoryTrimInterval) return;
+        if (CanTrimMemory is { } gate && !gate()) return;
+
+        _lastMemoryTrim = DateTimeOffset.UtcNow;
+        MemoryDiagnostics.TrimMemory(_logger, "poll");
     }
 
     internal void DetectAutoMergeChanges(List<PullRequestInfo> current, HashSet<string>? allOpenPrKeys = null)
