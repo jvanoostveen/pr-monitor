@@ -62,6 +62,9 @@ public sealed class PollingService : IDisposable
     private static readonly TimeSpan MemoryTrimInterval = TimeSpan.FromMinutes(10);
     private DateTimeOffset _lastMemoryTrim = DateTimeOffset.UtcNow;
 
+    /// <summary>Private bytes above which the trim ignores the window-visibility gate.</summary>
+    private const long TrimRegardlessOfVisibilityBytes = 400L * 1024 * 1024;
+
     /// <summary>
     /// Optional gate for the periodic memory trim. The trim runs a blocking gen2 collection,
     /// so the host only allows it while the app is idle (window hidden).
@@ -428,10 +431,26 @@ public sealed class PollingService : IDisposable
     private void MaybeTrimMemory()
     {
         if (DateTimeOffset.UtcNow - _lastMemoryTrim < MemoryTrimInterval) return;
-        if (CanTrimMemory is { } gate && !gate()) return;
+
+        // The visibility gate avoids stuttering a window the user is looking at, but a process this
+        // large needs reclaiming more than it needs a smooth frame.
+        if (CanTrimMemory is { } gate && !gate() && !IsUnderMemoryPressure()) return;
 
         _lastMemoryTrim = DateTimeOffset.UtcNow;
         MemoryDiagnostics.TrimMemory(_logger, "poll");
+    }
+
+    private static bool IsUnderMemoryPressure()
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.GetCurrentProcess();
+            return process.PrivateMemorySize64 > TrimRegardlessOfVisibilityBytes;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     internal void DetectAutoMergeChanges(List<PullRequestInfo> current, HashSet<string>? allOpenPrKeys = null)

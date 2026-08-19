@@ -23,6 +23,105 @@ public static class MemoryDiagnostics
     [DllImport("psapi.dll", SetLastError = true)]
     private static extern bool EmptyWorkingSet(IntPtr hProcess);
 
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr VirtualQuery(IntPtr lpAddress, out MemoryBasicInformation lpBuffer, IntPtr dwLength);
+
+    // x64 layout: the two __alignment fields are the compiler padding around RegionSize/Type.
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MemoryBasicInformation
+    {
+        public IntPtr BaseAddress;
+        public IntPtr AllocationBase;
+        public uint AllocationProtect;
+        public uint __alignment1;
+        public IntPtr RegionSize;
+        public uint State;
+        public uint Protect;
+        public uint Type;
+        public uint __alignment2;
+    }
+
+    private const uint MemCommit = 0x1000;
+    private const uint MemPrivate = 0x20000;
+    private const uint MemMapped = 0x40000;
+    private const uint MemImage = 0x1000000;
+
+    /// <summary>
+    /// Where the process's committed address space actually lives. The managed heap is only a
+    /// fraction of it, so this is what distinguishes a GC problem from a native/unmanaged leak.
+    /// </summary>
+    public readonly record struct NativeBreakdown(
+        long PrivateCommittedBytes,
+        long MappedCommittedBytes,
+        long ImageCommittedBytes,
+        long ReservedBytes,
+        int RegionCount,
+        long LargestPrivateAllocationBytes,
+        int PrivateAllocationCount)
+    {
+        public override string ToString()
+        {
+            static string Mb(long bytes) => $"{bytes / (1024.0 * 1024.0):F1}MB";
+
+            return $"privateCommit={Mb(PrivateCommittedBytes)} mapped={Mb(MappedCommittedBytes)} "
+                 + $"image={Mb(ImageCommittedBytes)} reserved={Mb(ReservedBytes)} regions={RegionCount} "
+                 + $"privateAllocs={PrivateAllocationCount} largestPrivateAlloc={Mb(LargestPrivateAllocationBytes)}";
+        }
+    }
+
+    /// <summary>Walks the process address space with VirtualQuery and buckets committed pages by region type.</summary>
+    public static NativeBreakdown CaptureNativeBreakdown()
+    {
+        long privateCommitted = 0, mappedCommitted = 0, imageCommitted = 0, reserved = 0;
+        int regions = 0;
+
+        // Committed bytes per allocation base, so one runaway allocator stands out from normal churn.
+        var privateAllocations = new Dictionary<IntPtr, long>();
+
+        var address = IntPtr.Zero;
+        var infoSize = (IntPtr)Marshal.SizeOf<MemoryBasicInformation>();
+
+        while (VirtualQuery(address, out var info, infoSize) != IntPtr.Zero)
+        {
+            regions++;
+            var size = (long)info.RegionSize;
+            if (size <= 0) break;
+
+            if (info.State == MemCommit)
+            {
+                switch (info.Type)
+                {
+                    case MemPrivate:
+                        privateCommitted += size;
+                        privateAllocations.TryGetValue(info.AllocationBase, out var current);
+                        privateAllocations[info.AllocationBase] = current + size;
+                        break;
+                    case MemMapped:
+                        mappedCommitted += size;
+                        break;
+                    case MemImage:
+                        imageCommitted += size;
+                        break;
+                }
+            }
+            else if (info.State != 0x10000) // not MEM_FREE
+            {
+                reserved += size;
+            }
+
+            var next = (long)address + size;
+            if (next <= (long)address) break;
+            address = (IntPtr)next;
+        }
+
+        long largest = 0;
+        foreach (var bytes in privateAllocations.Values)
+            if (bytes > largest) largest = bytes;
+
+        return new NativeBreakdown(privateCommitted, mappedCommitted, imageCommitted, reserved,
+            regions, largest, privateAllocations.Count);
+    }
+
     public readonly record struct Snapshot(
         long ManagedHeapBytes,
         long CommittedBytes,
@@ -89,7 +188,7 @@ public static class MemoryDiagnostics
         try
         {
             var snapshot = Capture();
-            var line = $"MemoryDiagnostics [{context}] {snapshot}";
+            var line = $"MemoryDiagnostics [{context}] {snapshot} | {CaptureNativeBreakdown()}";
             if (snapshot.ExceedsWarnThreshold)
                 logger.Warn(line);
             else

@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stack actions in the PR context menu**: **Open parent PR** and **Open whole stack** for PRs that are part of a stack.
 - **Settings → Sections → Stacked PRs**: toggle the separate Stacks section and choose whether stack-blocked PRs count towards the tray icon status.
 - **Copy diagnostics** button in the About dialog: copies the current managed-heap, working-set, handle, thread and GDI/USER object counts to the clipboard, so memory reports can include concrete numbers.
-- Memory counters are now written to the diagnostics log after every poll, escalating to a warning when the working set exceeds 500 MB or GDI objects exceed 2000.
+- Memory counters are now written to the diagnostics log after every poll, escalating to a warning when the working set exceeds 500 MB or GDI objects exceed 2000. The entry also includes a virtual-memory breakdown (private/mapped/image committed bytes, region count and largest single private allocation) to distinguish a managed-heap problem from a native one.
 
 ### Changed
 - Own PRs now also fetch `baseRefName`, which is required to derive stack relations. Stack detection is done locally from the already-fetched PR data and costs no extra GitHub API calls.
@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Log-sanitization regexes are compiled once instead of on every analysis, so repeated CI failures no longer grow the process's code heaps.
   - The merge-conflict cache is pruned to the PRs still present in the latest poll.
   - Buffered notifications are capped and always drained, even when showing a toast fails.
+  - The periodic memory trim now also runs while the window is open once private bytes exceed 400 MB, instead of waiting for the window to be hidden.
 
 ### Fixed
 - Tray icon updates leaked a GDI icon handle on every poll (roughly 700 per day), which slowly degraded rendering and could eventually exhaust the process's GDI object quota.

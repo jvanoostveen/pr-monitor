@@ -39,4 +39,26 @@ public class MemoryDiagnosticsTests
     {
         MemoryDiagnostics.TrimMemory(DiagnosticsLogger.Null, "test");
     }
+
+    [Fact]
+    public void CaptureNativeBreakdown_AccountsForTheProcessAddressSpace()
+    {
+        var breakdown = MemoryDiagnostics.CaptureNativeBreakdown();
+
+        Assert.True(breakdown.RegionCount > 0);
+        Assert.True(breakdown.PrivateCommittedBytes > 0);
+        Assert.True(breakdown.ImageCommittedBytes > 0);
+        Assert.True(breakdown.LargestPrivateAllocationBytes > 0);
+        Assert.True(breakdown.LargestPrivateAllocationBytes <= breakdown.PrivateCommittedBytes);
+    }
+
+    [Fact]
+    public void CaptureNativeBreakdown_PrivateCommitIsInTheSameOrderAsProcessPrivateBytes()
+    {
+        var breakdown = MemoryDiagnostics.CaptureNativeBreakdown();
+        var snapshot = MemoryDiagnostics.Capture();
+
+        // Private bytes counts committed private pages, so the walk must not be wildly off.
+        Assert.True(breakdown.PrivateCommittedBytes <= snapshot.PrivateBytes * 4);
+    }
 }

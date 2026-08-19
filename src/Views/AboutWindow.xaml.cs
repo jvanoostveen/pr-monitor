@@ -52,7 +52,8 @@ public partial class AboutWindow : Window
     {
         var report = $"PR Monitor {VersionText}{Environment.NewLine}" +
                      $"Uptime: {DateTime.Now - Process.GetCurrentProcess().StartTime:d\\.hh\\:mm\\:ss}{Environment.NewLine}" +
-                     MemoryDiagnostics.Capture();
+                     MemoryDiagnostics.Capture() + Environment.NewLine +
+                     MemoryDiagnostics.CaptureNativeBreakdown();
 
         try
         {
