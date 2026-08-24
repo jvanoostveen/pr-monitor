@@ -1626,8 +1626,9 @@ public partial class MainWindow : Window
                 return;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.Warn($"WhatsNew_Click failed to build in-app changelog. {DiagnosticsLogger.SummarizeException(ex)}");
         }
 
         ViewModel.ViewChangelog();

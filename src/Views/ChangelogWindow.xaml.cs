@@ -13,24 +13,25 @@ public partial class ChangelogWindow : Window
 
     private const int DwmwaUseImmersiveDarkMode = 20;
 
-    private readonly string? _releasePageUrl;
+    private readonly string? _linkUrl;
 
     public string WindowTitle { get; }
-    public string ContentText { get; }
 
-    public ChangelogWindow(string title, string contentText, string? releasePageUrl)
+    public ChangelogWindow(string title, string contentText, string? linkUrl)
     {
         WindowTitle = title;
-        ContentText = contentText;
-        _releasePageUrl = releasePageUrl;
+        _linkUrl = linkUrl;
 
         DataContext = this;
         InitializeComponent();
+
+        ContentViewer.Document = MarkdownRenderer.ToFlowDocument(contentText);
     }
 
     public static void ShowForOwner(Window? owner, UpdateChangelogResult changelog, string? releasePageUrl)
     {
-        var window = new ChangelogWindow(changelog.Title, changelog.Markdown, releasePageUrl)
+        var linkUrl = !string.IsNullOrWhiteSpace(changelog.Url) ? changelog.Url : releasePageUrl;
+        var window = new ChangelogWindow(changelog.Title, changelog.Markdown, linkUrl)
         {
             Owner = owner is { IsLoaded: true, IsVisible: true } ? owner : null,
             WindowStartupLocation = owner is { IsLoaded: true, IsVisible: true }
@@ -51,11 +52,11 @@ public partial class ChangelogWindow : Window
 
     private void OpenReleasePage_Click(object sender, RoutedEventArgs e)
     {
-        if (!string.IsNullOrWhiteSpace(_releasePageUrl)
-            && Uri.TryCreate(_releasePageUrl, UriKind.Absolute, out var uri)
+        if (!string.IsNullOrWhiteSpace(_linkUrl)
+            && Uri.TryCreate(_linkUrl, UriKind.Absolute, out var uri)
             && uri.Scheme == Uri.UriSchemeHttps)
         {
-            Process.Start(new ProcessStartInfo(_releasePageUrl) { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo(_linkUrl) { UseShellExecute = true });
         }
     }
 

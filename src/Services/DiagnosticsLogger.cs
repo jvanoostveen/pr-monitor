@@ -47,9 +47,17 @@ public sealed class DiagnosticsLogger
 
     public void Error(string message, Exception ex) => Write("ERROR", $"{message} | {SummarizeException(ex)}");
 
+    private const int MaxInnerExceptionDepth = 3;
+
     public static string SummarizeException(Exception ex)
     {
         var builder = new StringBuilder();
+        AppendException(builder, ex, depth: 0);
+        return builder.ToString();
+    }
+
+    private static void AppendException(StringBuilder builder, Exception ex, int depth)
+    {
         builder.Append(ex.GetType().Name);
         builder.Append(": ");
         builder.Append(ex.Message);
@@ -63,7 +71,11 @@ public sealed class DiagnosticsLogger
             builder.Append(string.Join(" <= ", stackLines));
         }
 
-        return builder.ToString();
+        if (ex.InnerException is not null && depth < MaxInnerExceptionDepth)
+        {
+            builder.Append(" | InnerException: ");
+            AppendException(builder, ex.InnerException, depth + 1);
+        }
     }
 
     private void Write(string level, string message)

@@ -315,7 +315,7 @@ public partial class App : System.Windows.Application
                 await ShowRelevantChangelogAsync(
                     result.CurrentVersion,
                     result.LatestVersionText!,
-                    result.ReleaseNotesUrl ?? result.ReleaseUrl);
+                    UpdateService.ChangelogFileUrl);
             }
 
             return;

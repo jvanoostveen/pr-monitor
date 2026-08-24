@@ -15,6 +15,7 @@ public sealed class UpdateService
     private const string RawChangelogUrl = "https://raw.githubusercontent.com/jvanoostveen/pr-monitor/main/CHANGELOG.md";
     private const string RepoBaseUrl = "https://github.com/jvanoostveen/pr-monitor";
     private const string ReleaseDownloadBaseUrl = "https://github.com/jvanoostveen/pr-monitor/releases/download";
+    public const string ChangelogFileUrl = RepoBaseUrl + "/blob/main/CHANGELOG.md";
 
     private static readonly HttpClient HttpClient = CreateHttpClient();
     private static readonly HttpClient DownloadHttpClient = CreateDownloadHttpClient();
@@ -369,7 +370,30 @@ public sealed class UpdateService
             Environment.NewLine + Environment.NewLine,
             relevantSections.Select(section => section.Markdown.Trim()));
 
-        return new UpdateChangelogResult(title, content);
+        // relevantSections[0] is the newest section (CHANGELOG.md lists versions newest-first).
+        var headingLine = relevantSections[0].Markdown
+            .Split('\n')[0]
+            .TrimStart('#', ' ');
+        var url = $"{ChangelogFileUrl}#{BuildGitHubHeadingAnchor(headingLine)}";
+
+        return new UpdateChangelogResult(title, content, url);
+    }
+
+    /// <summary>
+    /// Reproduces GitHub's Markdown heading-to-anchor slug algorithm (lowercase, strip
+    /// punctuation other than spaces/hyphens, then turn spaces into hyphens) so a changelog
+    /// link can jump straight to the matching "## [x.y.z] - date" entry on GitHub.
+    /// </summary>
+    internal static string BuildGitHubHeadingAnchor(string headingText)
+    {
+        var sb = new StringBuilder();
+        foreach (var ch in headingText.ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(ch) || ch == ' ' || ch == '-')
+                sb.Append(ch);
+        }
+
+        return sb.ToString().Replace(' ', '-');
     }
 
     public static bool TryExtractRelevantChangelog(
@@ -603,7 +627,7 @@ public sealed class UpdateService
     }
 }
 
-public sealed record UpdateChangelogResult(string Title, string Markdown);
+public sealed record UpdateChangelogResult(string Title, string Markdown, string? Url = null);
 
 internal sealed record ParsedChangelogSection(string VersionText, Version Version, string Markdown);
 

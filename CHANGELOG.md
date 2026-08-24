@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- The in-app "What's new?" changelog dialog no longer fails silently and fall back to opening a browser: `ChangelogWindow`'s `TextBox` binding required an explicit `Mode=OneWay` because its bound property is read-only (WPF's `TextBox.Text` binds two-way by default). The dialog's header now spans the full window width above the content instead of squeezing it into a narrow left column.
+- **"What's new?" and manual update checks now link to the relevant `CHANGELOG.md` section on GitHub** instead of the release page (whose own "Full changelog" link pointed to a raw commit-compare view).
+
+### Changed
+- The in-app changelog dialog now renders markdown (headings, bullets, **bold**, and `code` spans) instead of showing the raw markdown text, and uses the app's dark scrollbar style.
+- `DiagnosticsLogger.SummarizeException` now includes the full `InnerException` chain (up to 3 levels), making logged exceptions actionable instead of only showing the outer wrapper.
+
 ## [1.13.0] - 2026-08-19
 
 ### Added

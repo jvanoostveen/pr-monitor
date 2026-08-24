@@ -115,6 +115,18 @@ public class UpdateServiceVersionTests
         Assert.Contains("## [1.8.2] - 2026-03-31", result.Markdown);
         Assert.DoesNotContain("## [1.8.1] - 2026-03-30", result.Markdown);
         Assert.DoesNotContain("## [Unreleased]", result.Markdown);
+        Assert.Equal(
+            "https://github.com/jvanoostveen/pr-monitor/blob/main/CHANGELOG.md#183---2026-04-02",
+            result.Url);
+    }
+
+    [Theory]
+    [InlineData("[1.13.0] - 2026-08-19", "1130---2026-08-19")]
+    [InlineData("[1.1.3]", "113")]
+    public void BuildGitHubHeadingAnchor_MatchesGitHubSlugAlgorithm(string heading, string expectedAnchor)
+    {
+        var anchor = UpdateService.BuildGitHubHeadingAnchor(heading);
+        Assert.Equal(expectedAnchor, anchor);
     }
 
     [Fact]

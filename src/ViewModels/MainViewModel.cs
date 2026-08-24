@@ -603,10 +603,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public void ViewChangelog()
     {
-        var url = string.IsNullOrWhiteSpace(UpdateReleaseNotesUrl) ? UpdateReleaseUrl : UpdateReleaseNotesUrl;
-        if (!string.IsNullOrWhiteSpace(url)
-            && Uri.TryCreate(url, UriKind.Absolute, out var uri)
-            && uri.Scheme == Uri.UriSchemeHttps)
+        // Used only when the in-app changelog dialog couldn't be built; link straight to
+        // CHANGELOG.md instead of the GitHub release page (whose "Full changelog" link is a
+        // raw commit compare view).
+        var url = UpdateService.ChangelogFileUrl;
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
