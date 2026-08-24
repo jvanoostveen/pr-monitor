@@ -74,9 +74,12 @@ public sealed class StatisticsService
                 }
             }
 
-            // PRs awaiting my review.
+            // PRs awaiting my review. Team review requests are excluded unless opted in via settings.
             var currentReview = new Dictionary<string, PullRequestInfo>(StringComparer.Ordinal);
-            foreach (var pr in snapshot.ReviewRequestedPrs.Concat(snapshot.TeamReviewRequestedPrs))
+            var reviewSourcePrs = _settings.TeamReviewCountsForStatistics
+                ? snapshot.ReviewRequestedPrs.Concat(snapshot.TeamReviewRequestedPrs)
+                : snapshot.ReviewRequestedPrs;
+            foreach (var pr in reviewSourcePrs)
                 currentReview[pr.Key] = pr;
 
             // Keys present anywhere in this snapshot (used to detect a truly merged/closed PR).

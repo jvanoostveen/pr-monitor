@@ -36,6 +36,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _notificationMode = settings.NotificationMode;
         _showTeamReviewSection = settings.ShowTeamReviewSection;
         _teamReviewCountsForTrayIcon = settings.TeamReviewCountsForTrayIcon;
+        _teamReviewCountsForStatistics = settings.TeamReviewCountsForStatistics;
         _showStackRelations = settings.ShowStackRelations;
         _stackBlockedCountsForTrayIcon = settings.StackBlockedCountsForTrayIcon;
         _flakinessAnalysisEnabled = settings.FlakinessAnalysisEnabled;
@@ -230,6 +231,13 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetField(ref _teamReviewCountsForTrayIcon, value);
     }
 
+    private bool _teamReviewCountsForStatistics;
+    public bool TeamReviewCountsForStatistics
+    {
+        get => _teamReviewCountsForStatistics;
+        set => SetField(ref _teamReviewCountsForStatistics, value);
+    }
+
     private bool _showStackRelations;
     public bool ShowStackRelations
     {
@@ -356,6 +364,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.NotificationMode = _notificationMode;
         _settings.ShowTeamReviewSection = _showTeamReviewSection;
         _settings.TeamReviewCountsForTrayIcon = _teamReviewCountsForTrayIcon;
+        _settings.TeamReviewCountsForStatistics = _teamReviewCountsForStatistics;
         _settings.ShowStackRelations = _showStackRelations;
         _settings.StackBlockedCountsForTrayIcon = _stackBlockedCountsForTrayIcon;
         _settings.FlakinessAnalysisEnabled = _flakinessAnalysisEnabled;

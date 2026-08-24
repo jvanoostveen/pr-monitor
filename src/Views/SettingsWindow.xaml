@@ -570,7 +570,15 @@
                 <TabItem Header="Statistics">
                     <StackPanel Margin="0,20,0,0">
 
-                        <TextBlock Text="HIDDEN REVIEWERS" Style="{StaticResource SectionLabel}" Margin="0,0,0,6"/>
+                        <TextBlock Text="SOURCES" Style="{StaticResource SectionLabel}" Margin="0,0,0,6"/>
+                        <CheckBox IsChecked="{Binding TeamReviewCountsForStatistics}"
+                                  Content="Count team review requests in statistics"
+                                  IsEnabled="{Binding ShowTeamReviewSection}"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,4,0,10" TextWrapping="Wrap"
+                                   IsEnabled="{Binding ShowTeamReviewSection}"
+                                   Text="When enabled, team review requests contribute to the &#x2018;Reviews requested&#x2019; and &#x2018;Reviews completed&#x2019; statistics."/>
+
+                        <TextBlock Text="HIDDEN REVIEWERS" Style="{StaticResource SectionLabel}" Margin="0,16,0,6"/>
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="0,0,0,10" TextWrapping="Wrap"
                                    Text="Reviewers hidden from the statistics breakdown. Right-click a reviewer in the Statistics window to hide them."/>
 

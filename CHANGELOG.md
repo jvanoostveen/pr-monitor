@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Settings → Statistics** now includes a "Count team review requests in statistics" toggle (off by default). Team review requests no longer inflate the "Reviews requested" / "Reviews completed" statistics unless explicitly enabled.
+
 ### Fixed
 - The in-app "What's new?" changelog dialog no longer fails silently and fall back to opening a browser: `ChangelogWindow`'s `TextBox` binding required an explicit `Mode=OneWay` because its bound property is read-only (WPF's `TextBox.Text` binds two-way by default). The dialog's header now spans the full window width above the content instead of squeezing it into a narrow left column.
 - **"What's new?" and manual update checks now link to the relevant `CHANGELOG.md` section on GitHub** instead of the release page (whose own "Full changelog" link pointed to a raw commit-compare view).

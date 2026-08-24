@@ -81,6 +81,9 @@ public sealed class AppSettings
     /// <summary>Whether team review requests count towards the tray icon status (amber) when the section is enabled.</summary>
     public bool TeamReviewCountsForTrayIcon { get; set; } = false;
 
+    /// <summary>Whether team review requests count towards the "Reviews requested"/"Reviews completed" statistics.</summary>
+    public bool TeamReviewCountsForStatistics { get; set; } = false;
+
     /// <summary>Whether stacked PRs are collected in a separate "Stacks" section and marked with a badge.</summary>
     public bool ShowStackRelations { get; set; } = true;
 

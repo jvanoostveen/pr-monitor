@@ -232,7 +232,7 @@ User runs `gh auth login` once. Username is auto-detected via `gh api user` and 
 - `StatisticsStore` ([src/Settings/StatisticsStore.cs](../src/Settings/StatisticsStore.cs)) persists activity counters as daily buckets (`Dictionary<yyyy-MM-dd, DayStat>`) to `%APPDATA%/pr-monitor/statistics.json`. It mirrors `AppSettings`'s persistence pattern exactly: atomic write (`.tmp → .bak → primary`), camelCase JSON, an `AsyncLocal` path override (`UseStatisticsPathOverride`) and `internal LoadFrom`/`SaveTo(path)` so the test suite never touches the real file. The store also remembers the path it was loaded from so `Save()` writes back there even outside an override scope. Buckets older than ~18 months are pruned on load. Aggregation helpers: `ForDay`, `ForWeekOf` (ISO Monday–Sunday), `ForMonthOf`, `ForRange`, `Total`. `Reset()` clears all buckets and saves.
 - `StatMetric` enum: `ReviewsRequested`, `ReviewsCompleted`, `OwnPrsOpened`, `OwnPrsMerged`, `CiFailures`, `FlakyReruns`, `RealFailures`. `DayStat` holds one int per metric plus `Dictionary<string,int>? ReviewsRequestedByAuthor` for the per-author breakdown; `Accumulate` merges author dicts.
 - `StatisticsService` ([src/Services/StatisticsService.cs](../src/Services/StatisticsService.cs)) subscribes to `PollingService.Polled` and computes its own deltas between successive snapshots (the first snapshot is a baseline that counts nothing, so pre-existing PRs at startup don't inflate numbers). It also subscribes to two new `FlakinessService` events.
-  - **ReviewsRequested**: a new review-request key appearing after baseline; also calls `IncrementReviewRequested(day, pr.Author)` to track per-author counts.
+  - **ReviewsRequested**: a new review-request key appearing after baseline; also calls `IncrementReviewRequested(day, pr.Author)` to track per-author counts. Team review requests (`TeamReviewRequestedPrs`) are excluded unless `AppSettings.TeamReviewCountsForStatistics` is enabled (default off, toggle in Settings → Statistics).
   - **OwnPrsOpened**: a new own-PR key (authored by `GitHubUsername`) whose `CreatedAt >= service start time`.
   - **OwnPrsMerged** *(heuristic)*: an own-PR key that disappeared from every snapshot section (counts closed-not-merged too).
   - **CiFailures**: an own PR transitioning into `CIState.Failure`.
@@ -470,6 +470,7 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "stacksExpanded": true,
   "showTeamReviewSection": true,
   "teamReviewCountsForTrayIcon": false,
+  "teamReviewCountsForStatistics": false,
   "showStackRelations": true,
   "stackBlockedCountsForTrayIcon": false,
   "laterExpanded": false,
