@@ -84,6 +84,13 @@ public sealed class AppSettings
     /// <summary>Whether team review requests count towards the "Reviews requested"/"Reviews completed" statistics.</summary>
     public bool TeamReviewCountsForStatistics { get; set; } = false;
 
+    /// <summary>
+    /// Whether a team review request counts as "a reviewer is assigned" on your own PRs.
+    /// Off by default: with CODEOWNERS a team is requested automatically, so only an individual
+    /// reviewer clears the "no reviewer assigned" warning.
+    /// </summary>
+    public bool TeamReviewCountsAsReviewer { get; set; } = false;
+
     /// <summary>Whether stacked PRs are collected in a separate "Stacks" section and marked with a badge.</summary>
     public bool ShowStackRelations { get; set; } = true;
 

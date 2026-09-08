@@ -95,6 +95,9 @@ public sealed class PullRequestInfo
     /// </summary>
     public IReadOnlyList<string> ReviewerLogins { get; init; } = [];
 
+    /// <summary>Subset of <see cref="ReviewerLogins"/> that are team slugs rather than individual users.</summary>
+    public IReadOnlyList<string> TeamReviewerSlugs { get; init; } = [];
+
     /// <summary>
     /// Latest review state (Pending/Approved/ChangesRequested/Commented) per reviewer login, excluding Copilot.
     /// A login present in <see cref="ReviewerLogins"/> but absent here should be treated as Pending.

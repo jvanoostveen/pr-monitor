@@ -326,6 +326,40 @@ public class PrItemViewModelTests
         Assert.False(vm.ShowCommentedIcon);
     }
 
+    // ── Team reviewers (CODEOWNERS) ─────────────────────────────────
+
+    [Fact]
+    public void HasNonCopilotReviewer_TeamOnly_FalseByDefault()
+    {
+        var vm = MakeVm(isMyPr: true, reviewerLogins: ["platform-team"], teamReviewerSlugs: ["platform-team"]);
+        Assert.False(vm.HasNonCopilotReviewer);
+        Assert.True(vm.ShowNoReviewerWarning);
+    }
+
+    [Fact]
+    public void HasNonCopilotReviewer_TeamOnly_TrueWhenTeamCountsAsReviewer()
+    {
+        var vm = MakeVm(isMyPr: true, reviewerLogins: ["platform-team"], teamReviewerSlugs: ["platform-team"],
+            teamReviewCountsAsReviewer: true);
+        Assert.True(vm.HasNonCopilotReviewer);
+        Assert.False(vm.ShowNoReviewerWarning);
+    }
+
+    [Fact]
+    public void HasNonCopilotReviewer_TeamPlusIndividual_TrueRegardlessOfSetting()
+    {
+        var vm = MakeVm(isMyPr: true, reviewerLogins: ["platform-team", "alice"], teamReviewerSlugs: ["platform-team"]);
+        Assert.True(vm.HasNonCopilotReviewer);
+        Assert.Equal(["alice"], vm.EffectiveReviewerLogins);
+    }
+
+    [Fact]
+    public void PrTooltip_OwnPrTeamOnly_MentionsTeam()
+    {
+        var vm = MakeVm(isMyPr: true, reviewerLogins: ["platform-team"], teamReviewerSlugs: ["platform-team"]);
+        Assert.Contains("No individual reviewer assigned (team: platform-team)", vm.PrTooltip);
+    }
+
     private static PrItemViewModel MakeVm(
         CIState ciState = CIState.Unknown,
         bool isDraft = false,
@@ -338,7 +372,9 @@ public class PrItemViewModelTests
         bool isAutoMerge = false,
         bool isHotfix = false,
         bool hasConflicts = false,
-        bool isDraftSection = false) =>
+        bool isDraftSection = false,
+        IEnumerable<string>? teamReviewerSlugs = null,
+        bool teamReviewCountsAsReviewer = false) =>
         new()
         {
             Key = "org/repo#1",
@@ -356,6 +392,8 @@ public class PrItemViewModelTests
             IsApproved = isApproved,
             UnresolvedReviewCommentCount = unresolvedComments,
             ReviewerLogins = (reviewerLogins ?? []).ToList(),
+            TeamReviewerSlugs = (teamReviewerSlugs ?? []).ToList(),
+            TeamReviewCountsAsReviewer = teamReviewCountsAsReviewer,
             ReviewerStates = reviewerStates ?? new Dictionary<string, ReviewState>(),
             IsMyPr = isMyPr,
             IsAutoMergePr = isAutoMerge,

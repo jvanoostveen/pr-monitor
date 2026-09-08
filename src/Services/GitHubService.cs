@@ -1073,6 +1073,7 @@ public sealed class GitHubService
                     && rd1.GetString() == "APPROVED",
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
                 ReviewerLogins = ParseReviewerLogins(node),
+                TeamReviewerSlugs = ParseTeamReviewerSlugs(node),
                 ReviewerStates = ParseReviewerStates(node),
             });
         }
@@ -1167,6 +1168,7 @@ public sealed class GitHubService
                     && rd2.GetString() == "APPROVED",
                 UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
                 ReviewerLogins = ParseReviewerLogins(node),
+                TeamReviewerSlugs = ParseTeamReviewerSlugs(node),
                 IsTeamReviewRequested = isTeamOnly,
             });
         }
@@ -1223,6 +1225,29 @@ public sealed class GitHubService
         }
 
         return [.. loginsSet];
+    }
+
+    /// <summary>Team slugs among the pending review requests (CODEOWNERS teams are auto-requested).</summary>
+    internal static IReadOnlyList<string> ParseTeamReviewerSlugs(JsonElement node)
+    {
+        if (!node.TryGetProperty("reviewRequests", out var reviewRequests)) return [];
+        if (reviewRequests.ValueKind != JsonValueKind.Object) return [];
+        if (!reviewRequests.TryGetProperty("nodes", out var nodes)) return [];
+        if (nodes.ValueKind != JsonValueKind.Array) return [];
+
+        var slugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var requestNode in nodes.EnumerateArray())
+        {
+            if (!requestNode.TryGetProperty("requestedReviewer", out var reviewer)) continue;
+            if (!reviewer.TryGetProperty("__typename", out var typename)) continue;
+            if (typename.GetString() != "Team") continue;
+            if (!reviewer.TryGetProperty("slug", out var slug)) continue;
+            var slugStr = slug.GetString() ?? "";
+            if (!string.IsNullOrEmpty(slugStr))
+                slugs.Add(slugStr);
+        }
+
+        return [.. slugs];
     }
 
     internal static IReadOnlyDictionary<string, ReviewState> ParseReviewerStates(JsonElement node)

@@ -399,6 +399,11 @@
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="48,4,0,0" TextWrapping="Wrap"
                                    IsEnabled="{Binding ShowTeamReviewSection}"
                                    Text="When enabled, team review requests contribute to the amber tray icon colour."/>
+                        <CheckBox Margin="0,14,0,0"
+                                  IsChecked="{Binding TeamReviewCountsAsReviewer}"
+                                  Content="Team review request counts as an assigned reviewer"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,4,0,0" TextWrapping="Wrap"
+                                   Text="When disabled (default), a CODEOWNERS team request on your own PR does not clear the &#x2018;no reviewer assigned&#x2019; warning &#x2014; only an individual reviewer does."/>
 
                         <TextBlock Text="STACKED PRS" Style="{StaticResource SectionLabel}" Margin="0,18,0,6"/>
                         <CheckBox IsChecked="{Binding ShowStackRelations}"

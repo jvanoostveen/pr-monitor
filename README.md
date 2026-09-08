@@ -30,6 +30,10 @@ A stacked PR keeps its own CI colour, so a PR that is green but still waiting on
 
 The separate section and whether stack-blocked PRs count towards the tray icon can be configured in **Settings → Sections → Stacked PRs**.
 
+### Reviewer indicator on your own PRs
+
+Your own PR rows show an amber "no reviewer assigned" icon until someone is requested as reviewer. Because CODEOWNERS requests a *team* on every PR automatically, a team request alone does **not** count as an assigned reviewer by default — the tooltip then reads `No individual reviewer assigned (team: …)`. Enable **Settings → Sections → Review requests → "Team review request counts as an assigned reviewer"** to treat a team request as a real reviewer.
+
 Empty sections are hidden automatically. While the very first poll is in progress, the window shows a subtle spinning-icon "Loading pull requests…" indicator instead of a blank list. If, once loaded, there are truly no PRs anywhere (including snoozed **Later** items), a short, randomly-picked one-liner is shown instead (e.g. "Zero PRs. Look at you go.").
 
 The tray icon badge changes colour to reflect the worst state:

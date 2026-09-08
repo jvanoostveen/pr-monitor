@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Settings → Sections → "Team review request counts as an assigned reviewer"** (off by default). With CODEOWNERS a team is requested as reviewer automatically on every PR, which previously made own PRs look like they already had a reviewer. Team requests now no longer clear the "no reviewer assigned" warning — only an individual reviewer does. The PR tooltip shows `No individual reviewer assigned (team: …)` in that case. Enable the setting to restore the old behaviour.
+
 ## [1.13.1] - 2026-09-08
 
 ### Added

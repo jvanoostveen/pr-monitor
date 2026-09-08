@@ -333,6 +333,7 @@ For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CISt
 - Own PR rows (My Auto-Merge PRs, My PRs, Hotfixes, and own PRs in Later) show a `E748` (SwitchUser) icon from **Segoe Fluent Icons** (`FontSize="11"`, amber `#D29922`) when `ShowNoReviewerWarning` is true (i.e., `IsOwnPr && !HasNonCopilotReviewer`).
 - No icon is shown when a non-Copilot reviewer has been assigned — reviewer names and their latest review state appear in `PrTooltip` instead.
 - `ReviewerLogins` is populated from GraphQL `reviewRequests(first: 10)` in `MyPrsQuery` and `ReviewRequestedQuery`, filtering out logins that start with `"copilot"` (case-insensitive, covers both `copilot` and `copilot-pull-request-reviewer[bot]`). Team slugs are included.
+- `TeamReviewerSlugs` (parsed by `GitHubService.ParseTeamReviewerSlugs`) is the subset of `ReviewerLogins` that are teams. `PrItemViewModel.EffectiveReviewerLogins` drops those unless `AppSettings.TeamReviewCountsAsReviewer` (default `false`, **Settings → Sections → Review requests**) is enabled — with CODEOWNERS a team is auto-requested on every PR, so a team request alone must not clear the "no reviewer assigned" warning. `HasNonCopilotReviewer`, `HasChangesRequested`, `IsReviewPending`, `HasCommentedOnly` and `ReviewerTooltip` all use `EffectiveReviewerLogins`; `PrTooltip` falls back to `No individual reviewer assigned (team: …)` when only teams are requested. The Assign-reviewer context menu keeps using the unfiltered `ReviewerLogins`.
 - `PrTooltip` (computed property on `PrItemViewModel`) shows: `CI: {state}` + reviewer info (if `IsOwnPr`) + unresolved comments + approved state, joined by newlines.
 
 ### Reviewer-state icons on own PRs
@@ -478,6 +479,7 @@ Note: release automation is triggered by changes to `src/PrMonitor.csproj`, so a
   "showTeamReviewSection": true,
   "teamReviewCountsForTrayIcon": false,
   "teamReviewCountsForStatistics": false,
+  "teamReviewCountsAsReviewer": false,
   "showStackRelations": true,
   "stackBlockedCountsForTrayIcon": false,
   "laterExpanded": false,

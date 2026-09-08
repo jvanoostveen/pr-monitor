@@ -712,6 +712,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         var hidden = _settings.HiddenPrKeys;
         var showStacks = _settings.ShowStackRelations;
+        var teamCountsAsReviewer = _settings.TeamReviewCountsAsReviewer;
         var (chains, parentIsMine) = BuildStackContext(snapshot);
         var stacked = new List<PrItemViewModel>();
 
@@ -731,7 +732,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
             PrItemViewModel.From(pr, isAutoMerge: isAutoMerge, isMyPr: isMyPr, isHotfix: isHotfix, isTeamReview: isTeamReview,
                 isDependabot: isDependabot, isDraftSection: isDraftSection, snoozedUntilText: snoozedUntilText,
                 showStackRelations: showStacks, stackChainTooltip: chains.GetValueOrDefault(pr.Key, ""),
-                stackParentIsMine: parentIsMine.Contains(pr.Key));
+                stackParentIsMine: parentIsMine.Contains(pr.Key),
+                teamReviewCountsAsReviewer: teamCountsAsReviewer);
 
         // Stacked PRs are collected in their own section instead of their regular one.
         void Route(List<PrItemViewModel> section, PullRequestInfo pr, PrItemViewModel item)
@@ -799,7 +801,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 snoozedUntilText: FormatSnoozedUntil(_settings.SnoozedPrs.GetValueOrDefault(x.pr.Key, DateTimeOffset.MaxValue)),
                 showStackRelations: showStacks,
                 stackChainTooltip: chains.GetValueOrDefault(x.pr.Key, ""),
-                stackParentIsMine: parentIsMine.Contains(x.pr.Key)));
+                stackParentIsMine: parentIsMine.Contains(x.pr.Key),
+                teamReviewCountsAsReviewer: teamCountsAsReviewer));
         }
 
         var signature = BuildDisplaySignature(
@@ -1066,25 +1069,42 @@ public sealed class PrItemViewModel
     public bool HasAutoMerge { get; init; }
     public bool IsApproved { get; init; }
     public IReadOnlyList<string> ReviewerLogins { get; init; } = [];
+
+    /// <summary>Subset of <see cref="ReviewerLogins"/> that are team slugs rather than individual users.</summary>
+    public IReadOnlyList<string> TeamReviewerSlugs { get; init; } = [];
+
+    /// <summary>Whether a team review request alone satisfies the "has a reviewer" check.</summary>
+    public bool TeamReviewCountsAsReviewer { get; init; }
+
     public IReadOnlyDictionary<string, ReviewState> ReviewerStates { get; init; } = new Dictionary<string, ReviewState>();
-    public bool HasNonCopilotReviewer => ReviewerLogins.Count > 0;
+
+    /// <summary>
+    /// Reviewers that count towards the reviewer indicator. With CODEOWNERS every PR gets a team
+    /// request automatically, so teams are excluded unless <see cref="TeamReviewCountsAsReviewer"/> is set.
+    /// </summary>
+    public IReadOnlyList<string> EffectiveReviewerLogins =>
+        TeamReviewCountsAsReviewer || TeamReviewerSlugs.Count == 0
+            ? ReviewerLogins
+            : [.. ReviewerLogins.Where(l => !TeamReviewerSlugs.Contains(l, StringComparer.OrdinalIgnoreCase))];
+
+    public bool HasNonCopilotReviewer => EffectiveReviewerLogins.Count > 0;
     public bool IsOwnPr => IsMyPr || IsAutoMergePr || IsHotfixPr || IsDraftSectionPr;
     public bool ShowNoReviewerWarning => IsOwnPr && !HasNonCopilotReviewer;
     public string ReviewerTooltip => HasNonCopilotReviewer
-        ? string.Join(", ", ReviewerLogins)
+        ? string.Join(", ", EffectiveReviewerLogins)
         : "No reviewer assigned";
 
     /// <summary>Latest review state for a reviewer login; defaults to Pending when not yet recorded.</summary>
     public ReviewState StateOf(string login) => ReviewerStates.TryGetValue(login, out var s) ? s : ReviewState.Pending;
 
     /// <summary>Whether any assigned reviewer has requested changes.</summary>
-    public bool HasChangesRequested => ReviewerLogins.Any(l => StateOf(l) == ReviewState.ChangesRequested);
+    public bool HasChangesRequested => EffectiveReviewerLogins.Any(l => StateOf(l) == ReviewState.ChangesRequested);
 
     /// <summary>Whether at least one reviewer is assigned and none of them has responded yet.</summary>
-    public bool IsReviewPending => HasNonCopilotReviewer && ReviewerLogins.All(l => StateOf(l) == ReviewState.Pending);
+    public bool IsReviewPending => HasNonCopilotReviewer && EffectiveReviewerLogins.All(l => StateOf(l) == ReviewState.Pending);
 
     /// <summary>Whether any assigned reviewer's latest state is Commented (no approval/changes-requested decision).</summary>
-    public bool HasCommentedOnly => ReviewerLogins.Any(l => StateOf(l) == ReviewState.Commented);
+    public bool HasCommentedOnly => EffectiveReviewerLogins.Any(l => StateOf(l) == ReviewState.Commented);
 
     /// <summary>Show the changes-requested icon: highest-priority reviewer-state icon after unresolved comments.</summary>
     public bool ShowChangesRequestedIcon => IsOwnPr && !HasUnresolvedReviewComments && HasChangesRequested;
@@ -1112,9 +1132,14 @@ public sealed class PrItemViewModel
             if (HasConflicts)
                 parts.Add("Merge conflicts");
             if (IsOwnPr)
-                parts.Add(HasNonCopilotReviewer
-                    ? $"Reviewers: {string.Join(", ", ReviewerLogins.Select(l => $"{l} ({StateOf(l).ToDisplayString()})"))}"
-                    : "No reviewer assigned");
+            {
+                if (HasNonCopilotReviewer)
+                    parts.Add($"Reviewers: {string.Join(", ", EffectiveReviewerLogins.Select(l => $"{l} ({StateOf(l).ToDisplayString()})"))}");
+                else if (TeamReviewerSlugs.Count > 0)
+                    parts.Add($"No individual reviewer assigned (team: {string.Join(", ", TeamReviewerSlugs)})");
+                else
+                    parts.Add("No reviewer assigned");
+            }
             if (HasUnresolvedReviewComments)
                 parts.Add(UnresolvedReviewCommentsToolTip);
             if (ShowApprovedIcon)
@@ -1157,7 +1182,7 @@ public sealed class PrItemViewModel
         HasUnresolvedReviewComments, ShowChangesRequestedIcon, ShowNoReviewerWarning,
         ShowReviewPendingIcon, ShowCommentedIcon, ShowApprovedIcon, PrTooltip);
 
-    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "", bool showStackRelations = true, string stackChainTooltip = "", bool stackParentIsMine = false) => new()
+    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "", bool showStackRelations = true, string stackChainTooltip = "", bool stackParentIsMine = false, bool teamReviewCountsAsReviewer = false) => new()
     {
         Key = pr.Key,
         Repository = pr.Repository,
@@ -1189,6 +1214,8 @@ public sealed class PrItemViewModel
         HasAutoMerge = pr.HasAutoMerge,
         IsApproved = pr.IsApproved,
         ReviewerLogins = pr.ReviewerLogins,
+        TeamReviewerSlugs = pr.TeamReviewerSlugs,
+        TeamReviewCountsAsReviewer = teamReviewCountsAsReviewer,
         ReviewerStates = pr.ReviewerStates,
         CIIcon = pr.CIState switch
         {

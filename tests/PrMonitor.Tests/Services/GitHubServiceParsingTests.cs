@@ -237,6 +237,24 @@ public class GitHubServiceParsingTests
     }
 
     [Fact]
+    public void ParseTeamReviewerSlugs_OnlyReturnsTeams()
+    {
+        var json = BuildMyPrsJson(BuildPrNode(number: 12,
+            reviewers: [("platform-team", "Team"), ("alice", "User")]));
+        using var doc = JsonDocument.Parse(json);
+        var result = GitHubService.ParseMyPrs(doc.RootElement);
+
+        Assert.Equal(["platform-team"], result[0].TeamReviewerSlugs);
+    }
+
+    [Fact]
+    public void ParseTeamReviewerSlugs_NoReviewRequestsProperty_ReturnsEmpty()
+    {
+        using var doc = JsonDocument.Parse("{}");
+        Assert.Empty(GitHubService.ParseTeamReviewerSlugs(doc.RootElement));
+    }
+
+    [Fact]
     public void ParseReviewerLogins_NoReviewRequestsProperty_ReturnsEmpty()
     {
         using var doc = JsonDocument.Parse("{}");
