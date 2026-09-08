@@ -59,6 +59,9 @@ public sealed class PollingService : IDisposable
     // Key: "{prKey}:{headCommitSha}". Used to preserve conflict state when GitHub returns "UNKNOWN".
     private readonly Dictionary<string, bool> _conflictCache = new();
 
+    /// <summary>Number of consecutive polls that returned an entirely empty result set.</summary>
+    internal int _emptyPollStreak;
+
     private static readonly TimeSpan MemoryTrimInterval = TimeSpan.FromMinutes(10);
     private DateTimeOffset _lastMemoryTrim = DateTimeOffset.UtcNow;
 
@@ -95,7 +98,7 @@ public sealed class PollingService : IDisposable
     public event Action<string, string, string, string>? MentionDetected;
 
     /// <summary>The most recent snapshot (null before first poll).</summary>
-    public PollSnapshot? LatestSnapshot { get; private set; }
+    public PollSnapshot? LatestSnapshot { get; internal set; }
 
     // ── Lifecycle ───────────────────────────────────────────────────────
 
@@ -227,9 +230,6 @@ public sealed class PollingService : IDisposable
             }
 
             var allOpenPrKeys = allMyPrs.Select(p => p.Key).ToHashSet();
-            DetectAutoMergeChanges(autoMergePrs, allOpenPrKeys);
-            DetectReviewChanges(combinedReviewPrs);
-            DetectMyPrsChanges(myPrs.Concat(draftPrs).ToList());
 
             var snapshot = new PollSnapshot
             {
@@ -241,6 +241,20 @@ public sealed class PollingService : IDisposable
                 HotfixPrs              = hotfixPrs,
                 DependabotPrs          = dependabotPrs,
             };
+
+            // A poll that suddenly returns nothing at all is far more likely to be a partial
+            // API failure than every PR disappearing at once. Require a second confirming poll
+            // before publishing it, so the UI/notifications/statistics don't treat it as
+            // "everything merged" and then as "all new PRs" once the API recovers.
+            if (ShouldWithholdEmptySnapshot(snapshot))
+            {
+                _logger.Warn("PollingService: poll returned zero PRs while the previous poll had PRs — withholding until the next poll confirms it.");
+                return;
+            }
+
+            DetectAutoMergeChanges(autoMergePrs, allOpenPrKeys);
+            DetectReviewChanges(combinedReviewPrs);
+            DetectMyPrsChanges(myPrs.Concat(draftPrs).ToList());
 
             LatestSnapshot = snapshot;
             Polled?.Invoke(this, snapshot);
@@ -275,6 +289,31 @@ public sealed class PollingService : IDisposable
             MaybeTrimMemory();
             _pollLock.Release();
         }
+    }
+
+    internal static bool IsEmptySnapshot(PollSnapshot s) =>
+        s.AutoMergePrs.Count == 0
+        && s.MyPrs.Count == 0
+        && s.DraftPrs.Count == 0
+        && s.ReviewRequestedPrs.Count == 0
+        && s.TeamReviewRequestedPrs.Count == 0
+        && s.HotfixPrs.Count == 0
+        && s.DependabotPrs.Count == 0;
+
+    /// <summary>
+    /// True when an all-empty poll result should be discarded because the previous poll still
+    /// had PRs and no second poll has confirmed the emptiness yet.
+    /// </summary>
+    internal bool ShouldWithholdEmptySnapshot(PollSnapshot snapshot)
+    {
+        if (!IsEmptySnapshot(snapshot))
+        {
+            _emptyPollStreak = 0;
+            return false;
+        }
+
+        _emptyPollStreak++;
+        return LatestSnapshot is { } previous && !IsEmptySnapshot(previous) && _emptyPollStreak < 2;
     }
 
     internal static List<PullRequestInfo> FilterOwnedOrAssignedHotfixPrs(

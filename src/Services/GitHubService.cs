@@ -6,6 +6,16 @@ using PrMonitor.Models;
 namespace PrMonitor.Services;
 
 /// <summary>
+/// Thrown when a GitHub API call could not be completed. Callers must never interpret
+/// this as "there is no data".
+/// </summary>
+public sealed class GitHubApiException : Exception
+{
+    public GitHubApiException(string message) : base(message) { }
+    public GitHubApiException(string message, Exception inner) : base(message, inner) { }
+}
+
+/// <summary>
 /// Talks to the GitHub GraphQL API through the <c>gh</c> CLI.
 /// </summary>
 public sealed class GitHubService
@@ -263,9 +273,8 @@ public sealed class GitHubService
             for (int page = 0; page < MaxPages; page++)
             {
                 var json = await RunGraphQlAsync(MyPrsQuery, q, cursor);
-                if (json is not { } jsonValue) break;
-                allPrs.AddRange(ParseMyPrs(jsonValue));
-                if (!jsonValue.TryGetProperty("data", out var d) ||
+                allPrs.AddRange(ParseMyPrs(json));
+                if (!json.TryGetProperty("data", out var d) ||
                     !d.TryGetProperty("search", out var s) ||
                     !s.TryGetProperty("pageInfo", out var pi) ||
                     !pi.GetProperty("hasNextPage").GetBoolean()) break;
@@ -303,11 +312,10 @@ public sealed class GitHubService
             for (int page = 0; page < MaxPages; page++)
             {
                 var json = await RunGraphQlAsync(ReviewRequestedQuery, q, cursor);
-                if (json is not { } jsonValue) break;
                 allPrs.AddRange(
-                    ParseReviewPrs(jsonValue)
+                    ParseReviewPrs(json)
                         .Where(p => p.BaseRefName.StartsWith("release/", StringComparison.OrdinalIgnoreCase)));
-                if (!jsonValue.TryGetProperty("data", out var d) ||
+                if (!json.TryGetProperty("data", out var d) ||
                     !d.TryGetProperty("search", out var s) ||
                     !s.TryGetProperty("pageInfo", out var pi) ||
                     !pi.GetProperty("hasNextPage").GetBoolean()) break;
@@ -336,9 +344,8 @@ public sealed class GitHubService
             for (int page = 0; page < MaxPages; page++)
             {
                 var json = await RunGraphQlAsync(queryToUse, q, cursor);
-                if (json is not { } jsonValue) break;
-                allPrs.AddRange(ParseReviewPrs(jsonValue, currentUsername));
-                if (!jsonValue.TryGetProperty("data", out var d) ||
+                allPrs.AddRange(ParseReviewPrs(json, currentUsername));
+                if (!json.TryGetProperty("data", out var d) ||
                     !d.TryGetProperty("search", out var s) ||
                     !s.TryGetProperty("pageInfo", out var pi) ||
                     !pi.GetProperty("hasNextPage").GetBoolean()) break;
@@ -362,8 +369,7 @@ public sealed class GitHubService
         foreach (var q in queries)
         {
             var json = await RunGraphQlAsync(ReviewRequestedQuery, q);
-            if (json is not { } jsonValue) continue;
-            allPrs.AddRange(ParseReviewPrs(jsonValue));
+            allPrs.AddRange(ParseReviewPrs(json));
         }
 
         return allPrs.DistinctBy(p => p.Key).ToList();
@@ -911,40 +917,87 @@ public sealed class GitHubService
         return orgs.Select(org => $"{baseQuery} org:{org}").ToList();
     }
 
-    private async Task<JsonElement?> RunGraphQlAsync(string query, string searchString, string? cursor = null)
+    /// <summary>Number of attempts for a single GraphQL page before the poll is failed.</summary>
+    private const int GraphQlMaxAttempts = 3;
+
+    private static readonly TimeSpan[] GraphQlRetryDelays =
+    [
+        TimeSpan.FromSeconds(2),
+        TimeSpan.FromSeconds(5),
+    ];
+
+    /// <summary>
+    /// Runs a GraphQL search query. Always either returns a usable response or throws
+    /// <see cref="GitHubApiException"/> — never a silently empty result, because callers
+    /// cannot distinguish "no PRs" from "the call failed".
+    /// </summary>
+    private async Task<JsonElement> RunGraphQlAsync(string query, string searchString, string? cursor = null)
     {
         var ghArgs = cursor is null
             ? new[] { "api", "graphql", "-f", $"query={query}", "-f", $"q={searchString}" }
             : new[] { "api", "graphql", "-f", $"query={query}", "-f", $"q={searchString}", "-f", $"cursor={cursor}" };
+
+        for (int attempt = 1; ; attempt++)
+        {
+            bool lastAttempt = attempt >= GraphQlMaxAttempts;
+            try
+            {
+                return await RunGraphQlOnceAsync(ghArgs, searchString);
+            }
+            catch (GitHubApiException ex) when (!lastAttempt)
+            {
+                _logger.Warn($"GitHubService GraphQL attempt {attempt}/{GraphQlMaxAttempts} failed for query '{searchString}': {ex.Message}");
+            }
+
+            await Task.Delay(GraphQlRetryDelays[Math.Min(attempt - 1, GraphQlRetryDelays.Length - 1)]);
+        }
+    }
+
+    private async Task<JsonElement> RunGraphQlOnceAsync(string[] ghArgs, string searchString)
+    {
         var (output, stderr, exitCode) = await RunGhAsync(ghArgs);
         if (exitCode != 0)
-        {
-            _logger.Error($"GitHubService GraphQL call failed (exit={exitCode}) for query '{searchString}'. stderr: {stderr?.Trim()}");
-            throw new InvalidOperationException($"gh api graphql failed (exit={exitCode}): {stderr?.Trim()}");
-        }
+            throw new GitHubApiException($"gh api graphql failed (exit={exitCode}) for query '{searchString}': {stderr?.Trim()}");
 
         if (string.IsNullOrWhiteSpace(output))
-        {
-            _logger.Warn($"GitHubService GraphQL call returned empty output for query '{searchString}'.");
-            return null;
-        }
+            throw new GitHubApiException($"gh api graphql returned empty output for query '{searchString}'.");
 
+        JsonElement root;
         try
         {
             using var doc = JsonDocument.Parse(output);
-            if (doc.RootElement.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Array)
-            {
-                _logger.Warn($"GitHubService GraphQL response contains errors for query '{searchString}': {errors}");
-            }
             // Clone so we can dispose the document
-            return doc.RootElement.Clone();
+            root = doc.RootElement.Clone();
         }
         catch (JsonException ex)
         {
-            _logger.Error($"GitHubService JSON parse failed for GraphQL query '{searchString}'.", ex);
-            return null;
+            throw new GitHubApiException($"gh api graphql returned unparseable JSON for query '{searchString}'.", ex);
         }
+
+        if (root.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Array)
+        {
+            // A partial response still carries usable data; a fully failed one (rate limit,
+            // outage) does not — and must never be treated as "this user has no PRs".
+            if (!HasSearchNodes(root))
+                throw new GitHubApiException($"gh api graphql returned errors without data for query '{searchString}': {errors}");
+
+            _logger.Warn($"GitHubService GraphQL response contains errors for query '{searchString}': {errors}");
+        }
+        else if (!HasSearchNodes(root))
+        {
+            throw new GitHubApiException($"gh api graphql response is missing data.search.nodes for query '{searchString}'.");
+        }
+
+        return root;
     }
+
+    private static bool HasSearchNodes(JsonElement root) =>
+        root.TryGetProperty("data", out var data)
+        && data.ValueKind == JsonValueKind.Object
+        && data.TryGetProperty("search", out var search)
+        && search.ValueKind == JsonValueKind.Object
+        && search.TryGetProperty("nodes", out var nodes)
+        && nodes.ValueKind == JsonValueKind.Array;
 
     internal static List<PullRequestInfo> ParseMyPrs(JsonElement root)
     {

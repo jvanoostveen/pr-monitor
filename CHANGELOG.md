@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Settings → Statistics** now includes a "Count team review requests in statistics" toggle (off by default). Team review requests no longer inflate the "Reviews requested" / "Reviews completed" statistics unless explicitly enabled.
 
 ### Fixed
+- **PR Monitor no longer shows "no PRs" when a GitHub call actually failed.** Previously, a GraphQL page that returned empty output, unparseable JSON, or errors without data was silently treated as "zero PRs", so the list emptied out, "PR merged/closed" notifications fired, statistics counted phantom merges, and every PR reappeared as new once the API recovered. Failed GraphQL calls are now retried up to three times and otherwise abort the whole poll, leaving the previous PR list intact and showing the offline indicator. In addition, a poll that returns zero PRs while the previous poll had PRs is withheld until a second poll confirms it, and the playful empty-state overlay is no longer shown while offline.
+- The refresh spinner no longer keeps spinning when a manual refresh fails.
+- Network failures while contacting the flakiness-analysis model API are now logged as a warning instead of a full error stack trace.
 - The in-app "What's new?" changelog dialog no longer fails silently and fall back to opening a browser: `ChangelogWindow`'s `TextBox` binding required an explicit `Mode=OneWay` because its bound property is read-only (WPF's `TextBox.Text` binds two-way by default). The dialog's header now spans the full window width above the content instead of squeezing it into a narrow left column.
 - **"What's new?" and manual update checks now link to the relevant `CHANGELOG.md` section on GitHub** instead of the release page (whose own "Full changelog" link pointed to a raw commit-compare view).
 

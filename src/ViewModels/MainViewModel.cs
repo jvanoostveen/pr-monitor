@@ -135,7 +135,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
  HotfixCount + AutoMergeCount + ReviewCount + TeamReviewCount + MyPrsCount + DependabotCount + DraftPrsCount + StackedCount + HiddenCount;
 
     /// <summary>True once loaded and there is truly nothing anywhere (incl. Later) — drives the playful empty-state overlay.</summary>
-    public bool IsEmptyState => HasLoadedOnce && TotalPrCount == 0;
+    public bool IsEmptyState => HasLoadedOnce && !IsOffline && TotalPrCount == 0;
 
     private static readonly string[] EmptyStateHeadlines =
     [
@@ -179,7 +179,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public bool IsOffline
     {
         get => _isOffline;
-        private set => SetField(ref _isOffline, value);
+        private set
+        {
+            if (_isOffline == value) return;
+            _isOffline = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsEmptyState));
+        }
     }
 
     private bool _updateAvailable;
@@ -558,7 +564,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
             });
         };
         polling.PollFailed += ex =>
-            System.Windows.Application.Current?.Dispatcher.Invoke(() => IsOffline = true);
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+            {
+                IsOffline = true;
+                IsRefreshing = false;
+            });
     }
 
     public void RefreshFromSnapshot(PollSnapshot snapshot)
@@ -576,7 +586,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (_polling is null || IsRefreshing) return;
         IsRefreshing = true;
-        await _polling.RefreshAsync();
+        try
+        {
+            await _polling.RefreshAsync();
+        }
+        finally
+        {
+            // Also covers polls that completed without publishing a snapshot.
+            IsRefreshing = false;
+        }
     }
 
     public void OpenMyPrsInBrowser() =>

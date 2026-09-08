@@ -117,6 +117,12 @@ public sealed class CopilotService
 
             return ParseResponse(responseBody);
         }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            // Transient connectivity problem — not actionable, so keep it out of the error log.
+            _logger.Warn($"CopilotService.AnalyzeFlakiness: could not reach the model API — {ex.Message}");
+            return Fallback("Could not reach the model API.");
+        }
         catch (Exception ex)
         {
             _logger.Error("CopilotService.AnalyzeFlakiness failed.", ex);
