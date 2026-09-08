@@ -158,11 +158,16 @@ public sealed class PollingService : IDisposable
             // This avoids showing release PRs where I was merely involved (e.g. reviewed/commented).
             hotfixPrs = FilterOwnedOrAssignedHotfixPrs(hotfixPrs, myPrKeys, assignedPrKeys);
 
-            // Exclude hotfix PRs (release/* targets) from My PRs and Auto-Merge PRs to avoid duplication
+            // Exclude hotfix PRs (release/* targets) from every other section to avoid duplication.
+            // Hotfix PRs can be cherry-picked by a tool (so the "author" isn't really me) and still
+            // show up as awaiting-my-review or assigned-to-me, which must not create a duplicate row.
             var hotfixKeys   = hotfixPrs.Select(p => p.Key).ToHashSet();
             var autoMergePrs = allMyPrs.Where(p => p.HasAutoMerge && !hotfixKeys.Contains(p.Key)).ToList();
             var myPrs        = allMyPrs.Where(p => !p.HasAutoMerge && !hotfixKeys.Contains(p.Key) && !p.IsDraft).ToList();
             var draftPrs     = allMyPrs.Where(p => !p.HasAutoMerge && !hotfixKeys.Contains(p.Key) && p.IsDraft).ToList();
+
+            reviewPrs   = reviewPrs.Where(p => !hotfixKeys.Contains(p.Key)).ToList();
+            assignedPrs = assignedPrs.Where(p => !hotfixKeys.Contains(p.Key)).ToList();
 
             // Split review PRs into direct-user requests and team-only requests
             var directReviewPrs = reviewPrs.Where(p => !p.IsTeamReviewRequested).ToList();
