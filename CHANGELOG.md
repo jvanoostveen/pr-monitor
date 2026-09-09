@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.13.2] - 2026-09-09
-
 ### Added
 - **Settings → Sections → "Team review request counts as an assigned reviewer"** (off by default). With CODEOWNERS a team is requested as reviewer automatically on every PR, which previously made own PRs look like they already had a reviewer. Team requests now no longer clear the "no reviewer assigned" warning — only an individual reviewer does. The PR tooltip shows `No individual reviewer assigned (team: …)` in that case. Enable the setting to restore the old behaviour.
 
@@ -16,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The **"What's new?"** changelog link in the update banner is now visible before, during, and after downloading an update, instead of only before and after. It was previously hidden while the download progress bar was showing.
 
 ### Fixed
+- **PRs parked in Later (or hidden) no longer produce toast notifications.** Snoozed and manually hidden PRs are invisible in the window but were still generating "CI failed", "review requested" and "PR merged/closed" toasts, and could still trigger flakiness analysis. Both now skip hidden PRs entirely.
+- **The PR list no longer flips between full and empty.** GitHub's search API intermittently answers a perfectly valid request with zero hits (`gh` exits 0, the JSON is well-formed, the result set is simply empty), which emptied out a whole section for one poll and then filled it again — producing a burst of "merged/closed" toasts followed by "new PR" toasts two minutes later. Any section that drops from at least one PR to zero in a single poll is now withheld until a second poll confirms it; the previous list stays on screen and no notifications or statistics are recorded in the meantime. This replaces the narrower guard that only covered a poll where *every* section was empty at once.
 - Hotfix PRs (assigned to you but not authored by you — e.g. cherry-picked by a tool) no longer show up as a duplicate row in "Awaiting My Review". They now appear exclusively in the Hotfixes section, matching the existing behaviour for My Auto-Merge PRs/My PRs.
 - **"Rerun failed jobs" incorrectly reported "No failed workflow runs were found"** for PRs whose CI indicator showed red. The action only matched workflow runs with conclusion `failure`, while GitHub's aggregated CI status (which drives the red indicator) also turns failure-red for runs that ended as `cancelled`, `timed_out`, `action_required`, or `startup_failure`. Those conclusions are now included when looking up runs to rerun.
 - The confusing "Update ready — click the banner to restart" toast notification no longer appears after an update finishes downloading. The banner itself already switches to the restart prompt, which is sufficient.

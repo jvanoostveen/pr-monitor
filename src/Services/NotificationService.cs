@@ -64,6 +64,10 @@ public sealed class NotificationService : IDisposable
         // buffer is capped to keep a run of failing polls from retaining PR objects indefinitely.
         polling.PrChanged += (_, e) =>
         {
+            // PRs parked in Later or hidden manually must never produce a toast.
+            if (_settings.HiddenPrKeys.Contains(e.PullRequest.Key))
+                return;
+
             if (_pending.Count >= MaxPendingNotifications)
                 _pending.RemoveAt(0);
             _pending.Add(e);

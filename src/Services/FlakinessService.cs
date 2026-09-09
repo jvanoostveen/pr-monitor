@@ -54,6 +54,7 @@ public sealed class FlakinessService
             if (e.Kind == PrChangeKind.CIStatusChanged
                 && e.PullRequest.CIState == CIState.Failure
                 && !e.PullRequest.IsDraft
+                && !_settings.HiddenPrKeys.Contains(e.PullRequest.Key)
                 && string.Equals(e.PullRequest.Author, _settings.GitHubUsername, StringComparison.OrdinalIgnoreCase))
             {
                 _ = HandleCIFailureAsync(e.PullRequest);

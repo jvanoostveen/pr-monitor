@@ -59,8 +59,8 @@ public sealed class PollingService : IDisposable
     // Key: "{prKey}:{headCommitSha}". Used to preserve conflict state when GitHub returns "UNKNOWN".
     private readonly Dictionary<string, bool> _conflictCache = new();
 
-    /// <summary>Number of consecutive polls that returned an entirely empty result set.</summary>
-    internal int _emptyPollStreak;
+    /// <summary>Number of consecutive polls withheld because a section emptied out.</summary>
+    internal int _withheldPollStreak;
 
     private static readonly TimeSpan MemoryTrimInterval = TimeSpan.FromMinutes(10);
     private DateTimeOffset _lastMemoryTrim = DateTimeOffset.UtcNow;
@@ -247,13 +247,13 @@ public sealed class PollingService : IDisposable
                 DependabotPrs          = dependabotPrs,
             };
 
-            // A poll that suddenly returns nothing at all is far more likely to be a partial
-            // API failure than every PR disappearing at once. Require a second confirming poll
-            // before publishing it, so the UI/notifications/statistics don't treat it as
-            // "everything merged" and then as "all new PRs" once the API recovers.
-            if (ShouldWithholdEmptySnapshot(snapshot))
+            // A section that empties out completely from one poll to the next is far more often a
+            // transient GitHub search glitch (exit 0, valid JSON, zero hits) than every PR in it
+            // disappearing at once. Require a second confirming poll before publishing, so the UI
+            // doesn't flip and notifications/statistics don't fire "merged" followed by "new".
+            if (ShouldWithholdSnapshot(snapshot, out var emptied))
             {
-                _logger.Warn("PollingService: poll returned zero PRs while the previous poll had PRs — withholding until the next poll confirms it.");
+                _logger.Warn($"PollingService: section(s) {emptied} emptied out in one poll — withholding until the next poll confirms it.");
                 return;
             }
 
@@ -296,29 +296,50 @@ public sealed class PollingService : IDisposable
         }
     }
 
-    internal static bool IsEmptySnapshot(PollSnapshot s) =>
-        s.AutoMergePrs.Count == 0
-        && s.MyPrs.Count == 0
-        && s.DraftPrs.Count == 0
-        && s.ReviewRequestedPrs.Count == 0
-        && s.TeamReviewRequestedPrs.Count == 0
-        && s.HotfixPrs.Count == 0
-        && s.DependabotPrs.Count == 0;
+    /// <summary>
+    /// Names of the sections that went from at least one PR to zero between two snapshots.
+    /// </summary>
+    internal static List<string> EmptiedSections(PollSnapshot previous, PollSnapshot current)
+    {
+        var emptied = new List<string>();
+        Check("Auto-merge", previous.AutoMergePrs, current.AutoMergePrs);
+        Check("My PRs", previous.MyPrs, current.MyPrs);
+        Check("Drafts", previous.DraftPrs, current.DraftPrs);
+        Check("Awaiting my review", previous.ReviewRequestedPrs, current.ReviewRequestedPrs);
+        Check("Team review", previous.TeamReviewRequestedPrs, current.TeamReviewRequestedPrs);
+        Check("Hotfixes", previous.HotfixPrs, current.HotfixPrs);
+        Check("Dependabot", previous.DependabotPrs, current.DependabotPrs);
+        return emptied;
+
+        void Check(string name, IReadOnlyList<PullRequestInfo> before, IReadOnlyList<PullRequestInfo> after)
+        {
+            if (before.Count > 0 && after.Count == 0) emptied.Add(name);
+        }
+    }
 
     /// <summary>
-    /// True when an all-empty poll result should be discarded because the previous poll still
-    /// had PRs and no second poll has confirmed the emptiness yet.
+    /// True when the poll result should be discarded because a section emptied out and no
+    /// second poll has confirmed it yet.
     /// </summary>
-    internal bool ShouldWithholdEmptySnapshot(PollSnapshot snapshot)
+    internal bool ShouldWithholdSnapshot(PollSnapshot snapshot, out string emptiedSections)
     {
-        if (!IsEmptySnapshot(snapshot))
+        emptiedSections = "";
+        if (LatestSnapshot is not { } previous)
         {
-            _emptyPollStreak = 0;
+            _withheldPollStreak = 0;
             return false;
         }
 
-        _emptyPollStreak++;
-        return LatestSnapshot is { } previous && !IsEmptySnapshot(previous) && _emptyPollStreak < 2;
+        var emptied = EmptiedSections(previous, snapshot);
+        if (emptied.Count == 0)
+        {
+            _withheldPollStreak = 0;
+            return false;
+        }
+
+        emptiedSections = string.Join(", ", emptied);
+        _withheldPollStreak++;
+        return _withheldPollStreak < 2;
     }
 
     internal static List<PullRequestInfo> FilterOwnedOrAssignedHotfixPrs(
