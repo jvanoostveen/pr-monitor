@@ -663,7 +663,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 IsDownloadingUpdate = false;
                 UpdateReadyToInstall = true;
             });
-            _notificationService.Notify("Update ready", $"PR Monitor v{LatestVersion} downloaded — click the banner to restart.");
         }
         catch (OperationCanceledException)
         {

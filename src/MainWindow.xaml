@@ -1428,18 +1428,7 @@
                                 <TextBlock Text="  What's new?"
                                            FontSize="10" Foreground="#3FB950" Opacity="0.65"
                                            Cursor="Hand" VerticalAlignment="Center"
-                                           MouseLeftButtonUp="WhatsNew_Click">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsDownloadingUpdate}" Value="False">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
+                                           MouseLeftButtonUp="WhatsNew_Click"/>
                             </StackPanel>
                             <!-- Thin download progress bar -->
                             <ProgressBar Value="{Binding DownloadProgress, Mode=OneWay}" Maximum="100"

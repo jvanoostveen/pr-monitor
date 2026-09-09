@@ -465,15 +465,24 @@ public sealed class GitHubService
     }
 
     /// <summary>
+    /// Conclusions that GitHub's statusCheckRollup treats as a failing result (drives CIState.Failure),
+    /// beyond the literal "failure" conclusion — a run stuck at one of these looks failed in the UI
+    /// but was previously invisible to "Rerun failed jobs" because only "failure" was matched.
+    /// </summary>
+    private static readonly string[] FailingRunConclusions =
+        ["failure", "cancelled", "timed_out", "action_required", "startup_failure"];
+
+    /// <summary>
     /// Returns the IDs of failed GitHub Actions workflow runs for the given commit SHA.
     /// </summary>
     public async Task<IReadOnlyList<long>> FetchFailedRunIdsAsync(string owner, string repo, string headSha)
     {
         if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo") || !ValidateSha(headSha))
             return [];
+        var jqSelect = string.Join(" or ", FailingRunConclusions.Select(c => $".conclusion==\"{c}\""));
         var (output, stderr, exitCode) = await RunGhAsync(
             "api", $"repos/{owner}/{repo}/actions/runs?head_sha={headSha}",
-            "--jq", ".workflow_runs[] | select(.conclusion==\"failure\") | .id");
+            "--jq", $".workflow_runs[] | select({jqSelect}) | .id");
         if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
         {
             if (exitCode != 0)

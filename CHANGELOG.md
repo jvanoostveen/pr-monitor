@@ -10,8 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Settings → Sections → "Team review request counts as an assigned reviewer"** (off by default). With CODEOWNERS a team is requested as reviewer automatically on every PR, which previously made own PRs look like they already had a reviewer. Team requests now no longer clear the "no reviewer assigned" warning — only an individual reviewer does. The PR tooltip shows `No individual reviewer assigned (team: …)` in that case. Enable the setting to restore the old behaviour.
 
+### Changed
+- The **"What's new?"** changelog link in the update banner is now visible before, during, and after downloading an update, instead of only before and after. It was previously hidden while the download progress bar was showing.
+
 ### Fixed
 - Hotfix PRs (assigned to you but not authored by you — e.g. cherry-picked by a tool) no longer show up as a duplicate row in "Awaiting My Review". They now appear exclusively in the Hotfixes section, matching the existing behaviour for My Auto-Merge PRs/My PRs.
+- The confusing "Update ready — click the banner to restart" toast notification no longer appears after an update finishes downloading. The banner itself already switches to the restart prompt, which is sufficient.
 
 ## [1.13.1] - 2026-09-08
 
