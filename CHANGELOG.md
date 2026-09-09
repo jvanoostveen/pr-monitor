@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Hotfix PRs (assigned to you but not authored by you — e.g. cherry-picked by a tool) no longer show up as a duplicate row in "Awaiting My Review". They now appear exclusively in the Hotfixes section, matching the existing behaviour for My Auto-Merge PRs/My PRs.
+- **"Rerun failed jobs" incorrectly reported "No failed workflow runs were found"** for PRs whose CI indicator showed red. The action only matched workflow runs with conclusion `failure`, while GitHub's aggregated CI status (which drives the red indicator) also turns failure-red for runs that ended as `cancelled`, `timed_out`, `action_required`, or `startup_failure`. Those conclusions are now included when looking up runs to rerun.
 - The confusing "Update ready — click the banner to restart" toast notification no longer appears after an update finishes downloading. The banner itself already switches to the restart prompt, which is sufficient.
 
 ## [1.13.1] - 2026-09-08
