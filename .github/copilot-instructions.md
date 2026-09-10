@@ -129,6 +129,11 @@ After completing any user-facing change, update **both**:
 - `README.md` — reflect new sections, behaviours, or settings in the feature table and prose
 - `.github/copilot-instructions.md` — update architecture notes, settings schema, and section descriptions to match the current state of the code
 
+When the **agent workflow or repository conventions** change (not the architecture), also update
+`CLAUDE.md` and `AGENTS.md`, which carry their own copies of the mandatory workflow for Claude Code
+and other agents. Architecture details stay only in this file — the other two link here instead of
+duplicating it.
+
 For **every commit that touches `src/`**, also update `CHANGELOG.md`:
 - Add an entry under `[Unreleased]` in the appropriate Keep a Changelog category (`Added`, `Changed`, `Fixed`, etc.).
 - This is **mandatory**, not optional — even for small bug fixes or cosmetic changes.

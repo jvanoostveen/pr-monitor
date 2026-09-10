@@ -1,6 +1,7 @@
 # PR Monitor — Agent Guide
 
-> Detailed instructions for GitHub Copilot are in [.github/copilot-instructions.md](.github/copilot-instructions.md).  
+> Detailed architecture notes are in [.github/copilot-instructions.md](.github/copilot-instructions.md).  
+> Claude Code loads [CLAUDE.md](CLAUDE.md) — the workflow it must follow lives there.  
 > This file is a quick-reference for other agents (e.g. Codex) that look for AGENTS.md.
 
 ## What this project is
@@ -31,6 +32,7 @@ Always stop the running instance before building. The app is single-instance (mu
 src/          C# source — App, MainWindow, Models, Services, ViewModels, Views, Converters
 tests/        xUnit test project (PrMonitor.Tests)
 .github/      copilot-instructions.md (full architecture notes) + workflow YAML files
+CLAUDE.md     Workflow + conventions for Claude Code (auto-loaded)
 CHANGELOG.md  Keep a Changelog format — update [Unreleased] on every src/ change
 README.md     User-facing documentation
 ```
