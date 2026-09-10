@@ -734,7 +734,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 stackParentIsMine: parentIsMine.Contains(pr.Key),
                 teamReviewCountsAsReviewer: teamCountsAsReviewer);
 
-        // Stacked PRs are collected in their own section instead of their regular one.
+        // Stacked PRs are collected in their own section instead of their regular one — but only
+        // when that section carries no review claim on you. Moving a PR you were asked to review
+        // (directly, via a team, or as hotfix assignee) into Stacks would misstate why it is listed,
+        // so those sections keep their stacked PRs and group them inline instead.
         void Route(List<PrItemViewModel> section, PullRequestInfo pr, PrItemViewModel item)
         {
             if (showStacks && pr.IsStacked) stacked.Add(item);
@@ -756,13 +759,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         foreach (var pr in snapshot.ReviewRequestedPrs)
         {
             if (!hidden.Contains(pr.Key))
-                Route(review, pr, Make(pr));
+                review.Add(Make(pr));
         }
 
         foreach (var pr in snapshot.TeamReviewRequestedPrs)
         {
             if (!hidden.Contains(pr.Key))
-                Route(teamReview, pr, Make(pr, isTeamReview: true));
+                teamReview.Add(Make(pr, isTeamReview: true));
         }
 
         foreach (var pr in snapshot.DependabotPrs)
@@ -774,7 +777,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         foreach (var pr in snapshot.HotfixPrs)
         {
             if (!hidden.Contains(pr.Key))
-                Route(hotfix, pr, Make(pr, isHotfix: true));
+                hotfix.Add(Make(pr, isHotfix: true));
         }
 
         foreach (var pr in snapshot.DraftPrs)
@@ -784,6 +787,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
 
         var orderedStacked = OrderStackSection(stacked).ToList();
+
+        // Sections that kept their stacked PRs show them grouped and indented in place.
+        if (showStacks)
+        {
+            hotfix = ApplyInlineStackGrouping(hotfix);
+            review = ApplyInlineStackGrouping(review);
+            teamReview = ApplyInlineStackGrouping(teamReview);
+        }
 
         // Rebuild hidden list from all PRs in this snapshot
         foreach (var x in snapshot.AutoMergePrs.Select(p => (pr: p, isAm: true, isMyPr: false, isHotfix: false, isTeamReview: false, isDependabot: false, isDraftSection: false))
@@ -943,6 +954,46 @@ public sealed class MainViewModel : INotifyPropertyChanged
         return ordered;
     }
 
+    /// <summary>
+    /// Groups stacked PRs inside a section that keeps them: a stack's members move together to
+    /// where its first member already sat, bottom PR first, with every row but that first one
+    /// indented one level. Rows that are not part of a stack keep their position and stay flush.
+    /// </summary>
+    internal static List<PrItemViewModel> ApplyInlineStackGrouping(IReadOnlyList<PrItemViewModel> items)
+    {
+        // A stack's anchor is the position of its first member; unstacked rows anchor to themselves.
+        var anchors = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var positioned = new List<(PrItemViewModel Item, int Anchor)>(items.Count);
+        for (var i = 0; i < items.Count; i++)
+        {
+            var item = items[i];
+            var groupKey = item.IsStacked ? item.StackRootKey : item.Key;
+            if (!anchors.TryGetValue(groupKey, out var anchor))
+                anchors[groupKey] = anchor = i;
+            positioned.Add((item, anchor));
+        }
+
+        var ordered = positioned
+            .OrderBy(p => p.Anchor)
+            .ThenBy(p => p.Item.StackDepth)
+            .ThenBy(p => p.Item.Number)
+            .Select(p => p.Item)
+            .ToList();
+
+        string? previousRoot = null;
+        foreach (var item in ordered)
+        {
+            var root = item.IsStacked ? item.StackRootKey : null;
+            item.IsStackGroupStart = root is null
+                || previousRoot is null
+                || !previousRoot.Equals(root, StringComparison.OrdinalIgnoreCase);
+            // No separator lines: unlike the Stacks section these rows sit between unrelated PRs.
+            item.ShowStackGroupSeparator = false;
+            previousRoot = root;
+        }
+        return ordered;
+    }
+
     private void ShowStartupSummary()
     {
         var parts = new List<string>();
@@ -1034,8 +1085,8 @@ public sealed class PrItemViewModel
     /// <summary>True for the topmost visible row of a stack group in the Stacks section.</summary>
     public bool IsStackGroupStart { get; internal set; }
 
-    /// <summary>Row margin in the Stacks section: every row but the group's first is indented one level.</summary>
-    public Thickness StackIndentMargin => new(IsStackGroupStart ? 0 : 14, 2, 0, 2);
+    /// <summary>Row margin for a grouped stack: every row but the group's first is indented one level.</summary>
+    public Thickness StackIndentMargin => new(ShowStackIndicator && !IsStackGroupStart ? 14 : 0, 2, 0, 2);
 
     /// <summary>Whether stack grouping/indentation is enabled in settings.</summary>
     public bool ShowStackRelations { get; init; } = true;

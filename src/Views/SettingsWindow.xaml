@@ -409,7 +409,7 @@
                         <CheckBox IsChecked="{Binding ShowStackRelations}"
                                   Content="Show stacked PRs in a separate Stacks section"/>
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,4,0,0" TextWrapping="Wrap"
-                                   Text="A PR is stacked when its base branch is another open PR&#x2019;s head branch. Stacked PRs are moved out of their regular section into one Stacks section, bottom PR first, regardless of who authored them."/>
+                                   Text="A PR is stacked when its base branch is another open PR&#x2019;s head branch. Stacked PRs are moved out of their regular section into one Stacks section, bottom PR first, regardless of who authored them &#x2014; except in Hotfixes, Awaiting My Review and Team Review Requests, which keep their stacked PRs and group them in place."/>
                         <CheckBox Margin="24,10,0,0"
                                   IsChecked="{Binding StackBlockedCountsForTrayIcon}"
                                   Content="Count stack-blocked PRs in tray icon status"

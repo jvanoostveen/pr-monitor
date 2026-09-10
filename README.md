@@ -17,14 +17,18 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 | **Dependabot** | Dependabot PRs awaiting your review (collapsed by default) |
 | **Team Review Requests** | PRs where a review was requested from a team you belong to (collapsed by default; can be disabled in Settings) |
 | **My Draft PRs** | Your own draft PRs (collapsed by default) |
-| **Stacks** | PRs that are part of a stack, grouped per stack (see below) |
+| **Stacks** | Stacked PRs with no review claim on you — your own PRs, auto-merge, drafts, Dependabot — grouped per stack (see below) |
 | **Later** | PRs you've snoozed with "Move to later" |
 
 Each PR row keeps its CI status circle and also shows a message icon when unresolved review comments exist; hovering the icon shows the unresolved comment count.
 
 ### Stacked PRs
 
-PRs created as a [stack](https://github.github.com/gh-stack/) — where a PR's base branch is another open PR's head branch — are detected automatically from the polled data (no extra API calls). They are moved out of their regular section into a dedicated **Stacks** section, grouped per stack with the bottom PR first, a thin separator between stacks and every row but each stack's first indented one level, regardless of who authored them. The repository line shows a `· stack 2/3 · waits on #8632 (you)` badge, and the tooltip lists the whole chain with each member's number, author and status (`▸` marks the PR you're hovering).
+PRs created as a [stack](https://github.github.com/gh-stack/) — where a PR's base branch is another open PR's head branch — are detected automatically from the polled data (no extra API calls). They are moved out of their regular section into a dedicated **Stacks** section, grouped per stack with the bottom PR first, a thin separator between stacks and every row but each stack's first indented one level, regardless of who authored them.
+
+Being stacked never outranks *why* a PR is listed: **Hotfixes**, **Awaiting My Review** and **Team Review Requests** keep their stacked PRs, so a review that was only requested from one of your teams never ends up looking like a direct request. Inside those sections a stack's members are pulled together to where its bottom PR already sat, bottom PR first, with every row but that first one indented one level (no separator line, since those rows sit between unrelated PRs). Only stacked PRs with no review claim on you — your own PRs, auto-merge PRs, drafts and Dependabot — move to the **Stacks** section.
+
+The repository line shows a `· stack 2/3 · waits on #8632 (you)` badge, and the tooltip lists the whole chain with each member's number, author and status (`▸` marks the PR you're hovering).
 
 A stacked PR keeps its own CI colour, so a PR that is green but still waiting on the PR below it stays green. Right-clicking such a PR offers **Open parent PR** and **Open whole stack**.
 

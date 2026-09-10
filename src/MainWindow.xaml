@@ -393,6 +393,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border Style="{StaticResource PrRow}"
+                                                Margin="{Binding StackIndentMargin}"
                                                 MouseLeftButtonUp="PrItem_Click"
                                                 ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
@@ -629,6 +630,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border Style="{StaticResource PrRow}"
+                                                Margin="{Binding StackIndentMargin}"
                                                 MouseLeftButtonUp="PrItem_Click"
                                                 ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
@@ -1036,6 +1038,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border Style="{StaticResource PrRow}"
+                                                Margin="{Binding StackIndentMargin}"
                                                 MouseLeftButtonUp="PrItem_Click"
                                                 ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
