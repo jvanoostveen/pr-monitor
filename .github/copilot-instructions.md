@@ -134,3 +134,6 @@ single-instance (mutex `PrMonitor_SingleInstance`); a second launch shows a mess
 | [CLAUDE.md](../CLAUDE.md) | Same workflow, for Claude Code |
 | [AGENTS.md](../AGENTS.md) | Short guide for other agents (Codex etc.) |
 | [CHANGELOG.md](../CHANGELOG.md) | Version history |
+
+Note: Claude Code additionally enforces steps 2-5 with hooks in `.claude/` (see `CLAUDE.md` section 7).
+Copilot has no equivalent, so the steps above must be executed deliberately.

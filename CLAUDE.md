@@ -156,3 +156,24 @@ generation, or animations.
 3. Update `README.md` only if release packaging or version-related behaviour changed.
 4. Run build + tests (section 1, step 2).
 5. Commit version bump and changelog together.
+
+---
+
+## 7. Enforcement — these steps are hooked, not just documented
+
+`.claude/settings.json` wires three hooks (scripts in `.claude/hooks/`, PowerShell). They exist
+because the steps above were being skipped. If one blocks you, satisfy the condition — do not work
+around it.
+
+| Hook | Event | What it does |
+|---|---|---|
+| `pre-tool.ps1` | PreToolUse (Bash/PowerShell) | Stops a running PrMonitor before `dotnet build`/`dotnet test`. Denies a `git commit` that touches `src/` when `CHANGELOG.md` is not in the commit, or when no passing `dotnet test` has been recorded since the newest `src/` edit. |
+| `mark-tests-passed.ps1` | PostToolUse (Bash/PowerShell) | After a successful `dotnet test`, writes `.claude/.last-test-pass`. This marker is what the commit gate checks, so **tests must be run through the tool**, not assumed. |
+| `gate-stop.ps1` | Stop | Refuses to end the turn while `src/` changes are uncommitted, or when HEAD touched `src/` but the app is not running again (step 5 skipped). Blocks at most 3 times, then releases with a warning. |
+
+Notes:
+- The commit gate reads `git status --porcelain`, so it covers `git commit -a` as well as staged commits.
+- Docs-only commits pass untouched — the gate only engages when a path under `src/` changed.
+- **Escape hatch**: if the user explicitly asked you not to commit, create
+  `.claude/.skip-workflow-gate` and say so in your reply. Delete it when the exception no longer applies.
+- Marker and counter files are gitignored; `.claude/settings.json` and `.claude/hooks/` are committed.

@@ -30,3 +30,9 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 .DS_Store
+
+## Claude Code local state (hook markers, personal overrides)
+.claude/.last-test-pass
+.claude/.workflow-gate-count
+.claude/.skip-workflow-gate
+.claude/settings.local.json

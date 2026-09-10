@@ -51,3 +51,4 @@ See [src/AGENTS.md](src/AGENTS.md) for source-folder structure details.
 - UI text must be in **English**.
 - Settings are JSON-backed in `%APPDATA%\pr-monitor\settings.json` — see full schema in `ARCHITECTURE.md`.
 - No secrets stored anywhere; all GitHub API calls shell out to `gh`.
+- Claude Code enforces the build/test/CHANGELOG/commit/restart sequence with hooks in `.claude/` (see [CLAUDE.md](CLAUDE.md) section 7). Other agents must follow the same sequence by hand.
