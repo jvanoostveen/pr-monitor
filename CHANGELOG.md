@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.3] - 2026-09-10
+
 ### Fixed
 - **PRs parked in Later (or hidden) no longer produce toast notifications.** Snoozed and manually hidden PRs are invisible in the window but were still generating "CI failed", "review requested" and "PR merged/closed" toasts, and could still trigger flakiness analysis. Both now skip hidden PRs entirely.
 - **The PR list no longer flips between full and empty.** GitHub's search API intermittently answers a perfectly valid request with zero hits (`gh` exits 0, the JSON is well-formed, the result set is simply empty), which emptied out a whole section for one poll and then filled it again — producing a burst of "merged/closed" toasts followed by "new PR" toasts two minutes later. Any section that drops from at least one PR to zero in a single poll is now withheld until a second poll confirms it; the previous list stays on screen and no notifications or statistics are recorded in the meantime. This replaces the narrower guard that only covered a poll where *every* section was empty at once.
