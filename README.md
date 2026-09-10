@@ -207,6 +207,9 @@ dotnet run --project .\src\PrMonitor.csproj
 
 The app enforces a single instance via a named mutex (`PrMonitor_SingleInstance`). Launching a second instance shows a message and exits.
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the technical reference: tech stack, folder layout,
+subsystem behaviour, WPF constraints, and the full settings schema.
+
 ### Troubleshooting
 
 For diagnostics when polling or GitHub API calls intermittently return no data, check the local log file:

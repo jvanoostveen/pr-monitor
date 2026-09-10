@@ -1,6 +1,6 @@
 # PR Monitor — Agent Guide
 
-> Detailed architecture notes are in [.github/copilot-instructions.md](.github/copilot-instructions.md).  
+> Detailed architecture notes are in [ARCHITECTURE.md](ARCHITECTURE.md).  
 > Claude Code loads [CLAUDE.md](CLAUDE.md) — the workflow it must follow lives there.  
 > This file is a quick-reference for other agents (e.g. Codex) that look for AGENTS.md.
 
@@ -29,12 +29,13 @@ Always stop the running instance before building. The app is single-instance (mu
 ## Project layout
 
 ```
-src/          C# source — App, MainWindow, Models, Services, ViewModels, Views, Converters
-tests/        xUnit test project (PrMonitor.Tests)
-.github/      copilot-instructions.md (full architecture notes) + workflow YAML files
-CLAUDE.md     Workflow + conventions for Claude Code (auto-loaded)
-CHANGELOG.md  Keep a Changelog format — update [Unreleased] on every src/ change
-README.md     User-facing documentation
+src/             C# source — App, MainWindow, Models, Services, ViewModels, Views, Converters
+tests/           xUnit test project (PrMonitor.Tests)
+ARCHITECTURE.md  Canonical technical reference (architecture, settings schema, pitfalls)
+CLAUDE.md        Workflow + conventions for Claude Code (auto-loaded)
+.github/         copilot-instructions.md (Copilot workflow) + workflow YAML files
+CHANGELOG.md     Keep a Changelog format — update [Unreleased] on every src/ change
+README.md        User-facing documentation
 ```
 
 See [src/AGENTS.md](src/AGENTS.md) for source-folder structure details.
@@ -48,5 +49,5 @@ See [src/AGENTS.md](src/AGENTS.md) for source-folder structure details.
 - For commits that include `src/` changes, agents must restart the app process immediately after the commit.
 - Commit message format: `feat:`, `fix:`, `refactor:`, `docs:`, `test:` etc.
 - UI text must be in **English**.
-- Settings are JSON-backed in `%APPDATA%\pr-monitor\settings.json` — see full schema in `.github/copilot-instructions.md`.
+- Settings are JSON-backed in `%APPDATA%\pr-monitor\settings.json` — see full schema in `ARCHITECTURE.md`.
 - No secrets stored anywhere; all GitHub API calls shell out to `gh`.

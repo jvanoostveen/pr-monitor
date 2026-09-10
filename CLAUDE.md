@@ -19,8 +19,8 @@ one-line change. Mark items `in_progress` when starting and `completed` immediat
 
 ### Step 1 — Implement
 Read before you write. For architecture, settings schema, and per-feature behaviour, consult
-[.github/copilot-instructions.md](.github/copilot-instructions.md) — that file is the canonical
-architecture reference and is deliberately **not** duplicated here.
+[ARCHITECTURE.md](ARCHITECTURE.md) — the canonical technical reference, deliberately **not**
+duplicated here.
 
 ### Step 2 — Validate (only when `src/` or `tests/` changed)
 ```powershell
@@ -37,7 +37,7 @@ commit red and never report success.
 |---|---|
 | Any `src/` change | `CHANGELOG.md` under `[Unreleased]`, correct Keep a Changelog category — **mandatory, also for small fixes** |
 | User-facing behaviour, settings, or new section | `README.md` |
-| Architecture, settings schema, service behaviour | `.github/copilot-instructions.md` |
+| Architecture, settings schema, service behaviour | `ARCHITECTURE.md` |
 | Workflow/conventions for agents | this file **and** `AGENTS.md` |
 
 ### Step 4 — Commit
@@ -92,16 +92,17 @@ and exits.
 ## 3. Where things live
 
 ```
-src/          C# source — App, MainWindow, Models, Services, ViewModels, Views, Converters
-tests/        xUnit test project (PrMonitor.Tests)
-.github/      copilot-instructions.md (full architecture) + workflow YAML
-CHANGELOG.md  Keep a Changelog — [Unreleased] must be updated on every src/ change
-README.md     User-facing documentation
+src/             C# source — App, MainWindow, Models, Services, ViewModels, Views, Converters
+tests/           xUnit test project (PrMonitor.Tests)
+ARCHITECTURE.md  Canonical technical reference
+.github/         copilot-instructions.md (Copilot workflow) + workflow YAML
+CHANGELOG.md     Keep a Changelog — [Unreleased] must be updated on every src/ change
+README.md        User-facing documentation
 ```
 
 - [src/AGENTS.md](src/AGENTS.md) — source-folder map, services at a glance, menu structure
-- [.github/copilot-instructions.md](.github/copilot-instructions.md) — architecture notes, settings
-  schema, section behaviour, statistics, flakiness, update flow, window placement
+- [ARCHITECTURE.md](ARCHITECTURE.md) — tech stack, structure, subsystems, settings schema,
+  section behaviour, statistics, flakiness, update flow, window placement, WPF pitfalls
 - [AGENTS.md](AGENTS.md) — short guide for other agents (Codex etc.)
 
 Naming: `*ViewModel.cs` in `ViewModels/`, `*Service.cs` in `Services/`, `*Converter.cs` registered
@@ -141,8 +142,8 @@ be reported accurately.
 6. `JsonElement?` — use the `is not { } value` pattern, not `.HasValue`.
 
 The app runs for days in the tray, so allocation *retention* matters more than throughput. See the
-Memory management section of `.github/copilot-instructions.md` before touching polling, log
-fetching, icon generation, or animations.
+Memory management section of `ARCHITECTURE.md` before touching polling, log fetching, icon
+generation, or animations.
 
 ---
 
