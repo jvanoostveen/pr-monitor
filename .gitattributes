@@ -1,0 +1,12 @@
+# Windows-only WPF repository. Normalize on check-in (LF in the object store),
+# check out CRLF in the working tree. Prevents whole-file diffs when a tool
+# writes LF into a file that was stored as CRLF.
+* text=auto eol=crlf
+
+# Binaries: never transform.
+*.ico binary
+*.png binary
+*.ttf binary
+*.zip binary
+*.snk binary
+*.pfx binary
