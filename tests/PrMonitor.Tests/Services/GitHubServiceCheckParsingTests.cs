@@ -25,6 +25,7 @@ public class GitHubServiceCheckParsingTests
                             "nodes": [
                               {
                                 "__typename": "CheckRun",
+                                "databaseId": 103304605642,
                                 "name": "Compile",
                                 "status": "COMPLETED",
                                 "conclusion": "SUCCESS",
@@ -101,6 +102,7 @@ public class GitHubServiceCheckParsingTests
         Assert.Equal(CheckRunState.Success, compile.State);
         Assert.Equal("CI", compile.WorkflowName);
         Assert.Equal(1, compile.WorkflowRunId);
+        Assert.Equal(103304605642, compile.JobId);
         Assert.Equal("https://github.com/o/r/actions/runs/1/job/11", compile.Url);
         Assert.Equal(TimeSpan.FromSeconds(84), compile.Duration);
 
@@ -210,6 +212,62 @@ public class GitHubServiceCheckParsingTests
     public void FromStatusContext_MapsLegacyStates(string? state, CheckRunState expected)
     {
         Assert.Equal(expected, CheckRunInfo.FromStatusContext(state));
+    }
+
+    // ── Rerunning a single job ─────────────────────────────────────────
+
+    [Fact]
+    public void CanRerun_FailedActionsJob_IsOffered()
+    {
+        var check = new CheckRunInfo
+        {
+            Name = "Test",
+            State = CheckRunState.Failure,
+            JobId = 103304605642,
+            WorkflowRunId = 34612024584,
+        };
+
+        Assert.True(check.CanRerun);
+    }
+
+    [Fact]
+    public void CanRerun_CancelledJob_IsAlsoOffered()
+    {
+        var check = new CheckRunInfo
+        {
+            Name = "Test",
+            State = CheckRunState.Cancelled,
+            JobId = 1,
+            WorkflowRunId = 2,
+        };
+
+        Assert.True(check.CanRerun);
+    }
+
+    [Theory]
+    [InlineData(CheckRunState.Success)]
+    [InlineData(CheckRunState.Running)]
+    [InlineData(CheckRunState.Queued)]
+    [InlineData(CheckRunState.Skipped)]
+    [InlineData(CheckRunState.Neutral)]
+    public void CanRerun_JobThatDidNotFail_IsNotOffered(CheckRunState state)
+    {
+        var check = new CheckRunInfo { Name = "Test", State = state, JobId = 1, WorkflowRunId = 2 };
+
+        Assert.False(check.CanRerun);
+    }
+
+    [Fact]
+    public void CanRerun_StatusContextOrThirdPartyCheck_HasNothingToRerun()
+    {
+        // A legacy status context carries neither a job nor a workflow run.
+        var legacy = GitHubService.ParsePrChecks(Parse(FullResponse))[3];
+        Assert.Equal(CheckRunState.Failure, legacy.State);
+        Assert.False(legacy.CanRerun);
+
+        // A failed check run from a non-Actions app has no workflow run behind it.
+        var thirdParty = new CheckRunInfo { Name = "Sonar", State = CheckRunState.Failure, JobId = 99 };
+        Assert.False(thirdParty.CanRerun);
     }
 
     [Fact]

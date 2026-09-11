@@ -620,6 +620,27 @@ public sealed class GitHubService
     }
 
     /// <summary>
+    /// Reruns one GitHub Actions job (and whatever depends on it), leaving the rest of the
+    /// workflow run alone — unlike <see cref="RerunFailedJobsAsync"/>, which restarts every
+    /// failed job of a run.
+    /// </summary>
+    public async Task<(bool Ok, string? Error)> RerunJobAsync(string owner, string repo, long jobId)
+    {
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo") || jobId <= 0)
+            return (false, "Invalid repository or job id.");
+
+        var (_, stderr, exitCode) = await RunGhAsync(
+            "api", "--method", "POST", $"repos/{owner}/{repo}/actions/jobs/{jobId}/rerun");
+
+        if (exitCode == 0)
+            return (true, null);
+
+        var error = stderr?.Trim();
+        _logger.Warn($"RerunJobAsync failed (exit={exitCode}) for job {jobId} in {owner}/{repo}: {error}");
+        return (false, string.IsNullOrWhiteSpace(error) ? "GitHub refused the rerun request." : error);
+    }
+
+    /// <summary>
     /// Fetches all members of the given organizations via GraphQL (includes display name).
     /// Returns a deduplicated list of (Login, Name) pairs — unfiltered.
     /// Intended to be called once by the caller and cached; use <see cref="FilterOrgMembers"/> to search.
@@ -1415,6 +1436,7 @@ public sealed class GitHubService
                         nodes {
                           __typename
                           ... on CheckRun {
+                            databaseId
                             name
                             status
                             conclusion
@@ -1689,12 +1711,19 @@ public sealed class GitHubService
                 workflowRunId = dbId.GetInt64();
         }
 
+        // For an Actions check run the check run's databaseId is the job id — the same number
+        // as the /job/<id> segment of detailsUrl — which is what reruns a single job.
+        long jobId = node.TryGetProperty("databaseId", out var jobDbId) && jobDbId.ValueKind == JsonValueKind.Number
+            ? jobDbId.GetInt64()
+            : 0;
+
         return new CheckRunInfo
         {
             Name = name,
             WorkflowName = workflowName,
             Event = triggerEvent,
             WorkflowRunId = workflowRunId,
+            JobId = jobId,
             State = CheckRunInfo.FromCheckRun(GetStringOrNull(node, "status"), GetStringOrNull(node, "conclusion")),
             Url = GetStringOrNull(node, "detailsUrl") ?? "",
             StartedAt = GetDateOrNull(node, "startedAt"),

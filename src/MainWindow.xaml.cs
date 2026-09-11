@@ -937,6 +937,51 @@ public partial class MainWindow : Window
         ViewModel.Checks.OpenPrInBrowser();
     }
 
+    /// <summary>Jobs whose rerun request is still in flight, so a second click is ignored.</summary>
+    private readonly HashSet<long> _rerunningJobs = [];
+
+    /// <summary>The rerun button that appears on a failed job row while it is hovered.</summary>
+    private void CheckRerun_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is FrameworkElement { Tag: CheckItemViewModel check } && check.CanRerun)
+            _ = RerunCheckJobAsync(check);
+    }
+
+    private async Task RerunCheckJobAsync(CheckItemViewModel check)
+    {
+        var pr = ViewModel.Checks.CurrentPr;
+        if (pr is null || !TrySplitRepository(pr.Repository, out var owner, out var repo))
+            return;
+
+        // The panel keeps showing the old state until the next reload, so without this guard an
+        // impatient second click would queue the same job twice.
+        if (!_rerunningJobs.Add(check.JobId))
+            return;
+
+        try
+        {
+            var (ok, error) = await _github.RerunJobAsync(owner, repo, check.JobId);
+            if (ok)
+            {
+                _notifications.Notify(
+                    $"Rerun started for {check.Name}",
+                    $"{pr.Repository}#{pr.Number} — {check.WorkflowName}");
+                await ViewModel.Checks.RefreshAsync();
+            }
+            else
+            {
+                DarkMessageBox.Show(
+                    $"Could not rerun '{check.Name}'.{Environment.NewLine}{Environment.NewLine}{error}",
+                    "Rerun job", MessageBoxButton.OK, MessageBoxImage.Warning, this);
+            }
+        }
+        finally
+        {
+            _rerunningJobs.Remove(check.JobId);
+        }
+    }
+
     /// <summary>A job row links straight to its log page on GitHub.</summary>
     private void CheckRow_Click(object sender, MouseButtonEventArgs e)
     {

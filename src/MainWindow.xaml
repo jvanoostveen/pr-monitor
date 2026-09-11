@@ -1630,6 +1630,7 @@
                                                         <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Grid.Column="0" Style="{StaticResource IconText}"
                                                                Text="{Binding StateIcon}" FontSize="15"
@@ -1661,6 +1662,35 @@
                                                     <TextBlock Grid.Column="5" Text="{Binding DurationText}"
                                                                FontSize="11" Foreground="#6E7681"
                                                                VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                                    <!-- Rerun, only on failed jobs and only while the row is hovered.
+                                                         Visibility (not opacity) keeps passing rows from reserving the
+                                                         space; on a failed row the space is reserved either way, so the
+                                                         duration does not jump sideways when the pointer arrives. -->
+                                                    <Border Grid.Column="6" CornerRadius="4" Padding="3,1"
+                                                            Background="#30363D" Cursor="Hand"
+                                                            VerticalAlignment="Center" Margin="8,0,0,0"
+                                                            ToolTip="{Binding RerunTooltip}" Tag="{Binding}"
+                                                            MouseLeftButtonUp="CheckRerun_Click">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Opacity" Value="0"/>
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding CanRerun}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True">
+                                                                        <Setter Property="Opacity" Value="1"/>
+                                                                    </DataTrigger>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="#3D444D"/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE042;"
+                                                                   FontSize="14" Foreground="#C9D1D9"/>
+                                                    </Border>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>

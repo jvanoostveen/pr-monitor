@@ -663,6 +663,17 @@ public sealed class CheckItemViewModel
     /// <summary>Whether this row links to a job log on GitHub.</summary>
     public bool HasUrl => !string.IsNullOrWhiteSpace(Url);
 
+    /// <summary>GitHub Actions job id, for rerunning this job alone.</summary>
+    public long JobId => _check.JobId;
+
+    /// <summary>
+    /// Whether the rerun button applies: a failed GitHub Actions job. Passing jobs are not
+    /// offered a rerun, and status contexts have nothing to rerun.
+    /// </summary>
+    public bool CanRerun => _check.CanRerun;
+
+    public string RerunTooltip => $"Rerun this job ({Name})";
+
     public string RowTooltip
     {
         get

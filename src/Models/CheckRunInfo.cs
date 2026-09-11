@@ -65,6 +65,16 @@ public sealed class CheckRunInfo
     /// <summary>Workflow run ID the check belongs to, or 0 for legacy status contexts.</summary>
     public long WorkflowRunId { get; init; }
 
+    /// <summary>
+    /// GitHub Actions job ID, used to rerun this single job. For an Actions check run this is
+    /// the check run's own <c>databaseId</c> — the same number as the <c>/job/&lt;id&gt;</c>
+    /// segment of <see cref="Url"/>. Zero for status contexts and third-party check runs.
+    /// </summary>
+    public long JobId { get; init; }
+
+    /// <summary>Whether this check can be rerun on its own: a failed GitHub Actions job.</summary>
+    public bool CanRerun => IsFailure && JobId > 0 && WorkflowRunId > 0;
+
     /// <summary>True while the check has not reached a terminal state.</summary>
     public bool IsInProgress => State is CheckRunState.Queued or CheckRunState.Running;
 
