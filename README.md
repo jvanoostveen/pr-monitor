@@ -31,6 +31,8 @@ Click the colored **status dot** of a PR row — or pick **Show CI checks** from
 - the job's duration, or its elapsed time while it is still running;
 - a summary line such as `CHECKS RUNNING 3/4`, `2 CHECKS FAILED` or `ALL CHECKS PASSED`, counting finished checks over the total (skipped checks excluded).
 
+**Skipped checks are hidden**, since a job that never ran tells you nothing about the PR. A `Show 3 skipped checks` line under the list brings them back if you want them, and that choice sticks until you restart the app.
+
 Identical runs of the same job are merged into a single row with a `×N` badge. GitHub reports a separate check run per check suite, so a workflow that triggers on `pull_request_review` can otherwise fill the panel with nine copies of the same skipped job. Only runs that match on workflow, job *and* status are merged, and the row links to the most recent of them — a job that failed and then passed on a rerun stays visible as two rows.
 
 Jobs are ordered by what needs attention first: failed, then cancelled, running, queued, passed and finally skipped. **Clicking a job opens its log page on GitHub directly**, so a red PR takes one click to the failing job instead of a trip through the PR, its checks tab and the workflow run.

@@ -924,6 +924,13 @@ public partial class MainWindow : Window
         _ = ViewModel.Checks.RefreshAsync();
     }
 
+    /// <summary>The "Show/Hide N skipped checks" line under the job list.</summary>
+    private void ChecksToggleSkipped_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        ViewModel.Checks.ToggleSkipped();
+    }
+
     private void ChecksOpenPr_Click(object sender, MouseButtonEventArgs e)
     {
         e.Handled = true;

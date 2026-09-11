@@ -231,10 +231,75 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     }
 
     /// <summary>Shown when loading finished and GitHub reported no checks at all.</summary>
-    public bool ShowEmptyState => !IsLoading && !HasError && Checks.Count == 0;
+    public bool ShowEmptyState => !IsLoading && !HasError && _allRows.Count == 0;
 
     /// <summary>Shown when at least one check row is available.</summary>
     public bool ShowList => !IsLoading && Checks.Count > 0;
+
+    // ── Skipped checks ──────────────────────────────────────────────────
+
+    /// <summary>Every collapsed row of the last load, including the skipped ones the list hides.</summary>
+    private List<(CheckRunInfo Check, int Count)> _allRows = [];
+
+    private bool _showSkipped;
+    /// <summary>
+    /// Whether skipped checks are listed. Off by default: a job that never ran says nothing
+    /// about the PR, and a workflow re-triggered per review can contribute a dozen of them,
+    /// crowding out the checks that do matter. Kept for the lifetime of the app, not reset by
+    /// closing the panel, so someone who wants to see them does not have to ask twice.
+    /// </summary>
+    public bool ShowSkipped
+    {
+        get => _showSkipped;
+        private set
+        {
+            SetField(ref _showSkipped, value);
+            OnPropertyChanged(nameof(SkippedToggleText));
+        }
+    }
+
+    /// <summary>Distinct skipped jobs in the current load, regardless of how often each repeated.</summary>
+    public int SkippedRowCount => _allRows.Count(r => r.Check.IsSkipped);
+
+    public bool HasSkipped => SkippedRowCount > 0;
+
+    /// <summary>Caption of the line that reveals or hides the skipped checks.</summary>
+    public string SkippedToggleText => BuildSkippedToggleText(SkippedRowCount, ShowSkipped);
+
+    /// <summary>"Show 3 skipped checks" / "Hide 1 skipped check".</summary>
+    internal static string BuildSkippedToggleText(int count, bool showSkipped)
+    {
+        var noun = count == 1 ? "skipped check" : "skipped checks";
+        return showSkipped ? $"Hide {count} {noun}" : $"Show {count} {noun}";
+    }
+
+    /// <summary>
+    /// The rows the list actually renders. Skipped checks are filtered out unless the user
+    /// asked for them — they never ran, so they carry no signal about the PR.
+    /// </summary>
+    internal static List<(CheckRunInfo Check, int Count)> VisibleRows(
+        IReadOnlyList<(CheckRunInfo Check, int Count)> rows, bool showSkipped) =>
+        [.. rows.Where(r => showSkipped || !r.Check.IsSkipped)];
+
+    /// <summary>Flips the skipped checks into or out of the list without re-fetching anything.</summary>
+    public void ToggleSkipped()
+    {
+        ShowSkipped = !ShowSkipped;
+        RebuildVisibleRows();
+    }
+
+    /// <summary>Refills the bound collection from <see cref="_allRows"/>, honouring the filter.</summary>
+    private void RebuildVisibleRows()
+    {
+        Checks.Clear();
+        foreach (var (check, count) in VisibleRows(_allRows, ShowSkipped))
+            Checks.Add(new CheckItemViewModel(check, count));
+
+        OnPropertyChanged(nameof(SkippedRowCount));
+        OnPropertyChanged(nameof(HasSkipped));
+        OnPropertyChanged(nameof(SkippedToggleText));
+        NotifyStateFlags();
+    }
 
     /// <summary>
     /// Opens the panel for a PR and starts loading its checks. Header fields come from the row
@@ -257,6 +322,7 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
         SummaryCount = "";
         ErrorMessage = "";
         NoticeMessage = "";
+        _allRows = [];
         Checks.Clear();
         IsOpen = true;
 
@@ -317,18 +383,15 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
 
         // A failed reload keeps the rows it already had: a momentary API hiccup should not
         // throw away a list the user is reading. The message then shows below it instead.
-        bool keepExistingRows = result.IsFailure && Checks.Count > 0;
+        bool keepExistingRows = result.IsFailure && _allRows.Count > 0;
         if (!keepExistingRows)
         {
-            var rows = Collapse(result.Checks);
+            _allRows = Collapse(result.Checks);
+            RebuildVisibleRows();
 
-            Checks.Clear();
-            foreach (var (check, count) in rows)
-                Checks.Add(new CheckItemViewModel(check, count));
-
-            // The summary counts what the list shows, so a PR with nine identical skipped
-            // runs is not reported as nine checks.
-            UpdateSummary([.. rows.Select(r => r.Check)]);
+            // The summary counts collapsed rows, so a PR with nine identical skipped runs is
+            // not reported as nine checks.
+            UpdateSummary([.. _allRows.Select(r => r.Check)]);
         }
 
         NoticeMessage = keepExistingRows ? error : "";
@@ -497,6 +560,7 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
         _loadGeneration++;
         IsOpen = false;
         CurrentPr = null;
+        _allRows = [];
         Checks.Clear();
         ErrorMessage = "";
         NoticeMessage = "";
@@ -553,10 +617,17 @@ public sealed class CheckItemViewModel
     public int DuplicateCount { get; }
 
     /// <summary>
-    /// Workflow the job belongs to, rendered dimmed in front of the job name the way GitHub
-    /// writes "Components / Test". Empty for legacy status contexts, which have no workflow.
+    /// Whether this row has a workflow to show in front of the job name. False for legacy
+    /// status contexts, which belong to no workflow.
     /// </summary>
-    public string WorkflowPrefix => string.IsNullOrEmpty(WorkflowName) ? "" : $"{WorkflowName} / ";
+    public bool HasWorkflow => !string.IsNullOrEmpty(WorkflowName);
+
+    /// <summary>
+    /// Workflow label rendered dimmed before the job name, the way GitHub writes
+    /// "Components / Test". The " / " separator is a separate element, so a long workflow name
+    /// can trim to an ellipsis without swallowing the separator or the job name.
+    /// </summary>
+    public string WorkflowLabel => WorkflowName;
 
     /// <summary>"×9" when several identical runs were collapsed into this row, otherwise empty.</summary>
     public string DuplicateBadge => DuplicateCount > 1 ? $"×{DuplicateCount}" : "";

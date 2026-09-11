@@ -1598,6 +1598,7 @@
                                        HorizontalAlignment="Center"
                                        Visibility="{Binding Checks.ShowEmptyState, Converter={StaticResource BoolToVisibility}}"/>
 
+                            <StackPanel>
                             <ScrollViewer Style="{StaticResource OverlayScrollViewer}"
                                           MaxHeight="260" Padding="0,4"
                                           Visibility="{Binding Checks.ShowList, Converter={StaticResource BoolToVisibility}}">
@@ -1624,6 +1625,8 @@
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="Auto"/>
@@ -1632,22 +1635,30 @@
                                                                Text="{Binding StateIcon}" FontSize="15"
                                                                Margin="0,0,8,0"
                                                                Foreground="{Binding State, Converter={StaticResource CheckStateToBrush}}"/>
-                                                    <!-- "Components / Test": the workflow dimmed, the job name in the state colour,
-                                                         because a bare job name is ambiguous whenever two workflows share one. -->
-                                                    <TextBlock Grid.Column="1"
+                                                    <!-- "Components / Test", as GitHub writes it: a bare job name is ambiguous
+                                                         whenever two workflows share one. Workflow, separator and job name are
+                                                         separate columns so a long workflow trims to an ellipsis on its own,
+                                                         instead of swallowing the separator and the job name after it. -->
+                                                    <TextBlock Grid.Column="1" Text="{Binding WorkflowLabel}"
+                                                               FontSize="12" Foreground="#6E7681"
+                                                               VerticalAlignment="Center" MaxWidth="105"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Visibility="{Binding HasWorkflow, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Grid.Column="2" Text=" / "
+                                                               FontSize="12" Foreground="#484F58"
+                                                               VerticalAlignment="Center"
+                                                               Visibility="{Binding HasWorkflow, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding Name}"
                                                                FontSize="12" VerticalAlignment="Center"
-                                                               TextTrimming="CharacterEllipsis">
-                                                        <Run Text="{Binding WorkflowPrefix, Mode=OneWay}" Foreground="#6E7681"/><Run
-                                                             Text="{Binding Name, Mode=OneWay}"
-                                                             Foreground="{Binding State, Converter={StaticResource CheckStateToBrush}, ConverterParameter=Name}"/>
-                                                    </TextBlock>
-                                                    <Border Grid.Column="2" CornerRadius="3" Padding="4,1"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Foreground="{Binding State, Converter={StaticResource CheckStateToBrush}, ConverterParameter=Name}"/>
+                                                    <Border Grid.Column="4" CornerRadius="3" Padding="4,1"
                                                             Background="#21262D" VerticalAlignment="Center" Margin="6,0,0,0"
                                                             Visibility="{Binding HasDuplicates, Converter={StaticResource BoolToVisibility}}">
                                                         <TextBlock Text="{Binding DuplicateBadge}"
                                                                    FontSize="10" Foreground="#8B949E"/>
                                                     </Border>
-                                                    <TextBlock Grid.Column="3" Text="{Binding DurationText}"
+                                                    <TextBlock Grid.Column="5" Text="{Binding DurationText}"
                                                                FontSize="11" Foreground="#6E7681"
                                                                VerticalAlignment="Center" Margin="8,0,0,0"/>
                                                 </Grid>
@@ -1656,6 +1667,30 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </ScrollViewer>
+
+                            <!-- Skipped checks are hidden by default: a job that never ran says
+                                 nothing, and a review-triggered workflow can contribute a dozen. -->
+                            <Border Background="Transparent" Padding="14,6" Cursor="Hand"
+                                    ToolTip="Skipped checks never ran, so they are hidden by default"
+                                    MouseLeftButtonUp="ChecksToggleSkipped_Click"
+                                    Visibility="{Binding Checks.HasSkipped, Converter={StaticResource BoolToVisibility}}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#1C2128"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE15B;"
+                                               FontSize="14" Foreground="#484F58" Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding Checks.SkippedToggleText}"
+                                               FontSize="11" Foreground="#6E7681" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            </StackPanel>
                         </Grid>
 
                         <!-- ── Notice: the list above is still valid, but the last reload was not ── -->

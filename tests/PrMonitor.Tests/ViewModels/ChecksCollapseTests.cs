@@ -176,22 +176,120 @@ public class ChecksCollapseTests
         Assert.Equal("1/2", count);
     }
 
-    // ── Row rendering ──────────────────────────────────────────────────
+    // ── Hiding skipped checks ──────────────────────────────────────────
 
     [Fact]
-    public void WorkflowPrefix_IsRenderedLikeGitHubWritesIt()
+    public void VisibleRows_ByDefault_LeavesOutSkippedChecks()
     {
-        var row = new CheckItemViewModel(Check("Components", "Test", CheckRunState.Failure));
+        var rows = ChecksViewModel.Collapse(
+        [
+            Check("Components", "Test", CheckRunState.Failure),
+            Check("Main PR", "Test", CheckRunState.Running),
+            Check("Claude Code", "claude", CheckRunState.Skipped),
+        ]);
 
-        Assert.Equal("Components / ", row.WorkflowPrefix);
+        var visible = ChecksViewModel.VisibleRows(rows, showSkipped: false);
+
+        Assert.Equal(2, visible.Count);
+        Assert.DoesNotContain(visible, r => r.Check.IsSkipped);
     }
 
     [Fact]
-    public void WorkflowPrefix_LegacyStatusContext_HasNoPrefix()
+    public void VisibleRows_WhenAsked_IncludesSkippedChecksAgain()
+    {
+        var rows = ChecksViewModel.Collapse(
+        [
+            Check("Components", "Test", CheckRunState.Failure),
+            Check("Claude Code", "claude", CheckRunState.Skipped),
+        ]);
+
+        var visible = ChecksViewModel.VisibleRows(rows, showSkipped: true);
+
+        Assert.Equal(2, visible.Count);
+    }
+
+    [Fact]
+    public void VisibleRows_NeutralChecks_AreNotTreatedAsSkipped()
+    {
+        // "action_required" and friends land on Neutral and do need attention.
+        var rows = ChecksViewModel.Collapse([Check("CI", "Approve", CheckRunState.Neutral)]);
+
+        Assert.Single(ChecksViewModel.VisibleRows(rows, showSkipped: false));
+    }
+
+    [Fact]
+    public void VisibleRows_OnlySkippedChecks_HidesEverything()
+    {
+        var rows = ChecksViewModel.Collapse(
+        [
+            Check("Claude Code", "claude", CheckRunState.Skipped),
+            Check("Post Copilot Summary", "post-summary", CheckRunState.Skipped),
+        ]);
+
+        Assert.Empty(ChecksViewModel.VisibleRows(rows, showSkipped: false));
+        Assert.Equal(2, ChecksViewModel.VisibleRows(rows, showSkipped: true).Count);
+    }
+
+    [Theory]
+    [InlineData(1, false, "Show 1 skipped check")]
+    [InlineData(3, false, "Show 3 skipped checks")]
+    [InlineData(1, true, "Hide 1 skipped check")]
+    [InlineData(3, true, "Hide 3 skipped checks")]
+    public void SkippedToggleText_ReadsNaturally(int count, bool shown, string expected)
+    {
+        Assert.Equal(expected, ChecksViewModel.BuildSkippedToggleText(count, shown));
+    }
+
+    [Fact]
+    public void RealWorldShape_LeavesOnlyTheFourInterestingRows()
+    {
+        var checks = new List<CheckRunInfo>
+        {
+            Check("Components", "Test", CheckRunState.Failure, runId: 1),
+            Check("Main PR", "Test", CheckRunState.Running, runId: 2),
+            Check("Controleer koppeling", "Connect", CheckRunState.Success, runId: 3),
+            Check("Components", "Compile", CheckRunState.Success, runId: 4),
+        };
+        foreach (var (workflow, job) in new[]
+                 {
+                     ("Auto-approve PR na Copilot review", "Auto-approve if Copilot review is clean"),
+                     ("Claude Code", "claude"),
+                     ("Post Copilot Summary", "call-reusable / post-summary"),
+                 })
+        {
+            for (int i = 0; i < 9; i++)
+                checks.Add(Check(workflow, job, CheckRunState.Skipped, runId: 500 + i));
+        }
+
+        var rows = ChecksViewModel.Collapse(checks);
+        var visible = ChecksViewModel.VisibleRows(rows, showSkipped: false);
+
+        // 31 raw runs -> 7 collapsed rows -> 4 rows that actually say something.
+        Assert.Equal(4, visible.Count);
+        Assert.Equal(3, rows.Count(r => r.Check.IsSkipped));
+        Assert.Equal(CheckRunState.Failure, visible[0].Check.State);
+    }
+
+    // ── Row rendering ──────────────────────────────────────────────────
+
+    [Fact]
+    public void WorkflowLabel_CarriesTheWorkflowWithoutTheSeparator()
+    {
+        // The " / " lives in its own column, so a long workflow can trim to an ellipsis
+        // without swallowing the separator and the job name behind it.
+        var row = new CheckItemViewModel(Check("Components", "Test", CheckRunState.Failure));
+
+        Assert.True(row.HasWorkflow);
+        Assert.Equal("Components", row.WorkflowLabel);
+    }
+
+    [Fact]
+    public void WorkflowLabel_LegacyStatusContext_HasNoWorkflowToShow()
     {
         var row = new CheckItemViewModel(Check("", "legacy/build", CheckRunState.Success));
 
-        Assert.Equal("", row.WorkflowPrefix);
+        Assert.False(row.HasWorkflow);
+        Assert.Equal("", row.WorkflowLabel);
     }
 
     [Fact]
