@@ -32,7 +32,9 @@ Click the colored **status dot** of a PR row — or pick **Show CI checks** from
 
 Jobs are ordered by what needs attention first: failed, then cancelled, running, queued, passed and finally skipped. **Clicking a job opens its log page on GitHub directly**, so a red PR takes one click to the failing job instead of a trip through the PR, its checks tab and the workflow run.
 
-The panel also has a refresh button (checks are fetched when you open it, not on every poll) and an **Open on GitHub** button for the PR itself. Close it with `Esc`, the ✕ button above it, or by clicking next to it.
+While at least one job is still running or queued, the panel **reloads itself every 30 seconds** so you can watch a build finish without touching anything. That timer only exists while it is useful — it stops as soon as every job has finished, when you close the panel or hide the window to the tray, when a reload fails, or when your GitHub API budget runs low. There is no background polling of checks: closing the panel ends the cycle completely.
+
+The panel also has a manual refresh button (its tooltip tells you whether auto-refresh is currently active) and an **Open on GitHub** button for the PR itself. Close it with `Esc`, the ✕ button above it, or by clicking next to it.
 
 ### Stacked PRs
 

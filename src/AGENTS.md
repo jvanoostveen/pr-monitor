@@ -32,6 +32,7 @@ Views/            TrayIconManager, IconGenerator, AboutWindow, SettingsWindow, F
 | `UpdateService` | Checks latest GitHub release; timer (30 s after startup, then 24 h) |
 | `CopilotService` | GitHub Models API (`gpt-4o-mini`) — flakiness classification |
 | `FlakinessService` | Orchestrates CI failure → local rule check → Copilot → auto-rerun |
+| `AutoRefreshScheduler` | One pending delayed callback at a time; drives the checks panel's 30 s auto-refresh |
 
 ## Naming conventions
 

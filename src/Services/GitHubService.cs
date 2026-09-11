@@ -1396,6 +1396,7 @@ public sealed class GitHubService
 
     private const string PrChecksQuery = """
         query($owner: String!, $repo: String!, $number: Int!) {
+          rateLimit { remaining resetAt }
           repository(owner: $owner, name: $repo) {
             pullRequest(number: $number) {
               commits(last: 1) {
@@ -1441,12 +1442,13 @@ public sealed class GitHubService
     /// <summary>
     /// Fetches every CI check on the PR's latest commit, so the user can see which jobs run,
     /// which passed and which failed without clicking through to GitHub.
-    /// Returns an empty list when the call fails — the caller renders that as "no checks".
+    /// Never throws: a failed call comes back as <see cref="CheckFetchStatus.Failed"/> or
+    /// <see cref="CheckFetchStatus.RateLimited"/>, which is what stops the panel's auto-refresh.
     /// </summary>
-    public async Task<IReadOnlyList<CheckRunInfo>> FetchPrChecksAsync(string owner, string repo, int prNumber)
+    public async Task<CheckFetchResult> FetchPrChecksAsync(string owner, string repo, int prNumber)
     {
         if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo") || prNumber <= 0)
-            return [];
+            return CheckFetchResult.Failure();
 
         var (output, stderr, exitCode) = await RunGhAsync(
             "api", "graphql",
@@ -1457,20 +1459,83 @@ public sealed class GitHubService
 
         if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
         {
-            _logger.Warn($"FetchPrChecksAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
-            return [];
+            // gh reports a rate limit on stderr, but a GraphQL rate-limit error arrives as a
+            // well-formed body on a non-zero exit — so both streams have to be inspected.
+            bool rateLimited = LooksRateLimited(stderr) || LooksRateLimited(output);
+            _logger.Warn($"FetchPrChecksAsync {(rateLimited ? "hit a rate limit" : "failed")} (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
+            return rateLimited ? CheckFetchResult.RateLimited() : CheckFetchResult.Failure();
         }
 
         try
         {
             using var doc = JsonDocument.Parse(output);
-            return ParsePrChecks(doc.RootElement);
+            var root = doc.RootElement;
+            var (remaining, resetAt) = ParseRateLimitBudget(root);
+
+            if (HasRateLimitError(root))
+            {
+                _logger.Warn($"FetchPrChecksAsync hit a GraphQL rate limit for {owner}/{repo}#{prNumber}; resets at {resetAt?.ToString("u") ?? "unknown"}.");
+                return CheckFetchResult.RateLimited(resetAt);
+            }
+
+            return CheckFetchResult.Success(ParsePrChecks(root), remaining, resetAt);
         }
         catch (JsonException ex)
         {
             _logger.Warn($"FetchPrChecksAsync returned unparseable JSON for {owner}/{repo}#{prNumber}: {ex.Message}");
-            return [];
+            return CheckFetchResult.Failure();
         }
+    }
+
+    /// <summary>Text GitHub and <c>gh</c> use when a primary, secondary or abuse rate limit is hit.</summary>
+    private static readonly string[] RateLimitMarkers =
+    [
+        "rate limit exceeded",
+        "secondary rate limit",
+        "rate_limited",
+        "abuse detection",
+        "retry-after",
+    ];
+
+    /// <summary>Whether a <c>gh</c> stream mentions a rate limit. Case-insensitive, cheap enough for one call.</summary>
+    internal static bool LooksRateLimited(string? text) =>
+        !string.IsNullOrEmpty(text)
+        && RateLimitMarkers.Any(m => text.Contains(m, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Whether a parsed GraphQL response carries a RATE_LIMITED error entry.</summary>
+    internal static bool HasRateLimitError(JsonElement root)
+    {
+        if (!root.TryGetProperty("errors", out var errors) || errors.ValueKind != JsonValueKind.Array)
+            return false;
+
+        foreach (var error in errors.EnumerateArray())
+        {
+            if (error.ValueKind != JsonValueKind.Object)
+                continue;
+            if (LooksRateLimited(GetStringOrNull(error, "type")) || LooksRateLimited(GetStringOrNull(error, "message")))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Reads <c>data.rateLimit</c> — the remaining GraphQL points and when the window resets.
+    /// Requesting this field costs nothing, and it is what lets the panel back off *before*
+    /// GitHub starts refusing calls.
+    /// </summary>
+    internal static (int? Remaining, DateTimeOffset? ResetAt) ParseRateLimitBudget(JsonElement root)
+    {
+        if (!root.TryGetProperty("data", out var data)
+            || data.ValueKind != JsonValueKind.Object
+            || !data.TryGetProperty("rateLimit", out var rateLimit)
+            || rateLimit.ValueKind != JsonValueKind.Object)
+            return (null, null);
+
+        int? remaining = rateLimit.TryGetProperty("remaining", out var r) && r.ValueKind == JsonValueKind.Number
+            ? r.GetInt32()
+            : null;
+
+        return (remaining, GetDateOrNull(rateLimit, "resetAt"));
     }
 
     /// <summary>

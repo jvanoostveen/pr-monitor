@@ -20,10 +20,32 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     /// <summary>Guards against a slow response for a previously opened PR overwriting the current one.</summary>
     private int _loadGeneration;
 
+    /// <summary>How long the panel waits before reloading while at least one job is still running.</summary>
+    internal static readonly TimeSpan AutoRefreshInterval = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// GraphQL points that must be left before another automatic reload is scheduled. The panel
+    /// backs off well before GitHub starts refusing calls, so manual actions keep working.
+    /// </summary>
+    internal const int MinRateLimitRemaining = 100;
+
+    /// <summary>
+    /// Holds the pending reload. It is scheduled only while the panel is open and a job is
+    /// still running, and never holds more than one tick.
+    /// </summary>
+    private readonly AutoRefreshScheduler _autoRefresh;
+
     public ChecksViewModel(GitHubService gitHub, DiagnosticsLogger logger)
+        : this(gitHub, logger, AutoRefreshInterval)
+    {
+    }
+
+    /// <summary>Test seam: lets a test drive the cycle without waiting 30 seconds per tick.</summary>
+    internal ChecksViewModel(GitHubService gitHub, DiagnosticsLogger logger, TimeSpan autoRefreshInterval)
     {
         _gitHub = gitHub;
         _logger = logger;
+        _autoRefresh = new AutoRefreshScheduler(autoRefreshInterval, RefreshAsync, logger);
     }
 
     public ObservableCollection<CheckItemViewModel> Checks { get; } = [];
@@ -131,6 +153,37 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
 
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
+    private string _noticeMessage = "";
+    /// <summary>Non-fatal message shown under a list that is still usable (e.g. a failed reload).</summary>
+    public string NoticeMessage
+    {
+        get => _noticeMessage;
+        private set
+        {
+            SetField(ref _noticeMessage, value);
+            OnPropertyChanged(nameof(HasNotice));
+        }
+    }
+
+    public bool HasNotice => !string.IsNullOrEmpty(NoticeMessage);
+
+    private bool _isAutoRefreshing;
+    /// <summary>True while a reload is scheduled, i.e. the panel is open and a job is still running.</summary>
+    public bool IsAutoRefreshing
+    {
+        get => _isAutoRefreshing;
+        private set
+        {
+            SetField(ref _isAutoRefreshing, value);
+            OnPropertyChanged(nameof(RefreshTooltip));
+        }
+    }
+
+    /// <summary>Tooltip of the refresh button; tells the user whether the panel updates itself.</summary>
+    public string RefreshTooltip => IsAutoRefreshing
+        ? $"Reload the checks (updating automatically every {AutoRefreshInterval.TotalSeconds:0} s while jobs are running)"
+        : "Reload the checks";
+
     /// <summary>Shown when loading finished and GitHub reported no checks at all.</summary>
     public bool ShowEmptyState => !IsLoading && !HasError && Checks.Count == 0;
 
@@ -143,6 +196,9 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     /// </summary>
     public async Task OpenAsync(PrItemViewModel pr)
     {
+        // Opening another PR must not leave the previous one's reload pending.
+        CancelAutoRefresh();
+
         CurrentPr = pr;
         Title = pr.Title;
         Repository = pr.Repository;
@@ -153,55 +209,123 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
         SummaryState = pr.EffectiveCIState;
         SummaryLabel = "LOADING CHECKS";
         SummaryCount = "";
+        ErrorMessage = "";
+        NoticeMessage = "";
         Checks.Clear();
         IsOpen = true;
 
         await RefreshAsync();
     }
 
-    /// <summary>Re-fetches the checks of the PR the panel is currently showing.</summary>
+    /// <summary>
+    /// Re-fetches the checks of the PR the panel is currently showing. Used by the refresh
+    /// button and by the auto-refresh tick; either way any pending tick is cancelled first,
+    /// so a manual refresh cannot leave two timers running.
+    /// </summary>
     public async Task RefreshAsync()
     {
+        CancelAutoRefresh();
+
         if (CurrentPr is not { } pr)
             return;
 
         int generation = ++_loadGeneration;
-        ErrorMessage = "";
-        IsLoading = true;
+        // Keep an earlier successful list on screen while reloading, so an auto-refresh does
+        // not blank the panel every 30 seconds.
+        IsLoading = Checks.Count == 0;
 
         var (owner, repo) = SplitRepository(pr.Repository);
         if (owner is null || repo is null)
         {
-            Finish(generation, [], "Could not determine the repository of this PR.");
+            Finish(generation, CheckFetchResult.Failure(), "Could not determine the repository of this PR.");
             return;
         }
 
         try
         {
-            var checks = await _gitHub.FetchPrChecksAsync(owner, repo, pr.Number);
-            Finish(generation, checks, "");
+            var result = await _gitHub.FetchPrChecksAsync(owner, repo, pr.Number);
+            Finish(generation, result, DescribeFailure(result));
         }
         catch (Exception ex)
         {
             _logger.Warn($"ChecksViewModel: loading checks for {pr.Repository}#{pr.Number} failed: {ex.Message}");
-            Finish(generation, [], "Could not load the checks. Is 'gh' still authenticated?");
+            Finish(generation, CheckFetchResult.Failure(), "Could not load the checks. Is 'gh' still authenticated?");
         }
     }
 
-    private void Finish(int generation, IReadOnlyList<CheckRunInfo> checks, string error)
+    /// <summary>User-facing text for a failed fetch, or empty when the fetch succeeded.</summary>
+    internal static string DescribeFailure(CheckFetchResult result) => result.Status switch
+    {
+        CheckFetchStatus.RateLimited => result.RateLimitResetAt is { } reset
+            ? $"GitHub rate limit reached — auto-refresh stopped until {reset.ToLocalTime():HH:mm}."
+            : "GitHub rate limit reached — auto-refresh stopped.",
+        CheckFetchStatus.Failed => "Could not load the checks. Is 'gh' still authenticated?",
+        _ => "",
+    };
+
+    private void Finish(int generation, CheckFetchResult result, string error)
     {
         // A newer open/refresh already took over — drop this stale response.
         if (generation != _loadGeneration)
             return;
 
-        Checks.Clear();
-        foreach (var check in checks.OrderBy(c => c.SortRank).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase))
-            Checks.Add(new CheckItemViewModel(check));
+        // A failed reload keeps the rows it already had: a momentary API hiccup should not
+        // throw away a list the user is reading. The message then shows below it instead.
+        bool keepExistingRows = result.IsFailure && Checks.Count > 0;
+        if (!keepExistingRows)
+        {
+            Checks.Clear();
+            foreach (var check in result.Checks.OrderBy(c => c.SortRank).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase))
+                Checks.Add(new CheckItemViewModel(check));
 
-        UpdateSummary(checks);
-        ErrorMessage = error;
+            UpdateSummary(result.Checks);
+        }
+
+        NoticeMessage = keepExistingRows ? error : "";
+        ErrorMessage = keepExistingRows ? "" : error;
         IsLoading = false;
+
+        ScheduleAutoRefresh(result);
     }
+
+    // ── Auto-refresh ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Whether another automatic reload may be scheduled. It requires a healthy response with
+    /// at least one job still running, and enough rate-limit budget left — so a finished PR,
+    /// a failed call or a throttled account all simply stop the cycle.
+    /// </summary>
+    internal static bool ShouldAutoRefresh(CheckFetchResult result) =>
+        result.Status == CheckFetchStatus.Ok
+        && result.Checks.Any(c => c.IsInProgress)
+        && (result.RateLimitRemaining ?? int.MaxValue) >= MinRateLimitRemaining;
+
+    /// <summary>
+    /// Schedules the next reload when <see cref="ShouldAutoRefresh"/> allows it. Each tick is a
+    /// single delay that re-decides afterwards; there is no repeating timer that could outlive
+    /// the panel or keep firing against a rate-limited API.
+    /// </summary>
+    private void ScheduleAutoRefresh(CheckFetchResult result)
+    {
+        if (!IsOpen || !ShouldAutoRefresh(result))
+        {
+            CancelAutoRefresh();
+            return;
+        }
+
+        _autoRefresh.Schedule();
+        IsAutoRefreshing = true;
+    }
+
+    /// <summary>Stops a pending auto-refresh, if any. Safe to call when none is scheduled.</summary>
+    private void CancelAutoRefresh()
+    {
+        _autoRefresh.Cancel();
+        IsAutoRefreshing = false;
+    }
+
+    /// <summary>Test hook: whether a reload is actually pending in the scheduler.</summary>
+    internal bool HasPendingAutoRefresh => _autoRefresh.IsScheduled;
 
     private void UpdateSummary(IReadOnlyList<CheckRunInfo> checks)
     {
@@ -238,14 +362,16 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
         return ("CHECKS COMPLETED", CIState.Unknown, count);
     }
 
-    /// <summary>Closes the overlay and releases the loaded rows.</summary>
+    /// <summary>Closes the overlay, stops the auto-refresh and releases the loaded rows.</summary>
     public void Close()
     {
+        CancelAutoRefresh();
         _loadGeneration++;
         IsOpen = false;
         CurrentPr = null;
         Checks.Clear();
         ErrorMessage = "";
+        NoticeMessage = "";
         IsLoading = false;
     }
 

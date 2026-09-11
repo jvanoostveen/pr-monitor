@@ -1512,6 +1512,7 @@
                             <RowDefinition Height="Auto"/>  <!-- PR header -->
                             <RowDefinition Height="Auto"/>  <!-- Summary line -->
                             <RowDefinition Height="Auto"/>  <!-- Job list -->
+                            <RowDefinition Height="Auto"/>  <!-- Notice under a still-usable list -->
                             <RowDefinition Height="Auto"/>  <!-- Footer -->
                         </Grid.RowDefinitions>
 
@@ -1539,7 +1540,7 @@
                                 </StackPanel>
                                 <Border HorizontalAlignment="Right" CornerRadius="4" Padding="5,3"
                                         Background="#21262D" Cursor="Hand"
-                                        ToolTip="Reload the checks"
+                                        ToolTip="{Binding Checks.RefreshTooltip}"
                                         MouseLeftButtonUp="ChecksRefresh_Click">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xE5D5;"
                                                FontSize="14" Foreground="#8B949E"/>
@@ -1626,8 +1627,14 @@
                             </ScrollViewer>
                         </Grid>
 
+                        <!-- ── Notice: the list above is still valid, but the last reload was not ── -->
+                        <TextBlock Grid.Row="3" Text="{Binding Checks.NoticeMessage}"
+                                   Foreground="#D29922" FontSize="11" Margin="14,8,14,0"
+                                   TextWrapping="Wrap"
+                                   Visibility="{Binding Checks.HasNotice, Converter={StaticResource BoolToVisibility}}"/>
+
                         <!-- ── Footer ── -->
-                        <Border Grid.Row="3" Margin="14,10,14,14" CornerRadius="6"
+                        <Border Grid.Row="4" Margin="14,10,14,14" CornerRadius="6"
                                 Background="#21262D" BorderBrush="#30363D" BorderThickness="1"
                                 Padding="0,9" Cursor="Hand"
                                 MouseLeftButtonUp="ChecksOpenPr_Click">

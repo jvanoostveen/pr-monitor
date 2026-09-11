@@ -230,6 +230,11 @@ public partial class MainWindow : Window
     public void HideToTray()
     {
         LogPlacement("HideToTray:start");
+
+        // Closing the checks overlay also stops its auto-refresh: no timer may survive
+        // into the tray, where nobody can see the result anyway.
+        ViewModel.Checks.Close();
+
         PersistWindowPosition();
         Hide();
         PersistWindowState(isVisible: false);
