@@ -307,8 +307,10 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     /// </summary>
     public async Task OpenAsync(PrItemViewModel pr)
     {
-        // Opening another PR must not leave the previous one's reload pending.
+        // Opening another PR must not leave the previous one's reload pending, nor inherit the
+        // grace period from a rerun that was triggered on a different PR.
         CancelAutoRefresh();
+        _rerunGraceUntil = DateTimeOffset.MinValue;
 
         CurrentPr = pr;
         Title = pr.Title;
@@ -408,10 +410,33 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     /// at least one job still running, and enough rate-limit budget left — so a finished PR,
     /// a failed call or a throttled account all simply stop the cycle.
     /// </summary>
-    internal static bool ShouldAutoRefresh(CheckFetchResult result, int? remaining) =>
+    /// <param name="withinRerunGrace">
+    /// True shortly after a rerun was requested. GitHub needs a moment to flip the job to
+    /// queued, and without this the reload right after a rerun would still see only finished
+    /// checks and stop the cycle — leaving the panel stale exactly when it should be watching.
+    /// </param>
+    internal static bool ShouldAutoRefresh(CheckFetchResult result, int? remaining, bool withinRerunGrace = false) =>
         result.Status == CheckFetchStatus.Ok
-        && result.Checks.Any(c => c.IsInProgress)
+        && (result.Checks.Any(c => c.IsInProgress) || withinRerunGrace)
         && (remaining ?? int.MaxValue) >= MinRateLimitRemaining;
+
+    /// <summary>
+    /// How long after a rerun request the panel keeps reloading even while GitHub still reports
+    /// the old, finished state. Bounded, so a rerun that never materialises cannot poll forever.
+    /// </summary>
+    internal static readonly TimeSpan RerunGracePeriod = TimeSpan.FromMinutes(2);
+
+    private DateTimeOffset _rerunGraceUntil = DateTimeOffset.MinValue;
+
+    /// <summary>
+    /// Reloads after a rerun was triggered, and keeps the auto-refresh running through the
+    /// grace period so the restarted job is picked up as soon as GitHub reports it.
+    /// </summary>
+    public async Task RefreshAfterRerunAsync()
+    {
+        _rerunGraceUntil = DateTimeOffset.UtcNow + RerunGracePeriod;
+        await RefreshAsync();
+    }
 
     /// <summary>
     /// How long to wait before the next reload, given what is left of the rate-limit budget.
@@ -466,12 +491,18 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     private void ScheduleAutoRefresh(CheckFetchResult result)
     {
         var (remaining, resetAt) = EffectiveBudget(result);
+        bool withinRerunGrace = DateTimeOffset.UtcNow < _rerunGraceUntil;
 
-        if (!IsOpen || !ShouldAutoRefresh(result, remaining))
+        if (!IsOpen || !ShouldAutoRefresh(result, remaining, withinRerunGrace))
         {
             CancelAutoRefresh();
             return;
         }
+
+        // Once a job really is running the normal rule carries the cycle; the grace has
+        // done its job and should not keep the panel polling a second longer than needed.
+        if (result.Checks.Any(c => c.IsInProgress))
+            _rerunGraceUntil = DateTimeOffset.MinValue;
 
         var interval = ComputeInterval(remaining, resetAt, DateTimeOffset.UtcNow);
         if (interval > AutoRefreshInterval)
@@ -558,6 +589,7 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     {
         CancelAutoRefresh();
         _loadGeneration++;
+        _rerunGraceUntil = DateTimeOffset.MinValue;
         IsOpen = false;
         CurrentPr = null;
         _allRows = [];

@@ -31,7 +31,7 @@ Click the colored **status dot** of a PR row — or pick **Show CI checks** from
 - the job's duration, or its elapsed time while it is still running;
 - a summary line such as `CHECKS RUNNING 3/4`, `2 CHECKS FAILED` or `ALL CHECKS PASSED`, counting finished checks over the total (skipped checks excluded).
 
-Hovering a **failed** job reveals a ↺ button that reruns *that job alone* (and anything depending on it). The panel reloads straight after, so the job flips to queued and the auto-refresh follows it from there. The row context menu's **Rerun failed jobs** still restarts every failed job on the PR at once — use the per-job button when only one job is flaky.
+Hovering a **failed** job replaces its duration with a ↺ button that reruns *that job alone* (and anything depending on it). The panel reloads straight after and keeps auto-refreshing until the restarted job shows up, so you can watch it go from queued to green without touching anything. The row context menu's **Rerun failed jobs** still restarts every failed job on the PR at once — use the per-job button when only one job is flaky.
 
 **Skipped checks are hidden**, since a job that never ran tells you nothing about the PR. A `Show 3 skipped checks` line under the list brings them back if you want them, and that choice sticks until you restart the app.
 

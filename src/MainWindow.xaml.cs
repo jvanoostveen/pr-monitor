@@ -967,7 +967,7 @@ public partial class MainWindow : Window
                 _notifications.Notify(
                     $"Rerun started for {check.Name}",
                     $"{pr.Repository}#{pr.Number} — {check.WorkflowName}");
-                await ViewModel.Checks.RefreshAsync();
+                await ViewModel.Checks.RefreshAfterRerunAsync();
             }
             else
             {

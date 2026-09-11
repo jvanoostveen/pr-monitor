@@ -85,6 +85,43 @@ public class ChecksAutoRefreshTests
         Assert.Equal(TimeSpan.FromSeconds(30), ChecksViewModel.AutoRefreshInterval);
     }
 
+    // ── Grace period after a rerun ──────────────────────────────────────
+
+    [Fact]
+    public void ShouldAutoRefresh_JustAfterARerun_KeepsGoingEvenThoughNothingRunsYet()
+    {
+        // GitHub has not flipped the job to queued yet, so the reload right after the rerun
+        // still shows only finished checks.
+        var result = CheckFetchResult.Success([Check(CheckRunState.Failure, "Test")]);
+
+        Assert.False(ChecksViewModel.ShouldAutoRefresh(result, null));
+        Assert.True(ChecksViewModel.ShouldAutoRefresh(result, null, withinRerunGrace: true));
+    }
+
+    [Fact]
+    public void ShouldAutoRefresh_RerunGrace_DoesNotOverrideAFailedCall()
+    {
+        Assert.False(ChecksViewModel.ShouldAutoRefresh(CheckFetchResult.Failure(), null, withinRerunGrace: true));
+    }
+
+    [Fact]
+    public void ShouldAutoRefresh_RerunGrace_DoesNotOverrideARateLimit()
+    {
+        var limited = CheckFetchResult.RateLimited(DateTimeOffset.UtcNow.AddMinutes(10));
+        Assert.False(ChecksViewModel.ShouldAutoRefresh(limited, 0, withinRerunGrace: true));
+
+        // Nor a budget that has dropped below the reserve.
+        var thin = CheckFetchResult.Success(
+            [Check(CheckRunState.Failure)], remaining: ChecksViewModel.MinRateLimitRemaining - 1);
+        Assert.False(ChecksViewModel.ShouldAutoRefresh(thin, thin.RateLimitRemaining, withinRerunGrace: true));
+    }
+
+    [Fact]
+    public void RerunGracePeriod_IsBoundedSoAFailedRerunCannotPollForever()
+    {
+        Assert.Equal(TimeSpan.FromMinutes(2), ChecksViewModel.RerunGracePeriod);
+    }
+
     // ── Budget-aware pacing ─────────────────────────────────────────────
 
     private static readonly DateTimeOffset Now = new(2026, 9, 11, 14, 0, 0, TimeSpan.Zero);

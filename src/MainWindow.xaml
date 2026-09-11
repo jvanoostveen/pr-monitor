@@ -1602,7 +1602,10 @@
                             <ScrollViewer Style="{StaticResource OverlayScrollViewer}"
                                           MaxHeight="260" Padding="0,4"
                                           Visibility="{Binding Checks.ShowList, Converter={StaticResource BoolToVisibility}}">
-                                <ItemsControl ItemsSource="{Binding Checks.Checks}">
+                                <!-- IsSharedSizeScope lets every row agree on the width of the badge,
+                                     duration and rerun columns, so those stay aligned no matter which
+                                     rows happen to carry a badge or a rerun button. -->
+                                <ItemsControl ItemsSource="{Binding Checks.Checks}" Grid.IsSharedSizeScope="True">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Border Padding="14,5"
@@ -1628,9 +1631,8 @@
                                                         <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto" SharedSizeGroup="CheckBadge"/>
+                                                        <ColumnDefinition Width="Auto" SharedSizeGroup="CheckDuration"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Grid.Column="0" Style="{StaticResource IconText}"
                                                                Text="{Binding StateIcon}" FontSize="15"
@@ -1659,38 +1661,56 @@
                                                         <TextBlock Text="{Binding DuplicateBadge}"
                                                                    FontSize="10" Foreground="#8B949E"/>
                                                     </Border>
-                                                    <TextBlock Grid.Column="5" Text="{Binding DurationText}"
-                                                               FontSize="11" Foreground="#6E7681"
-                                                               VerticalAlignment="Center" Margin="8,0,0,0"/>
-                                                    <!-- Rerun, only on failed jobs and only while the row is hovered.
-                                                         Visibility (not opacity) keeps passing rows from reserving the
-                                                         space; on a failed row the space is reserved either way, so the
-                                                         duration does not jump sideways when the pointer arrives. -->
-                                                    <Border Grid.Column="6" CornerRadius="4" Padding="3,1"
-                                                            Background="#30363D" Cursor="Hand"
-                                                            VerticalAlignment="Center" Margin="8,0,0,0"
-                                                            ToolTip="{Binding RerunTooltip}" Tag="{Binding}"
-                                                            MouseLeftButtonUp="CheckRerun_Click">
-                                                        <Border.Style>
-                                                            <Style TargetType="Border">
-                                                                <Setter Property="Opacity" Value="0"/>
-                                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding CanRerun}" Value="True">
-                                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True">
-                                                                        <Setter Property="Opacity" Value="1"/>
-                                                                    </DataTrigger>
-                                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter Property="Background" Value="#3D444D"/>
-                                                                    </Trigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Border.Style>
-                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE042;"
-                                                                   FontSize="14" Foreground="#C9D1D9"/>
-                                                    </Border>
+                                                    <!-- Duration, and in its place the rerun button while a failed row is
+                                                         hovered. Sharing one cell means the button needs no column of its
+                                                         own, so nothing shifts and the durations stay aligned. -->
+                                                    <Grid Grid.Column="5" Margin="8,0,0,0">
+                                                        <TextBlock Text="{Binding DurationText}"
+                                                                   FontSize="11" Foreground="#6E7681"
+                                                                   VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Style.Triggers>
+                                                                        <MultiDataTrigger>
+                                                                            <MultiDataTrigger.Conditions>
+                                                                                <Condition Binding="{Binding CanRerun}" Value="True"/>
+                                                                                <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True"/>
+                                                                            </MultiDataTrigger.Conditions>
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </MultiDataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <!-- Height is capped below the row's natural height (set by the
+                                                             15px status glyph), so revealing the button on hover cannot
+                                                             grow the row — and with SizeToContent, the whole window. -->
+                                                        <Border CornerRadius="4" Padding="5,0" Height="18" Cursor="Hand"
+                                                                VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                                ToolTip="{Binding RerunTooltip}" Tag="{Binding}"
+                                                                MouseLeftButtonUp="CheckRerun_Click">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Setter Property="Background" Value="#30363D"/>
+                                                                    <Style.Triggers>
+                                                                        <MultiDataTrigger>
+                                                                            <MultiDataTrigger.Conditions>
+                                                                                <Condition Binding="{Binding CanRerun}" Value="True"/>
+                                                                                <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True"/>
+                                                                            </MultiDataTrigger.Conditions>
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </MultiDataTrigger>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter Property="Background" Value="#3D444D"/>
+                                                                        </Trigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
+                                                            <TextBlock Style="{StaticResource IconText}" Text="&#xE042;"
+                                                                       FontSize="12" Foreground="#C9D1D9"/>
+                                                        </Border>
+                                                    </Grid>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
