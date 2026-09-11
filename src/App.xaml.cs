@@ -35,6 +35,13 @@ public partial class App : System.Windows.Application
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        // The PR window is a layered window (AllowsTransparency), so WPF already rasterizes it
+        // in software. Leaving the default render mode on still makes WPF spin up a D3D9 device
+        // at startup, which maps the whole graphics-driver stack (~150 MB of Intel/D3D DLLs plus
+        // their private heaps) into a process that never draws a single pixel on the GPU.
+        // Opting out keeps that stack out of the process entirely.
+        System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
+
         base.OnStartup(e);
 
         // Enable native dark-mode menus on Windows 10 1903+ / Windows 11
