@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-09-11
+
 ### Added
 - **CI checks panel — see which jobs run, passed or failed without leaving the app.** Click the colored status dot of a PR row (or **Show CI checks** in its right-click menu) to open a panel over the list with every check on the PR's latest commit. A failing PR no longer means clicking through to GitHub, its checks tab and the workflow run to find out which job broke.
   - Every row shows a status icon in GitHub's own colors, the workflow the job belongs to (`Components / Test` — a bare job name is ambiguous as soon as two workflows both have a `Test` job), and the job's duration or its elapsed time while running. Failed jobs come first, then running, queued, passed and skipped. **Clicking a job opens its log page on GitHub directly.**
