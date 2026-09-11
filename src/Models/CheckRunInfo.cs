@@ -40,8 +40,15 @@ public sealed class CheckRunInfo
     /// <summary>Job/check name, e.g. "Compile" or "Test (linux)".</summary>
     public required string Name { get; init; }
 
-    /// <summary>Workflow the check belongs to, or empty for legacy status contexts.</summary>
+    /// <summary>
+    /// Workflow the check belongs to ("Components", "Main PR"), or empty for legacy status
+    /// contexts. Job names alone are routinely ambiguous — two workflows both having a "Test"
+    /// job is the norm — so this is what makes a row identifiable.
+    /// </summary>
     public string WorkflowName { get; init; } = "";
+
+    /// <summary>Event that triggered the run ("pull_request", "pull_request_review"), when known.</summary>
+    public string Event { get; init; } = "";
 
     /// <summary>Normalized state used for icon, color and sorting.</summary>
     public CheckRunState State { get; init; } = CheckRunState.Unknown;

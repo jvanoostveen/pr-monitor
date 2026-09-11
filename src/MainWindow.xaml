@@ -1626,16 +1626,28 @@
                                                         <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Grid.Column="0" Style="{StaticResource IconText}"
                                                                Text="{Binding StateIcon}" FontSize="15"
                                                                Margin="0,0,8,0"
                                                                Foreground="{Binding State, Converter={StaticResource CheckStateToBrush}}"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                    <!-- "Components / Test": the workflow dimmed, the job name in the state colour,
+                                                         because a bare job name is ambiguous whenever two workflows share one. -->
+                                                    <TextBlock Grid.Column="1"
                                                                FontSize="12" VerticalAlignment="Center"
-                                                               TextTrimming="CharacterEllipsis"
-                                                               Foreground="{Binding State, Converter={StaticResource CheckStateToBrush}, ConverterParameter=Name}"/>
-                                                    <TextBlock Grid.Column="2" Text="{Binding DurationText}"
+                                                               TextTrimming="CharacterEllipsis">
+                                                        <Run Text="{Binding WorkflowPrefix, Mode=OneWay}" Foreground="#6E7681"/><Run
+                                                             Text="{Binding Name, Mode=OneWay}"
+                                                             Foreground="{Binding State, Converter={StaticResource CheckStateToBrush}, ConverterParameter=Name}"/>
+                                                    </TextBlock>
+                                                    <Border Grid.Column="2" CornerRadius="3" Padding="4,1"
+                                                            Background="#21262D" VerticalAlignment="Center" Margin="6,0,0,0"
+                                                            Visibility="{Binding HasDuplicates, Converter={StaticResource BoolToVisibility}}">
+                                                        <TextBlock Text="{Binding DuplicateBadge}"
+                                                                   FontSize="10" Foreground="#8B949E"/>
+                                                    </Border>
+                                                    <TextBlock Grid.Column="3" Text="{Binding DurationText}"
                                                                FontSize="11" Foreground="#6E7681"
                                                                VerticalAlignment="Center" Margin="8,0,0,0"/>
                                                 </Grid>

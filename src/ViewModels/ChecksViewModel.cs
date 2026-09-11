@@ -320,11 +320,15 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
         bool keepExistingRows = result.IsFailure && Checks.Count > 0;
         if (!keepExistingRows)
         {
-            Checks.Clear();
-            foreach (var check in result.Checks.OrderBy(c => c.SortRank).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase))
-                Checks.Add(new CheckItemViewModel(check));
+            var rows = Collapse(result.Checks);
 
-            UpdateSummary(result.Checks);
+            Checks.Clear();
+            foreach (var (check, count) in rows)
+                Checks.Add(new CheckItemViewModel(check, count));
+
+            // The summary counts what the list shows, so a PR with nine identical skipped
+            // runs is not reported as nine checks.
+            UpdateSummary([.. rows.Select(r => r.Check)]);
         }
 
         NoticeMessage = keepExistingRows ? error : "";
@@ -425,6 +429,32 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     /// <summary>Test hook: whether a reload is actually pending in the scheduler.</summary>
     internal bool HasPendingAutoRefresh => _autoRefresh.IsScheduled;
 
+    /// <summary>
+    /// Groups the raw checks into the rows the panel shows: one row per
+    /// (workflow, job, state), newest run first, ordered by what needs attention.
+    /// </summary>
+    /// <remarks>
+    /// GitHub returns one check run per check suite, and a workflow triggered by
+    /// <c>pull_request_review</c> gets a fresh suite on every review — so a PR can carry nine
+    /// identical skipped "Claude Code / claude" runs. Collapsing runs that agree on workflow,
+    /// name *and* state throws away no information beyond the repeat count, which the row shows.
+    /// Runs of the same job in different states are deliberately kept apart: a job that failed
+    /// and passed on a rerun is something the user has to see, not something to hide.
+    /// </remarks>
+    internal static List<(CheckRunInfo Check, int Count)> Collapse(IReadOnlyList<CheckRunInfo> checks) =>
+    [
+        .. checks
+            .GroupBy(c => (c.WorkflowName, c.Name, c.State))
+            .Select(g => (
+                Check: g.OrderByDescending(c => c.WorkflowRunId)
+                        .ThenByDescending(c => c.StartedAt ?? DateTimeOffset.MinValue)
+                        .First(),
+                Count: g.Count()))
+            .OrderBy(r => r.Check.SortRank)
+            .ThenBy(r => r.Check.WorkflowName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.Check.Name, StringComparer.OrdinalIgnoreCase)
+    ];
+
     private void UpdateSummary(IReadOnlyList<CheckRunInfo> checks)
     {
         var (label, state, count) = BuildSummary(checks);
@@ -509,11 +539,29 @@ public sealed class CheckItemViewModel
 {
     private readonly CheckRunInfo _check;
 
-    public CheckItemViewModel(CheckRunInfo check) => _check = check;
+    public CheckItemViewModel(CheckRunInfo check, int duplicateCount = 1)
+    {
+        _check = check;
+        DuplicateCount = duplicateCount;
+    }
 
     public string Name => _check.Name;
 
     public string WorkflowName => _check.WorkflowName;
+
+    /// <summary>How many identical runs this row stands for; 1 for an ordinary row.</summary>
+    public int DuplicateCount { get; }
+
+    /// <summary>
+    /// Workflow the job belongs to, rendered dimmed in front of the job name the way GitHub
+    /// writes "Components / Test". Empty for legacy status contexts, which have no workflow.
+    /// </summary>
+    public string WorkflowPrefix => string.IsNullOrEmpty(WorkflowName) ? "" : $"{WorkflowName} / ";
+
+    /// <summary>"×9" when several identical runs were collapsed into this row, otherwise empty.</summary>
+    public string DuplicateBadge => DuplicateCount > 1 ? $"×{DuplicateCount}" : "";
+
+    public bool HasDuplicates => DuplicateCount > 1;
 
     public CheckRunState State => _check.State;
 
@@ -544,9 +592,24 @@ public sealed class CheckItemViewModel
     /// <summary>Whether this row links to a job log on GitHub.</summary>
     public bool HasUrl => !string.IsNullOrWhiteSpace(Url);
 
-    public string RowTooltip => string.IsNullOrEmpty(WorkflowName)
-        ? $"{Name} — {State}{(HasUrl ? "\nClick to open the job log" : "")}"
-        : $"{WorkflowName} › {Name} — {State}{(HasUrl ? "\nClick to open the job log" : "")}";
+    public string RowTooltip
+    {
+        get
+        {
+            var lines = new List<string>();
+            if (!string.IsNullOrEmpty(WorkflowName))
+                lines.Add($"Workflow: {WorkflowName}");
+            lines.Add($"Job: {Name}");
+            if (!string.IsNullOrEmpty(_check.Event))
+                lines.Add($"Triggered by: {_check.Event}");
+            lines.Add($"Status: {State}");
+            if (HasDuplicates)
+                lines.Add($"{DuplicateCount} identical runs — showing the most recent");
+            if (HasUrl)
+                lines.Add("Click to open the job log");
+            return string.Join(Environment.NewLine, lines);
+        }
+    }
 
     /// <summary>Opens the job's log page on GitHub.</summary>
     public void OpenInBrowser()

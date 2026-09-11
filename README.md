@@ -27,8 +27,11 @@ Each PR row keeps its CI status circle and also shows a message icon when unreso
 Click the colored **status dot** of a PR row — or pick **Show CI checks** from its right-click menu — to open a panel over the list showing every check on that PR's latest commit:
 
 - a status icon per job (failed, running, queued, passed, skipped) in GitHub's own colors;
+- the workflow the job belongs to, dimmed in front of the job name (`Components / Test`) — without it two workflows that both have a `Test` job are indistinguishable;
 - the job's duration, or its elapsed time while it is still running;
 - a summary line such as `CHECKS RUNNING 3/4`, `2 CHECKS FAILED` or `ALL CHECKS PASSED`, counting finished checks over the total (skipped checks excluded).
+
+Identical runs of the same job are merged into a single row with a `×N` badge. GitHub reports a separate check run per check suite, so a workflow that triggers on `pull_request_review` can otherwise fill the panel with nine copies of the same skipped job. Only runs that match on workflow, job *and* status are merged, and the row links to the most recent of them — a job that failed and then passed on a rerun stays visible as two rows.
 
 Jobs are ordered by what needs attention first: failed, then cancelled, running, queued, passed and finally skipped. **Clicking a job opens its log page on GitHub directly**, so a red PR takes one click to the failing job instead of a trip through the PR, its checks tab and the workflow run.
 

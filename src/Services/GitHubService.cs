@@ -1424,6 +1424,7 @@ public sealed class GitHubService
                             checkSuite {
                               workflowRun {
                                 databaseId
+                                event
                                 workflow { name }
                               }
                             }
@@ -1671,6 +1672,7 @@ public sealed class GitHubService
             return null;
 
         string workflowName = "";
+        string triggerEvent = "";
         long workflowRunId = 0;
         if (node.TryGetProperty("checkSuite", out var suite)
             && suite.ValueKind == JsonValueKind.Object
@@ -1681,6 +1683,8 @@ public sealed class GitHubService
                 && workflow.ValueKind == JsonValueKind.Object)
                 workflowName = GetStringOrNull(workflow, "name") ?? "";
 
+            triggerEvent = GetStringOrNull(run, "event") ?? "";
+
             if (run.TryGetProperty("databaseId", out var dbId) && dbId.ValueKind == JsonValueKind.Number)
                 workflowRunId = dbId.GetInt64();
         }
@@ -1689,6 +1693,7 @@ public sealed class GitHubService
         {
             Name = name,
             WorkflowName = workflowName,
+            Event = triggerEvent,
             WorkflowRunId = workflowRunId,
             State = CheckRunInfo.FromCheckRun(GetStringOrNull(node, "status"), GetStringOrNull(node, "conclusion")),
             Url = GetStringOrNull(node, "detailsUrl") ?? "",
