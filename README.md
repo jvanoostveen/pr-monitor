@@ -34,7 +34,18 @@ Jobs are ordered by what needs attention first: failed, then cancelled, running,
 
 While at least one job is still running or queued, the panel **reloads itself every 30 seconds** so you can watch a build finish without touching anything. That timer only exists while it is useful — it stops as soon as every job has finished, when you close the panel or hide the window to the tray, when a reload fails, or when your GitHub API budget runs low. There is no background polling of checks: closing the panel ends the cycle completely.
 
-The panel also has a manual refresh button (its tooltip tells you whether auto-refresh is currently active) and an **Open on GitHub** button for the PR itself. Close it with `Esc`, the ✕ button above it, or by clicking next to it.
+The **refresh button shows which mode you are in**, like the pin button in the window header:
+
+| Button | Meaning |
+|---|---|
+| Blue ↻ with an interval next to it (e.g. `30s`) | Auto-refresh is on — the panel reloads itself at that interval |
+| Grey ↻ | Auto-refresh is off — nothing is running, so click to reload |
+
+Clicking it always reloads immediately, whichever mode is shown.
+
+PR Monitor asks GitHub for the remaining API budget on every query (a field that costs nothing), so it knows how much room it has without spending a call to find out. If that budget runs thin — usually because something else is using the same token — the panel automatically slows down instead of racing to the limit, and the button shows the adjusted interval. Below 100 remaining points it stops reloading altogether and says so.
+
+The panel also has an **Open on GitHub** button for the PR itself. Close it with `Esc`, the ✕ button above it, or by clicking next to it.
 
 ### Stacked PRs
 

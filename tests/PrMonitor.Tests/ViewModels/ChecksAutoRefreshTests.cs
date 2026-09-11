@@ -21,7 +21,7 @@ public class ChecksAutoRefreshTests
     {
         var result = CheckFetchResult.Success([Check(CheckRunState.Success, "done"), Check(state, "busy")]);
 
-        Assert.True(ChecksViewModel.ShouldAutoRefresh(result));
+        Assert.True(ChecksViewModel.ShouldAutoRefresh(result, result.RateLimitRemaining));
     }
 
     [Fact]
@@ -30,25 +30,25 @@ public class ChecksAutoRefreshTests
         var result = CheckFetchResult.Success(
             [Check(CheckRunState.Success, "a"), Check(CheckRunState.Failure, "b"), Check(CheckRunState.Skipped, "c")]);
 
-        Assert.False(ChecksViewModel.ShouldAutoRefresh(result));
+        Assert.False(ChecksViewModel.ShouldAutoRefresh(result, result.RateLimitRemaining));
     }
 
     [Fact]
     public void ShouldAutoRefresh_NoChecksAtAll_StopsTheCycle()
     {
-        Assert.False(ChecksViewModel.ShouldAutoRefresh(CheckFetchResult.Success([])));
+        Assert.False(ChecksViewModel.ShouldAutoRefresh(CheckFetchResult.Success([]), null));
     }
 
     [Fact]
     public void ShouldAutoRefresh_FailedCall_StopsTheCycle()
     {
-        Assert.False(ChecksViewModel.ShouldAutoRefresh(CheckFetchResult.Failure()));
+        Assert.False(ChecksViewModel.ShouldAutoRefresh(CheckFetchResult.Failure(), null));
     }
 
     [Fact]
     public void ShouldAutoRefresh_RateLimited_StopsTheCycle()
     {
-        Assert.False(ChecksViewModel.ShouldAutoRefresh(CheckFetchResult.RateLimited(DateTimeOffset.UtcNow.AddMinutes(20))));
+        Assert.False(ChecksViewModel.ShouldAutoRefresh(CheckFetchResult.RateLimited(DateTimeOffset.UtcNow.AddMinutes(20)), 0));
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class ChecksAutoRefreshTests
             [Check(CheckRunState.Running)],
             remaining: ChecksViewModel.MinRateLimitRemaining - 1);
 
-        Assert.False(ChecksViewModel.ShouldAutoRefresh(result));
+        Assert.False(ChecksViewModel.ShouldAutoRefresh(result, result.RateLimitRemaining));
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class ChecksAutoRefreshTests
             [Check(CheckRunState.Running)],
             remaining: ChecksViewModel.MinRateLimitRemaining);
 
-        Assert.True(ChecksViewModel.ShouldAutoRefresh(result));
+        Assert.True(ChecksViewModel.ShouldAutoRefresh(result, result.RateLimitRemaining));
     }
 
     [Fact]
@@ -76,13 +76,88 @@ public class ChecksAutoRefreshTests
     {
         var result = CheckFetchResult.Success([Check(CheckRunState.Running)], remaining: null);
 
-        Assert.True(ChecksViewModel.ShouldAutoRefresh(result));
+        Assert.True(ChecksViewModel.ShouldAutoRefresh(result, result.RateLimitRemaining));
     }
 
     [Fact]
     public void AutoRefreshInterval_IsThirtySeconds()
     {
         Assert.Equal(TimeSpan.FromSeconds(30), ChecksViewModel.AutoRefreshInterval);
+    }
+
+    // ── Budget-aware pacing ─────────────────────────────────────────────
+
+    private static readonly DateTimeOffset Now = new(2026, 9, 11, 14, 0, 0, TimeSpan.Zero);
+
+    [Fact]
+    public void ComputeInterval_HealthyBudget_UsesTheNormalInterval()
+    {
+        // A full-ish budget affords far more calls than 30 s pacing would ever use.
+        var interval = ChecksViewModel.ComputeInterval(4885, Now.AddMinutes(30), Now);
+
+        Assert.Equal(ChecksViewModel.AutoRefreshInterval, interval);
+    }
+
+    [Fact]
+    public void ComputeInterval_UnknownBudget_UsesTheNormalInterval()
+    {
+        Assert.Equal(ChecksViewModel.AutoRefreshInterval, ChecksViewModel.ComputeInterval(null, Now.AddMinutes(30), Now));
+        Assert.Equal(ChecksViewModel.AutoRefreshInterval, ChecksViewModel.ComputeInterval(4000, null, Now));
+    }
+
+    [Fact]
+    public void ComputeInterval_ThinBudget_SpreadsTheAllowedShareOverTheRestOfTheWindow()
+    {
+        // 200 points, 20% share = 40 calls, over 30 minutes = one call per 45 s.
+        var interval = ChecksViewModel.ComputeInterval(200, Now.AddMinutes(30), Now);
+
+        Assert.Equal(TimeSpan.FromSeconds(45), interval);
+    }
+
+    [Fact]
+    public void ComputeInterval_SlowsDownFurtherAsTheBudgetShrinks()
+    {
+        var roomy = ChecksViewModel.ComputeInterval(400, Now.AddMinutes(50), Now);
+        var tight = ChecksViewModel.ComputeInterval(150, Now.AddMinutes(50), Now);
+
+        Assert.True(tight > roomy, $"expected a thinner budget to pace slower, got {tight} vs {roomy}");
+    }
+
+    [Fact]
+    public void ComputeInterval_NeverExceedsTheCeiling()
+    {
+        var interval = ChecksViewModel.ComputeInterval(1, Now.AddHours(1), Now);
+
+        Assert.Equal(ChecksViewModel.MaxAutoRefreshInterval, interval);
+    }
+
+    [Fact]
+    public void ComputeInterval_NeverGoesBelowTheNormalInterval()
+    {
+        // Even an enormous budget must not make the panel poll faster than its base rate.
+        var interval = ChecksViewModel.ComputeInterval(int.MaxValue, Now.AddSeconds(1), Now);
+
+        Assert.Equal(ChecksViewModel.AutoRefreshInterval, interval);
+    }
+
+    [Fact]
+    public void ComputeInterval_WindowAlreadyReset_FallsBackToTheNormalInterval()
+    {
+        // The budget replenishes immediately, so there is nothing left to pace against.
+        var interval = ChecksViewModel.ComputeInterval(5, Now.AddSeconds(-1), Now);
+
+        Assert.Equal(ChecksViewModel.AutoRefreshInterval, interval);
+    }
+
+    [Theory]
+    [InlineData(30, "30s")]
+    [InlineData(45, "45s")]
+    [InlineData(60, "1m")]
+    [InlineData(90, "1m 30s")]
+    [InlineData(300, "5m")]
+    public void FormatInterval_IsCompact(int seconds, string expected)
+    {
+        Assert.Equal(expected, ChecksViewModel.FormatInterval(TimeSpan.FromSeconds(seconds)));
     }
 
     [Fact]

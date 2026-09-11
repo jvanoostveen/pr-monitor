@@ -20,8 +20,14 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     /// <summary>Guards against a slow response for a previously opened PR overwriting the current one.</summary>
     private int _loadGeneration;
 
-    /// <summary>How long the panel waits before reloading while at least one job is still running.</summary>
+    /// <summary>
+    /// Normal wait before reloading while at least one job is still running, and the floor for
+    /// the budget-aware pacing below.
+    /// </summary>
     internal static readonly TimeSpan AutoRefreshInterval = TimeSpan.FromSeconds(30);
+
+    /// <summary>Slowest the panel will ever poll before giving up on automatic reloads.</summary>
+    internal static readonly TimeSpan MaxAutoRefreshInterval = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// GraphQL points that must be left before another automatic reload is scheduled. The panel
@@ -30,22 +36,22 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     internal const int MinRateLimitRemaining = 100;
 
     /// <summary>
+    /// Share of the remaining budget the panel may spend before the window resets. Watching one
+    /// PR must never be able to starve polling, notifications and manual actions.
+    /// </summary>
+    internal const double BudgetShare = 0.2;
+
+    /// <summary>
     /// Holds the pending reload. It is scheduled only while the panel is open and a job is
     /// still running, and never holds more than one tick.
     /// </summary>
     private readonly AutoRefreshScheduler _autoRefresh;
 
     public ChecksViewModel(GitHubService gitHub, DiagnosticsLogger logger)
-        : this(gitHub, logger, AutoRefreshInterval)
-    {
-    }
-
-    /// <summary>Test seam: lets a test drive the cycle without waiting 30 seconds per tick.</summary>
-    internal ChecksViewModel(GitHubService gitHub, DiagnosticsLogger logger, TimeSpan autoRefreshInterval)
     {
         _gitHub = gitHub;
         _logger = logger;
-        _autoRefresh = new AutoRefreshScheduler(autoRefreshInterval, RefreshAsync, logger);
+        _autoRefresh = new AutoRefreshScheduler(RefreshAsync, logger);
     }
 
     public ObservableCollection<CheckItemViewModel> Checks { get; } = [];
@@ -175,14 +181,54 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
         private set
         {
             SetField(ref _isAutoRefreshing, value);
-            OnPropertyChanged(nameof(RefreshTooltip));
+            NotifyAutoRefreshIndicator();
         }
     }
 
-    /// <summary>Tooltip of the refresh button; tells the user whether the panel updates itself.</summary>
+    private TimeSpan _currentInterval = AutoRefreshInterval;
+    /// <summary>Interval the next reload was actually scheduled at; may exceed the base when throttled.</summary>
+    public TimeSpan CurrentInterval
+    {
+        get => _currentInterval;
+        private set
+        {
+            SetField(ref _currentInterval, value);
+            NotifyAutoRefreshIndicator();
+        }
+    }
+
+    // ── Refresh button state (mirrors the header's pin button: glyph + colour + tooltip) ──
+
+    /// <summary>Material Symbols glyph: "autorenew" while self-updating, plain "refresh" otherwise.</summary>
+    public string RefreshIcon => IsAutoRefreshing ? "" : "";
+
+    /// <summary>Short caption next to the icon, so the state is readable without hovering.</summary>
+    public string AutoRefreshLabel => IsAutoRefreshing ? FormatInterval(CurrentInterval) : "";
+
+    /// <summary>Whether to show the caption at all.</summary>
+    public bool ShowAutoRefreshLabel => IsAutoRefreshing;
+
+    /// <summary>Tooltip of the refresh button; says whether the panel updates itself, and why not.</summary>
     public string RefreshTooltip => IsAutoRefreshing
-        ? $"Reload the checks (updating automatically every {AutoRefreshInterval.TotalSeconds:0} s while jobs are running)"
-        : "Reload the checks";
+        ? $"Auto-refresh is on — reloading every {FormatInterval(CurrentInterval)} while jobs are running.\nClick to reload now."
+        : "Auto-refresh is off — no jobs are running.\nClick to reload.";
+
+    private void NotifyAutoRefreshIndicator()
+    {
+        OnPropertyChanged(nameof(RefreshIcon));
+        OnPropertyChanged(nameof(RefreshTooltip));
+        OnPropertyChanged(nameof(AutoRefreshLabel));
+        OnPropertyChanged(nameof(ShowAutoRefreshLabel));
+    }
+
+    /// <summary>Compact interval caption: "30s", "2m", "1m 30s".</summary>
+    internal static string FormatInterval(TimeSpan interval)
+    {
+        if (interval.TotalSeconds < 60) return $"{interval.TotalSeconds:0}s";
+        int minutes = (int)interval.TotalMinutes;
+        int seconds = interval.Seconds;
+        return seconds == 0 ? $"{minutes}m" : $"{minutes}m {seconds}s";
+    }
 
     /// <summary>Shown when loading finished and GitHub reported no checks at all.</summary>
     public bool ShowEmptyState => !IsLoading && !HasError && Checks.Count == 0;
@@ -295,10 +341,55 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     /// at least one job still running, and enough rate-limit budget left — so a finished PR,
     /// a failed call or a throttled account all simply stop the cycle.
     /// </summary>
-    internal static bool ShouldAutoRefresh(CheckFetchResult result) =>
+    internal static bool ShouldAutoRefresh(CheckFetchResult result, int? remaining) =>
         result.Status == CheckFetchStatus.Ok
         && result.Checks.Any(c => c.IsInProgress)
-        && (result.RateLimitRemaining ?? int.MaxValue) >= MinRateLimitRemaining;
+        && (remaining ?? int.MaxValue) >= MinRateLimitRemaining;
+
+    /// <summary>
+    /// How long to wait before the next reload, given what is left of the rate-limit budget.
+    /// </summary>
+    /// <remarks>
+    /// With a healthy budget this is simply <see cref="AutoRefreshInterval"/>. When the budget
+    /// runs thin the panel spreads the share it is allowed to spend (<see cref="BudgetShare"/>)
+    /// evenly over the time left in the window, rather than keeping a fixed pace until GitHub
+    /// cuts it off. Nothing to go on means the normal interval: an unknown budget is not a
+    /// reason to crawl.
+    /// </remarks>
+    internal static TimeSpan ComputeInterval(int? remaining, DateTimeOffset? resetAt, DateTimeOffset now)
+    {
+        if (remaining is not { } left || resetAt is not { } reset)
+            return AutoRefreshInterval;
+
+        var untilReset = reset - now;
+        // The window is about to roll over; the budget replenishes before pacing could matter.
+        if (untilReset <= TimeSpan.Zero)
+            return AutoRefreshInterval;
+
+        double affordableCalls = left * BudgetShare;
+        if (affordableCalls < 1)
+            return MaxAutoRefreshInterval;
+
+        var paced = TimeSpan.FromSeconds(untilReset.TotalSeconds / affordableCalls);
+        return paced < AutoRefreshInterval ? AutoRefreshInterval
+            : paced > MaxAutoRefreshInterval ? MaxAutoRefreshInterval
+            : paced;
+    }
+
+    /// <summary>
+    /// Budget to pace against: what this call reported, falling back to what the last poll saw.
+    /// Polling asks for <c>rateLimit</c> on every query, so the fallback is usually seconds old.
+    /// </summary>
+    private (int? Remaining, DateTimeOffset? ResetAt) EffectiveBudget(CheckFetchResult result)
+    {
+        if (result.RateLimitRemaining is not null)
+            return (result.RateLimitRemaining, result.RateLimitResetAt);
+
+        var polled = _gitHub.LastRateLimit;
+        return polled is null || polled.IsStale(DateTimeOffset.UtcNow)
+            ? (null, null)
+            : (polled.Remaining, polled.ResetAt);
+    }
 
     /// <summary>
     /// Schedules the next reload when <see cref="ShouldAutoRefresh"/> allows it. Each tick is a
@@ -307,13 +398,20 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     /// </summary>
     private void ScheduleAutoRefresh(CheckFetchResult result)
     {
-        if (!IsOpen || !ShouldAutoRefresh(result))
+        var (remaining, resetAt) = EffectiveBudget(result);
+
+        if (!IsOpen || !ShouldAutoRefresh(result, remaining))
         {
             CancelAutoRefresh();
             return;
         }
 
-        _autoRefresh.Schedule();
+        var interval = ComputeInterval(remaining, resetAt, DateTimeOffset.UtcNow);
+        if (interval > AutoRefreshInterval)
+            _logger.Info($"ChecksViewModel: slowing auto-refresh to {interval.TotalSeconds:0} s — {remaining} GraphQL points left.");
+
+        CurrentInterval = interval;
+        _autoRefresh.Schedule(interval);
         IsAutoRefreshing = true;
     }
 

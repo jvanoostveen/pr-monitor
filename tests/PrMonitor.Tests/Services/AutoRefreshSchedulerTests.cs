@@ -14,8 +14,8 @@ public class AutoRefreshSchedulerTests
     /// <summary>Generously longer than <see cref="Tick"/>, so a fired tick has time to be observed.</summary>
     private static readonly TimeSpan WellPastTick = TimeSpan.FromMilliseconds(400);
 
-    private static AutoRefreshScheduler Scheduler(Action onTick, TimeSpan? delay = null) =>
-        new(delay ?? Tick, () => { onTick(); return Task.CompletedTask; }, DiagnosticsLogger.Null);
+    private static AutoRefreshScheduler Scheduler(Action onTick) =>
+        new(() => { onTick(); return Task.CompletedTask; }, DiagnosticsLogger.Null);
 
     [Fact]
     public async Task Schedule_FiresTheCallbackOnce()
@@ -23,7 +23,7 @@ public class AutoRefreshSchedulerTests
         int ticks = 0;
         using var scheduler = Scheduler(() => Interlocked.Increment(ref ticks));
 
-        scheduler.Schedule();
+        scheduler.Schedule(Tick);
         await Task.Delay(WellPastTick);
 
         Assert.Equal(1, ticks);
@@ -35,7 +35,7 @@ public class AutoRefreshSchedulerTests
         int ticks = 0;
         using var scheduler = Scheduler(() => Interlocked.Increment(ref ticks));
 
-        scheduler.Schedule();
+        scheduler.Schedule(Tick);
         await Task.Delay(TimeSpan.FromMilliseconds(600));
 
         Assert.Equal(1, ticks);
@@ -47,7 +47,7 @@ public class AutoRefreshSchedulerTests
         int ticks = 0;
         using var scheduler = Scheduler(() => Interlocked.Increment(ref ticks));
 
-        scheduler.Schedule();
+        scheduler.Schedule(Tick);
         scheduler.Cancel();
         await Task.Delay(WellPastTick);
 
@@ -72,7 +72,7 @@ public class AutoRefreshSchedulerTests
         using var scheduler = Scheduler(() => Interlocked.Increment(ref ticks));
 
         for (int i = 0; i < 5; i++)
-            scheduler.Schedule();
+            scheduler.Schedule(Tick);
 
         await Task.Delay(WellPastTick);
 
@@ -82,11 +82,11 @@ public class AutoRefreshSchedulerTests
     [Fact]
     public void IsScheduled_ReflectsWhetherATickIsPending()
     {
-        using var scheduler = Scheduler(() => { }, TimeSpan.FromSeconds(30));
+        using var scheduler = Scheduler(() => { });
 
         Assert.False(scheduler.IsScheduled);
 
-        scheduler.Schedule();
+        scheduler.Schedule(Tick);
         Assert.True(scheduler.IsScheduled);
 
         scheduler.Cancel();
@@ -98,7 +98,7 @@ public class AutoRefreshSchedulerTests
     {
         using var scheduler = Scheduler(() => { });
 
-        scheduler.Schedule();
+        scheduler.Schedule(Tick);
         await Task.Delay(WellPastTick);
 
         Assert.False(scheduler.IsScheduled);
@@ -110,7 +110,6 @@ public class AutoRefreshSchedulerTests
         int ticks = 0;
         AutoRefreshScheduler? scheduler = null;
         scheduler = new AutoRefreshScheduler(
-            Tick,
             () =>
             {
                 Interlocked.Increment(ref ticks);
@@ -122,7 +121,7 @@ public class AutoRefreshSchedulerTests
 
         using (scheduler)
         {
-            scheduler.Schedule();
+            scheduler.Schedule(Tick);
             await Task.Delay(WellPastTick);
         }
 
@@ -135,19 +134,18 @@ public class AutoRefreshSchedulerTests
         int ticks = 0;
         AutoRefreshScheduler? scheduler = null;
         scheduler = new AutoRefreshScheduler(
-            Tick,
             () =>
             {
                 // Stop after a few rounds so the test cannot spin forever.
                 if (Interlocked.Increment(ref ticks) < 3)
-                    scheduler!.Schedule();
+                    scheduler!.Schedule(Tick);
                 return Task.CompletedTask;
             },
             DiagnosticsLogger.Null);
 
         using (scheduler)
         {
-            scheduler.Schedule();
+            scheduler.Schedule(Tick);
             await Task.Delay(TimeSpan.FromMilliseconds(800));
         }
 
@@ -160,7 +158,7 @@ public class AutoRefreshSchedulerTests
         int ticks = 0;
         var scheduler = Scheduler(() => Interlocked.Increment(ref ticks));
 
-        scheduler.Schedule();
+        scheduler.Schedule(Tick);
         scheduler.Dispose();
         await Task.Delay(WellPastTick);
 
@@ -174,7 +172,7 @@ public class AutoRefreshSchedulerTests
         var scheduler = Scheduler(() => Interlocked.Increment(ref ticks));
 
         scheduler.Dispose();
-        scheduler.Schedule();
+        scheduler.Schedule(Tick);
         await Task.Delay(WellPastTick);
 
         Assert.False(scheduler.IsScheduled);
@@ -185,11 +183,10 @@ public class AutoRefreshSchedulerTests
     public async Task ThrowingCallback_IsSwallowedInsteadOfCrashingTheProcess()
     {
         using var scheduler = new AutoRefreshScheduler(
-            Tick,
             () => throw new InvalidOperationException("boom"),
             DiagnosticsLogger.Null);
 
-        scheduler.Schedule();
+        scheduler.Schedule(Tick);
         await Task.Delay(WellPastTick);
 
         // Reaching this point without an unobserved-exception crash is the assertion.

@@ -83,6 +83,7 @@ public sealed class GitHubService
 
     private const string MyPrsQuery = """
         query($q: String!, $cursor: String) {
+          rateLimit { limit remaining resetAt }
           search(query: $q, type: ISSUE, first: 50, after: $cursor) {
             pageInfo { hasNextPage endCursor }
             nodes {
@@ -147,6 +148,7 @@ public sealed class GitHubService
 
     private const string ReviewRequestedQuery = """
         query($q: String!, $cursor: String) {
+          rateLimit { limit remaining resetAt }
           search(query: $q, type: ISSUE, first: 50, after: $cursor) {
             pageInfo { hasNextPage endCursor }
             nodes {
@@ -197,6 +199,7 @@ public sealed class GitHubService
 
     private const string ReviewRequestedFullQuery = """
         query($q: String!, $cursor: String) {
+          rateLimit { limit remaining resetAt }
           search(query: $q, type: ISSUE, first: 50, after: $cursor) {
             pageInfo { hasNextPage endCursor }
             nodes {
@@ -983,6 +986,9 @@ public sealed class GitHubService
             throw new GitHubApiException($"gh api graphql returned unparseable JSON for query '{searchString}'.", ex);
         }
 
+        // Every search query asks for rateLimit, so polling keeps the shared budget current.
+        RecordRateLimit(root);
+
         if (root.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Array)
         {
             // A partial response still carries usable data; a fully failed one (rate limit,
@@ -1396,7 +1402,7 @@ public sealed class GitHubService
 
     private const string PrChecksQuery = """
         query($owner: String!, $repo: String!, $number: Int!) {
-          rateLimit { remaining resetAt }
+          rateLimit { limit remaining resetAt }
           repository(owner: $owner, name: $repo) {
             pullRequest(number: $number) {
               commits(last: 1) {
@@ -1470,6 +1476,7 @@ public sealed class GitHubService
         {
             using var doc = JsonDocument.Parse(output);
             var root = doc.RootElement;
+            RecordRateLimit(root);
             var (remaining, resetAt) = ParseRateLimitBudget(root);
 
             if (HasRateLimitError(root))
@@ -1525,10 +1532,7 @@ public sealed class GitHubService
     /// </summary>
     internal static (int? Remaining, DateTimeOffset? ResetAt) ParseRateLimitBudget(JsonElement root)
     {
-        if (!root.TryGetProperty("data", out var data)
-            || data.ValueKind != JsonValueKind.Object
-            || !data.TryGetProperty("rateLimit", out var rateLimit)
-            || rateLimit.ValueKind != JsonValueKind.Object)
+        if (!TryGetRateLimit(root, out var rateLimit))
             return (null, null);
 
         int? remaining = rateLimit.TryGetProperty("remaining", out var r) && r.ValueKind == JsonValueKind.Number
@@ -1536,6 +1540,69 @@ public sealed class GitHubService
             : null;
 
         return (remaining, GetDateOrNull(rateLimit, "resetAt"));
+    }
+
+    private static bool TryGetRateLimit(JsonElement root, out JsonElement rateLimit)
+    {
+        rateLimit = default;
+        if (!root.TryGetProperty("data", out var data)
+            || data.ValueKind != JsonValueKind.Object
+            || !data.TryGetProperty("rateLimit", out var node)
+            || node.ValueKind != JsonValueKind.Object)
+            return false;
+
+        rateLimit = node;
+        return true;
+    }
+
+    /// <summary>Projects <c>data.rateLimit</c> onto a snapshot, or null when the field is absent.</summary>
+    internal static RateLimitSnapshot? ParseRateLimitSnapshot(JsonElement root, DateTimeOffset observedAt)
+    {
+        if (!TryGetRateLimit(root, out var rateLimit)
+            || !rateLimit.TryGetProperty("remaining", out var r)
+            || r.ValueKind != JsonValueKind.Number)
+            return null;
+
+        int limit = rateLimit.TryGetProperty("limit", out var l) && l.ValueKind == JsonValueKind.Number
+            ? l.GetInt32()
+            : 0;
+
+        return new RateLimitSnapshot(r.GetInt32(), limit, GetDateOrNull(rateLimit, "resetAt"), observedAt);
+    }
+
+    // ── Shared rate-limit budget ────────────────────────────────────────
+
+    /// <summary>Points below which the budget is logged as a warning, once per window.</summary>
+    private const int LowBudgetWarningThreshold = 500;
+
+    private volatile RateLimitSnapshot? _lastRateLimit;
+    private DateTimeOffset _lastLowBudgetWarning = DateTimeOffset.MinValue;
+
+    /// <summary>
+    /// What the most recent GraphQL call reported about the rate-limit budget, or null before the
+    /// first one. Every query asks for it, so polling alone keeps this current — which is what
+    /// lets the checks panel pace itself without spending a call to find out.
+    /// </summary>
+    public RateLimitSnapshot? LastRateLimit => _lastRateLimit;
+
+    /// <summary>Records the budget of a parsed response and warns when it starts running thin.</summary>
+    private void RecordRateLimit(JsonElement root)
+    {
+        var snapshot = ParseRateLimitSnapshot(root, DateTimeOffset.UtcNow);
+        if (snapshot is null)
+            return;
+
+        _lastRateLimit = snapshot;
+
+        // One warning per reset window: a thin budget stays thin for a while, and the log is
+        // read after the fact, so repeating it every poll would bury everything else.
+        if (snapshot.Remaining < LowBudgetWarningThreshold
+            && snapshot.ResetAt is { } reset
+            && reset > _lastLowBudgetWarning)
+        {
+            _lastLowBudgetWarning = reset;
+            _logger.Warn($"GitHub GraphQL rate limit is running low: {snapshot}.");
+        }
     }
 
     /// <summary>

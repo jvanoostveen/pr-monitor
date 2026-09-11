@@ -1538,12 +1538,31 @@
                                     <TextBlock Text="{Binding Checks.TimeAgo}" Foreground="#8B949E"
                                                FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
+                                <!-- Refresh button. Like the header's pin button it carries its own
+                                     state: blue "autorenew" glyph plus the interval while the panel
+                                     updates itself, grey "refresh" glyph when a click is required. -->
                                 <Border HorizontalAlignment="Right" CornerRadius="4" Padding="5,3"
                                         Background="#21262D" Cursor="Hand"
                                         ToolTip="{Binding Checks.RefreshTooltip}"
                                         MouseLeftButtonUp="ChecksRefresh_Click">
-                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE5D5;"
-                                               FontSize="14" Foreground="#8B949E"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Checks.RefreshIcon}" FontSize="14">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource IconText}">
+                                                    <Setter Property="Foreground" Value="#8B949E"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Checks.IsAutoRefreshing}" Value="True">
+                                                            <Setter Property="Foreground" Value="#58A6FF"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Checks.AutoRefreshLabel}"
+                                                   Foreground="#58A6FF" FontSize="10"
+                                                   VerticalAlignment="Center" Margin="4,0,1,0"
+                                                   Visibility="{Binding Checks.ShowAutoRefreshLabel, Converter={StaticResource BoolToVisibility}}"/>
+                                    </StackPanel>
                                 </Border>
                             </Grid>
                         </StackPanel>

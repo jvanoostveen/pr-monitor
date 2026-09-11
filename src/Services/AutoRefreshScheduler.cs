@@ -15,15 +15,13 @@ namespace PrMonitor.Services;
 /// </remarks>
 internal sealed class AutoRefreshScheduler : IDisposable
 {
-    private readonly TimeSpan _delay;
     private readonly Func<Task> _onTick;
     private readonly DiagnosticsLogger _logger;
     private CancellationTokenSource? _cts;
     private bool _disposed;
 
-    public AutoRefreshScheduler(TimeSpan delay, Func<Task> onTick, DiagnosticsLogger logger)
+    public AutoRefreshScheduler(Func<Task> onTick, DiagnosticsLogger logger)
     {
-        _delay = delay;
         _onTick = onTick;
         _logger = logger;
     }
@@ -32,9 +30,11 @@ internal sealed class AutoRefreshScheduler : IDisposable
     public bool IsScheduled => _cts is not null;
 
     /// <summary>
-    /// Cancels any pending tick and schedules a new one. Does nothing after <see cref="Dispose"/>.
+    /// Cancels any pending tick and schedules a new one after <paramref name="delay"/>.
+    /// The delay is per call, so a caller can slow itself down as conditions change.
+    /// Does nothing after <see cref="Dispose"/>.
     /// </summary>
-    public void Schedule()
+    public void Schedule(TimeSpan delay)
     {
         Cancel();
         if (_disposed)
@@ -42,7 +42,7 @@ internal sealed class AutoRefreshScheduler : IDisposable
 
         var cts = new CancellationTokenSource();
         _cts = cts;
-        _ = RunAsync(cts);
+        _ = RunAsync(cts, delay);
     }
 
     /// <summary>Cancels the pending tick, if any. Safe to call repeatedly and from within a tick.</summary>
@@ -57,11 +57,11 @@ internal sealed class AutoRefreshScheduler : IDisposable
         cts.Dispose();
     }
 
-    private async Task RunAsync(CancellationTokenSource cts)
+    private async Task RunAsync(CancellationTokenSource cts, TimeSpan delay)
     {
         try
         {
-            await Task.Delay(_delay, cts.Token);
+            await Task.Delay(delay, cts.Token);
         }
         catch (OperationCanceledException)
         {
