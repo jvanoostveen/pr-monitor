@@ -102,8 +102,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public int HiddenCount
     {
         get => _hiddenCount;
-        private set => SetField(ref _hiddenCount, value);
+        private set
+        {
+            if (_hiddenCount == value) return;
+            _hiddenCount = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ShowLaterSection));
+        }
     }
+
+    /// <summary>
+    /// True once the first poll has confirmed the Later PRs still exist. The count restored from
+    /// settings at startup is only a saved guess — the section stays hidden until a poll verifies it,
+    /// instead of flashing stale entries before <see cref="HasLoadedOnce"/>.
+    /// </summary>
+    public bool ShowLaterSection => HasLoadedOnce && HiddenCount > 0;
 
     private int _dependabotCount;
     public int DependabotCount
@@ -137,6 +150,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsInitialLoading));
             OnPropertyChanged(nameof(IsEmptyState));
+            OnPropertyChanged(nameof(ShowLaterSection));
         }
     }
 

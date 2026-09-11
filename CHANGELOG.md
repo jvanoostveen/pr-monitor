@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Checks are fetched only while the panel is open, so polling is unchanged. Every GraphQL query now also asks GitHub for the remaining rate-limit budget — a field that costs nothing — and the panel paces itself against it, slowing down and finally stopping instead of running into the limit.
 
 ### Fixed
+- **The Later section no longer flashes on startup before its PRs are reconfirmed.** Its count was restored from settings and shown immediately while the window was still in its initial loading state, even though a saved Later PR may since have been merged, closed, or unsnoozed. The section now stays hidden until the first poll completes.
 - **The Stacks section no longer outranks why a PR is listed.** Every stacked PR was pulled out of its own section, so a PR whose review was only requested from one of your teams showed up in **Stacks** as if you had to review it, instead of staying in **Team Review Requests**. **Hotfixes**, **Awaiting My Review** and **Team Review Requests** now keep their stacked PRs and group them in place: a stack's members are pulled together to where its bottom PR already sat, bottom PR first, with every row but that first one indented one level. Only stacked PRs with no review claim on you (your own PRs, auto-merge, drafts, Dependabot) still move to **Stacks**.
 
 ## [1.13.3] - 2026-09-10
