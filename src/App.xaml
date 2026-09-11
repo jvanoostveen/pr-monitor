@@ -9,6 +9,7 @@
         <conv:NonZeroToVisibleConverter x:Key="NonZeroToVisibleConverter"/>
         <conv:BoolToAngleConverter x:Key="BoolToAngleConverter"/>
         <conv:CIStateToBrushConverter x:Key="CIStateToBrush"/>
+        <conv:CheckRunStateToBrushConverter x:Key="CheckStateToBrush"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
 
         <!-- PR row layout resources (updated by ApplyCompactMode) -->

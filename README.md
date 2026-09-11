@@ -22,6 +22,18 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 
 Each PR row keeps its CI status circle and also shows a message icon when unresolved review comments exist; hovering the icon shows the unresolved comment count.
 
+### CI checks panel
+
+Click the colored **status dot** of a PR row — or pick **Show CI checks** from its right-click menu — to open a panel over the list showing every check on that PR's latest commit:
+
+- a status icon per job (failed, running, queued, passed, skipped) in GitHub's own colors;
+- the job's duration, or its elapsed time while it is still running;
+- a summary line such as `CHECKS RUNNING 3/4`, `2 CHECKS FAILED` or `ALL CHECKS PASSED`, counting finished checks over the total (skipped checks excluded).
+
+Jobs are ordered by what needs attention first: failed, then cancelled, running, queued, passed and finally skipped. **Clicking a job opens its log page on GitHub directly**, so a red PR takes one click to the failing job instead of a trip through the PR, its checks tab and the workflow run.
+
+The panel also has a refresh button (checks are fetched when you open it, not on every poll) and an **Open on GitHub** button for the PR itself. Close it with `Esc`, the ✕ button above it, or by clicking next to it.
+
 ### Stacked PRs
 
 PRs created as a [stack](https://github.github.com/gh-stack/) — where a PR's base branch is another open PR's head branch — are detected automatically from the polled data (no extra API calls). They are moved out of their regular section into a dedicated **Stacks** section, grouped per stack with the bottom PR first, a thin separator between stacks and every row but each stack's first indented one level, regardless of who authored them.

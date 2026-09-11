@@ -25,7 +25,7 @@ Agent workflow lives elsewhere: [CLAUDE.md](CLAUDE.md) (Claude Code),
 - [Project structure](#project-structure)
 - [Process model](#process-model)
 - [Subsystems and behaviour](#subsystems-and-behaviour) — authentication, polling, failure
-  handling, diagnostics, flakiness, statistics, memory, window behaviour, sections, CI status,
+  handling, diagnostics, flakiness, statistics, memory, window behaviour, sections, CI status, checks panel,
   stacks, reviewers, tray icon, updates, release automation
 - [WPF pitfalls](#wpf-pitfalls)
 - [Naming conventions](#naming-conventions)
@@ -72,9 +72,11 @@ pr-monitor/
 │   │   ├── ZeroToVisibleConverter.cs      # int == 0 → Visible
 │   │   ├── NonZeroToVisibleConverter.cs   # int != 0 → Visible
 │   │   ├── BoolToAngleConverter.cs        # true → 0°, false → -90° (chevron)
-│   │   └── CIStateToBrushConverter.cs     # CIState → hex color brush
+│   │   ├── CIStateToBrushConverter.cs     # CIState → hex color brush
+│   │   └── CheckRunStateToBrushConverter.cs  # CheckRunState → job icon / job name brush
 │   ├── Models/
 │   │   ├── CIState.cs                  # Enum: Unknown/Pending/Success/Failure/Error
+│   │   ├── CheckRunInfo.cs             # One CI check (name, state, duration, log URL) + CheckRunState
 │   │   ├── PullRequestInfo.cs          # PR data model (includes HeadCommitSha, HasConflicts)
 │   │   ├── FailureContext.cs           # Context passed to flakiness AI analysis
 │   │   ├── FlakinessAnalysisResult.cs  # AI analysis result + suggested rules
@@ -95,6 +97,7 @@ pr-monitor/
 │   │   └── StatisticsStore.cs          # JSON-backed daily statistics buckets (statistics.json)
 │   ├── ViewModels/
 │   │   ├── MainViewModel.cs            # Main window VM + PrItemViewModel (inner)
+│   │   ├── ChecksViewModel.cs          # CI checks overlay VM + CheckItemViewModel
 │   │   ├── SettingsViewModel.cs        # Settings window VM
 │   │   └── StatsViewModel.cs           # Statistics window VM (per-period rows)
 │   └── Views/
@@ -255,6 +258,19 @@ Each PR row shows a colored 10×10 `Ellipse`:
 - `#484F58` gray — Unknown
 
 For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CIState` — draft PRs always return `CIState.Unknown` so their indicator is grey regardless of actual build state. When `HasConflicts` is true, `EffectiveCIState` returns `CIState.Failure` regardless of the actual CI state. The tray icon also counts `HasConflicts` PRs as failed CI. The PR tooltip preserves the real CI state (e.g. `CI: Success`) and appends a separate `Merge conflicts` line when `HasConflicts` is true.
+
+### CI checks panel
+An overlay inside `MainWindow` (`ChecksOverlay` in [src/MainWindow.xaml](src/MainWindow.xaml), last child of the outer grid with `Grid.RowSpan="3"`) that lists every check on a PR's head commit. It is **not** a separate window: the dimmed backdrop has to cover the PR list, and a second `AllowsTransparency` window would need its own placement, DPI and topmost handling.
+
+- **Opening**: the status `Ellipse` of every PR row is wrapped in a transparent `Border` with `MouseLeftButtonUp="CiStatus_Click"` and negative margins that cancel its padding, so the hit area grows without moving the dot. The handler sets `e.Handled = true`, which is what keeps the row's own `PrItem_Click` (open PR in browser) from firing. The same action is available as **Show CI checks**, the first entry of the native row context menu (`ID_PR_SHOW_CHECKS`).
+- **Closing**: `ChecksClose_Click` (✕ above the panel), `ChecksOverlayBackdrop_Click` (click next to the panel), or `Esc` — `Window_KeyDown` closes the overlay first and only hides to the tray when it is already closed. `ChecksPanel_Click` swallows clicks inside the panel so they never reach the backdrop.
+- **Data**: `GitHubService.FetchPrChecksAsync(owner, repo, prNumber)` runs `PrChecksQuery` (`statusCheckRollup.contexts`, first 100) and `ParsePrChecks` projects both `CheckRun` and legacy `StatusContext` nodes onto `CheckRunInfo` ([src/Models/CheckRunInfo.cs](src/Models/CheckRunInfo.cs)). A `CheckRun` conclusion only counts once `status == COMPLETED`, so a re-queued job with a stale conclusion is reported as running, not failed. A failed call returns an empty list and is logged — it never throws into the UI.
+- **On demand only**: polling does not fetch checks. One extra GraphQL call per PR per poll would cost more than the entire poll, so the panel loads when it opens and reloads via its refresh button.
+- **`ChecksViewModel`** ([src/ViewModels/ChecksViewModel.cs](src/ViewModels/ChecksViewModel.cs)) is exposed as `MainViewModel.Checks` and is always non-null — a null source would leave the overlay's `Visibility` binding unresolved, which renders as visible. `MainViewModel`'s `GitHubService`/`DiagnosticsLogger` parameters are optional so existing test call sites keep working; `App.xaml.cs` passes the real ones. A `_loadGeneration` counter drops the response of a previously opened PR when the user has already opened another.
+- **Ordering and summary**: rows are sorted by `CheckRunInfo.SortRank` (failure → cancelled → running → queued → success → neutral → skipped), then by name. `ChecksViewModel.BuildSummary` produces the headline (`2 CHECKS FAILED` / `CHECKS RUNNING` / `ALL CHECKS PASSED` / `CHECKS COMPLETED` / `NO CHECKS`), the `CIState` that colors it, and a `done/total` counter that **excludes skipped checks** — they never run, so counting them makes a finished PR look unfinished.
+- **Clicking a job** opens `detailsUrl` (check run) or `targetUrl` (status context) via `CheckRow_Click`; rows without a URL keep the default cursor and do nothing.
+- **No spinner**: a running check gets a static `pending` glyph. A `RepeatBehavior="Forever"` animation in this window would redraw the whole layered window for the process lifetime — see the WPF pitfalls section.
+- `CheckRunStateToBrushConverter` ([src/Converters/CheckRunStateToBrushConverter.cs](src/Converters/CheckRunStateToBrushConverter.cs), key `CheckStateToBrush`) returns the status-icon brush, or the job-name brush with `ConverterParameter=Name` (dimmed for skipped/neutral). All brushes are `static readonly` and frozen.
 
 ### Stacked PRs
 - A PR is "stacked" when its `BaseRefName` equals another open PR's `HeadRefName` in the same repository (the gh-stack model). Detection is entirely local — `PollingService.ApplyStackRelations(IReadOnlyList<PullRequestInfo>)` builds a `(repository, headRef) → PR` lookup over every section's PRs and links children to parents. Costs **no extra API calls**; `MyPrsQuery` was extended with `baseRefName` (the review queries already had it).

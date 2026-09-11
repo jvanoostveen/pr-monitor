@@ -421,9 +421,13 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"/>
+                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
+                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
+                                                            ToolTip="Show CI checks">
+                                                        <Ellipse Width="10" Height="10"
+                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                                                                 VerticalAlignment="Center"/>
+                                                    </Border>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
                                                                FontSize="14"
@@ -542,9 +546,13 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"/>
+                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
+                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
+                                                            ToolTip="Show CI checks">
+                                                        <Ellipse Width="10" Height="10"
+                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                                                                 VerticalAlignment="Center"/>
+                                                    </Border>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
                                                                FontSize="14"
@@ -658,9 +666,13 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"/>
+                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
+                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
+                                                            ToolTip="Show CI checks">
+                                                        <Ellipse Width="10" Height="10"
+                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                                                                 VerticalAlignment="Center"/>
+                                                    </Border>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
                                                                FontSize="14"
@@ -738,9 +750,13 @@
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
                                                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                        <Ellipse Width="10" Height="10"
-                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                                 VerticalAlignment="Center"/>
+                                                        <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
+                                                                MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
+                                                                ToolTip="Show CI checks">
+                                                            <Ellipse Width="10" Height="10"
+                                                                     Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                                                                     VerticalAlignment="Center"/>
+                                                        </Border>
                                                         <TextBlock Style="{StaticResource IconText}"
                                                                    Text="&#xE24C;"
                                                                    FontSize="14"
@@ -857,9 +873,13 @@
                                                 </Grid.ColumnDefinitions>
                                                 <!-- EffectiveCIState is grey for draft PRs, red for conflicting PRs -->
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"/>
+                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
+                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
+                                                            ToolTip="Show CI checks">
+                                                        <Ellipse Width="10" Height="10"
+                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                                                                 VerticalAlignment="Center"/>
+                                                    </Border>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
                                                                FontSize="14"
@@ -972,9 +992,13 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"/>
+                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
+                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
+                                                            ToolTip="Show CI checks">
+                                                        <Ellipse Width="10" Height="10"
+                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                                                                 VerticalAlignment="Center"/>
+                                                    </Border>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
                                                                FontSize="14"
@@ -1066,9 +1090,13 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"/>
+                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
+                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
+                                                            ToolTip="Show CI checks">
+                                                        <Ellipse Width="10" Height="10"
+                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                                                                 VerticalAlignment="Center"/>
+                                                    </Border>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
                                                                FontSize="14"
@@ -1156,9 +1184,13 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"/>
+                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
+                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
+                                                            ToolTip="Show CI checks">
+                                                        <Ellipse Width="10" Height="10"
+                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                                                                 VerticalAlignment="Center"/>
+                                                    </Border>
                                                     <TextBlock Style="{StaticResource IconText}"
                                                                Text="&#xE24C;"
                                                                FontSize="14"
@@ -1270,9 +1302,13 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                <Ellipse Width="10" Height="10"
-                                                         Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                         VerticalAlignment="Center"/>
+                                                <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
+                                                        MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
+                                                        ToolTip="Show CI checks">
+                                                    <Ellipse Width="10" Height="10"
+                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                                                             VerticalAlignment="Center"/>
+                                                </Border>
                                                 <TextBlock Style="{StaticResource IconText}"
                                                            Text="&#xE24C;"
                                                            FontSize="14"
@@ -1442,6 +1478,165 @@
                     </Border>
                 </Grid>
             </Border>
+
+            <!-- ══ CI checks overlay ═══════════════════════════════════════════
+                 Opened by clicking the status dot of a PR row. Spans every row so
+                 the list behind it is dimmed and unreachable while it is open. -->
+            <Grid x:Name="ChecksOverlay" Grid.Row="0" Grid.RowSpan="3"
+                  Background="#B00D1117"
+                  Visibility="{Binding Checks.IsOpen, Converter={StaticResource BoolToVisibility}}"
+                  MouseLeftButtonUp="ChecksOverlayBackdrop_Click">
+
+                <!-- Close button, floating over the dimmed list -->
+                <Border Width="30" Height="30" CornerRadius="15"
+                        Background="#21262D" BorderBrush="#30363D" BorderThickness="1"
+                        HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0"
+                        Cursor="Hand" ToolTip="Close"
+                        MouseLeftButtonUp="ChecksClose_Click">
+                    <TextBlock Style="{StaticResource IconText}" Text="&#xE5CD;"
+                               FontSize="16" Foreground="#C9D1D9"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- The panel itself; clicks inside it must not reach the backdrop -->
+                <Border VerticalAlignment="Bottom" Margin="10,56,10,10"
+                        Background="#161B22" CornerRadius="10"
+                        BorderBrush="#30363D" BorderThickness="1"
+                        MouseLeftButtonUp="ChecksPanel_Click">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="16" Opacity="0.55" ShadowDepth="3" Color="Black"/>
+                    </Border.Effect>
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>  <!-- PR header -->
+                            <RowDefinition Height="Auto"/>  <!-- Summary line -->
+                            <RowDefinition Height="Auto"/>  <!-- Job list -->
+                            <RowDefinition Height="Auto"/>  <!-- Footer -->
+                        </Grid.RowDefinitions>
+
+                        <!-- ── PR header ── -->
+                        <StackPanel Grid.Row="0" Margin="14,14,14,10">
+                            <TextBlock Text="{Binding Checks.Title}"
+                                       Foreground="#E6EDF3" FontSize="14" FontWeight="SemiBold"
+                                       TextWrapping="Wrap" MaxHeight="40" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Margin="0,4,0,0" FontSize="11" TextTrimming="CharacterEllipsis">
+                                <Run Text="{Binding Checks.Repository, Mode=OneWay}" Foreground="#8B949E"/>
+                                <Run Text="›" Foreground="#6E7681"/>
+                                <Run Text="{Binding Checks.BranchName, Mode=OneWay}" Foreground="#58A6FF"/>
+                                <Run Text="{Binding Checks.PrNumberText, Mode=OneWay}" Foreground="#8B949E"/>
+                            </TextBlock>
+                            <Grid Margin="0,6,0,0">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <Ellipse Width="10" Height="10" VerticalAlignment="Center"
+                                             Fill="{Binding Checks.SummaryState, Converter={StaticResource CIStateToBrush}}"/>
+                                    <TextBlock Text="{Binding Checks.Author}" Foreground="#C9D1D9"
+                                               FontSize="11" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="·" Foreground="#6E7681"
+                                               FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Checks.TimeAgo}" Foreground="#8B949E"
+                                               FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Border HorizontalAlignment="Right" CornerRadius="4" Padding="5,3"
+                                        Background="#21262D" Cursor="Hand"
+                                        ToolTip="Reload the checks"
+                                        MouseLeftButtonUp="ChecksRefresh_Click">
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE5D5;"
+                                               FontSize="14" Foreground="#8B949E"/>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- ── Summary line ── -->
+                        <Border Grid.Row="1" Background="#0D1117" Padding="14,7"
+                                BorderBrush="#21262D" BorderThickness="0,1,0,1">
+                            <Grid>
+                                <TextBlock Text="{Binding Checks.SummaryLabel}"
+                                           Foreground="#8B949E" FontSize="11" FontWeight="SemiBold"
+                                           HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Checks.SummaryCount}"
+                                           Foreground="{Binding Checks.SummaryState, Converter={StaticResource CIStateToBrush}}"
+                                           FontSize="11" FontWeight="SemiBold"
+                                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- ── Job list / loading / empty / error ── -->
+                        <Grid Grid.Row="2">
+                            <TextBlock Text="Loading checks…"
+                                       Foreground="#8B949E" FontSize="12" Margin="14,16"
+                                       HorizontalAlignment="Center"
+                                       Visibility="{Binding Checks.IsLoading, Converter={StaticResource BoolToVisibility}}"/>
+
+                            <TextBlock Text="{Binding Checks.ErrorMessage}"
+                                       Foreground="#F0883E" FontSize="12" Margin="14,16"
+                                       TextWrapping="Wrap" HorizontalAlignment="Center"
+                                       Visibility="{Binding Checks.HasError, Converter={StaticResource BoolToVisibility}}"/>
+
+                            <TextBlock Text="No checks have run on this commit yet."
+                                       Foreground="#8B949E" FontSize="12" Margin="14,16"
+                                       HorizontalAlignment="Center"
+                                       Visibility="{Binding Checks.ShowEmptyState, Converter={StaticResource BoolToVisibility}}"/>
+
+                            <ScrollViewer Style="{StaticResource OverlayScrollViewer}"
+                                          MaxHeight="260" Padding="0,4"
+                                          Visibility="{Binding Checks.ShowList, Converter={StaticResource BoolToVisibility}}">
+                                <ItemsControl ItemsSource="{Binding Checks.Checks}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Padding="14,5"
+                                                    ToolTip="{Binding RowTooltip}" Tag="{Binding}"
+                                                    MouseLeftButtonUp="CheckRow_Click">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="Transparent"/>
+                                                        <Setter Property="Cursor" Value="Arrow"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasUrl}" Value="True">
+                                                                <Setter Property="Cursor" Value="Hand"/>
+                                                            </DataTrigger>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#1C2128"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Style="{StaticResource IconText}"
+                                                               Text="{Binding StateIcon}" FontSize="15"
+                                                               Margin="0,0,8,0"
+                                                               Foreground="{Binding State, Converter={StaticResource CheckStateToBrush}}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                               FontSize="12" VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Foreground="{Binding State, Converter={StaticResource CheckStateToBrush}, ConverterParameter=Name}"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding DurationText}"
+                                                               FontSize="11" Foreground="#6E7681"
+                                                               VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+
+                        <!-- ── Footer ── -->
+                        <Border Grid.Row="3" Margin="14,10,14,14" CornerRadius="6"
+                                Background="#21262D" BorderBrush="#30363D" BorderThickness="1"
+                                Padding="0,9" Cursor="Hand"
+                                MouseLeftButtonUp="ChecksOpenPr_Click">
+                            <TextBlock Text="Open on GitHub" Foreground="#C9D1D9" FontSize="12"
+                                       HorizontalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Border>
 </Window>

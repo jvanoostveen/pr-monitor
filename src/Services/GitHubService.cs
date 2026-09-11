@@ -1392,6 +1392,191 @@ public sealed class GitHubService
         return "";
     }
 
+    // ── CI checks for a single PR ───────────────────────────────────────
+
+    private const string PrChecksQuery = """
+        query($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) {
+            pullRequest(number: $number) {
+              commits(last: 1) {
+                nodes {
+                  commit {
+                    oid
+                    statusCheckRollup {
+                      state
+                      contexts(first: 100) {
+                        nodes {
+                          __typename
+                          ... on CheckRun {
+                            name
+                            status
+                            conclusion
+                            startedAt
+                            completedAt
+                            detailsUrl
+                            checkSuite {
+                              workflowRun {
+                                databaseId
+                                workflow { name }
+                              }
+                            }
+                          }
+                          ... on StatusContext {
+                            context
+                            state
+                            createdAt
+                            targetUrl
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """;
+
+    /// <summary>
+    /// Fetches every CI check on the PR's latest commit, so the user can see which jobs run,
+    /// which passed and which failed without clicking through to GitHub.
+    /// Returns an empty list when the call fails — the caller renders that as "no checks".
+    /// </summary>
+    public async Task<IReadOnlyList<CheckRunInfo>> FetchPrChecksAsync(string owner, string repo, int prNumber)
+    {
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo") || prNumber <= 0)
+            return [];
+
+        var (output, stderr, exitCode) = await RunGhAsync(
+            "api", "graphql",
+            "-f", $"query={PrChecksQuery}",
+            "-F", $"owner={owner}",
+            "-F", $"repo={repo}",
+            "-F", $"number={prNumber}");
+
+        if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
+        {
+            _logger.Warn($"FetchPrChecksAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
+            return [];
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(output);
+            return ParsePrChecks(doc.RootElement);
+        }
+        catch (JsonException ex)
+        {
+            _logger.Warn($"FetchPrChecksAsync returned unparseable JSON for {owner}/{repo}#{prNumber}: {ex.Message}");
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Projects the <c>statusCheckRollup.contexts</c> nodes of <see cref="PrChecksQuery"/> onto
+    /// <see cref="CheckRunInfo"/>, keeping both modern check runs and legacy status contexts.
+    /// </summary>
+    internal static List<CheckRunInfo> ParsePrChecks(JsonElement root)
+    {
+        var result = new List<CheckRunInfo>();
+
+        if (!root.TryGetProperty("data", out var data)
+            || !data.TryGetProperty("repository", out var repository)
+            || repository.ValueKind != JsonValueKind.Object
+            || !repository.TryGetProperty("pullRequest", out var pr)
+            || pr.ValueKind != JsonValueKind.Object
+            || !pr.TryGetProperty("commits", out var commits)
+            || !commits.TryGetProperty("nodes", out var commitNodes)
+            || commitNodes.ValueKind != JsonValueKind.Array)
+            return result;
+
+        foreach (var commitNode in commitNodes.EnumerateArray())
+        {
+            if (!commitNode.TryGetProperty("commit", out var commit)
+                || !commit.TryGetProperty("statusCheckRollup", out var rollup)
+                || rollup.ValueKind != JsonValueKind.Object
+                || !rollup.TryGetProperty("contexts", out var contexts)
+                || !contexts.TryGetProperty("nodes", out var contextNodes)
+                || contextNodes.ValueKind != JsonValueKind.Array)
+                continue;
+
+            foreach (var node in contextNodes.EnumerateArray())
+            {
+                var check = ParseCheckNode(node);
+                if (check is not null)
+                    result.Add(check);
+            }
+        }
+
+        return result;
+    }
+
+    private static CheckRunInfo? ParseCheckNode(JsonElement node)
+    {
+        if (node.ValueKind != JsonValueKind.Object)
+            return null;
+
+        var typeName = GetStringOrNull(node, "__typename");
+
+        if (string.Equals(typeName, "StatusContext", StringComparison.Ordinal))
+        {
+            var context = GetStringOrNull(node, "context");
+            if (string.IsNullOrWhiteSpace(context))
+                return null;
+
+            return new CheckRunInfo
+            {
+                Name = context,
+                State = CheckRunInfo.FromStatusContext(GetStringOrNull(node, "state")),
+                Url = GetStringOrNull(node, "targetUrl") ?? "",
+                StartedAt = GetDateOrNull(node, "createdAt"),
+            };
+        }
+
+        var name = GetStringOrNull(node, "name");
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+
+        string workflowName = "";
+        long workflowRunId = 0;
+        if (node.TryGetProperty("checkSuite", out var suite)
+            && suite.ValueKind == JsonValueKind.Object
+            && suite.TryGetProperty("workflowRun", out var run)
+            && run.ValueKind == JsonValueKind.Object)
+        {
+            if (run.TryGetProperty("workflow", out var workflow)
+                && workflow.ValueKind == JsonValueKind.Object)
+                workflowName = GetStringOrNull(workflow, "name") ?? "";
+
+            if (run.TryGetProperty("databaseId", out var dbId) && dbId.ValueKind == JsonValueKind.Number)
+                workflowRunId = dbId.GetInt64();
+        }
+
+        return new CheckRunInfo
+        {
+            Name = name,
+            WorkflowName = workflowName,
+            WorkflowRunId = workflowRunId,
+            State = CheckRunInfo.FromCheckRun(GetStringOrNull(node, "status"), GetStringOrNull(node, "conclusion")),
+            Url = GetStringOrNull(node, "detailsUrl") ?? "",
+            StartedAt = GetDateOrNull(node, "startedAt"),
+            CompletedAt = GetDateOrNull(node, "completedAt"),
+        };
+    }
+
+    private static string? GetStringOrNull(JsonElement node, string property) =>
+        node.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
+
+    private static DateTimeOffset? GetDateOrNull(JsonElement node, string property) =>
+        node.TryGetProperty(property, out var value)
+        && value.ValueKind == JsonValueKind.String
+        && DateTimeOffset.TryParse(value.GetString(), out var parsed)
+            ? parsed
+            : null;
+
     internal static CIState ParseCIState(string? state) => state?.ToUpperInvariant() switch
     {
         "SUCCESS" => CIState.Success,

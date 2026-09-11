@@ -22,13 +22,26 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private bool _startupSummaryShown;
     private string? _tempExePath;
 
-    public MainViewModel(AppSettings settings, NotificationService notificationService, UpdateService updateService)
+    public MainViewModel(
+        AppSettings settings,
+        NotificationService notificationService,
+        UpdateService updateService,
+        GitHubService? gitHub = null,
+        DiagnosticsLogger? logger = null)
     {
         _settings = settings;
         _notificationService = notificationService;
         _updateService = updateService;
         _hiddenCount = settings.SnoozedPrs.Keys.Count(settings.HiddenPrKeys.Contains);
+
+        // Always non-null: the checks overlay binds through this property, and a null source
+        // would leave the overlay's Visibility binding unresolved (i.e. visible).
+        var checksLogger = logger ?? DiagnosticsLogger.Null;
+        Checks = new ChecksViewModel(gitHub ?? new GitHubService(checksLogger), checksLogger);
     }
+
+    /// <summary>CI checks overlay for a single PR; opened from a row's status dot.</summary>
+    public ChecksViewModel Checks { get; }
 
     public ObservableCollection<PrItemViewModel> AutoMergePrs { get; } = [];
     public ObservableCollection<PrItemViewModel> MyPrs { get; } = [];

@@ -91,6 +91,7 @@ public partial class MainWindow : Window
     private const uint ID_PR_HIDE            = 1014;
     private const uint ID_PR_OPEN_PARENT     = 1015;
     private const uint ID_PR_OPEN_STACK      = 1016;
+    private const uint ID_PR_SHOW_CHECKS     = 1017;
 
     // Assign-reviewer submenu — each assigned reviewer opens a nested submenu with two actions:
     // 2000..2009 re-request review, 2010..2019 remove reviewer, 2020..2029 recent (unassigned), 2030 search
@@ -859,7 +860,11 @@ public partial class MainWindow : Window
     {
         if (e.Key == System.Windows.Input.Key.Escape)
         {
-            HideToTray();
+            // Escape closes the checks overlay first; only an unobstructed list hides to the tray.
+            if (ViewModel.Checks.IsOpen)
+                ViewModel.Checks.Close();
+            else
+                HideToTray();
             e.Handled = true;
         }
         else if (e.Key == System.Windows.Input.Key.R && e.KeyboardDevice.Modifiers == System.Windows.Input.ModifierKeys.None)
@@ -875,6 +880,57 @@ public partial class MainWindow : Window
         {
             vm.OpenInBrowser();
         }
+    }
+
+    // ── CI checks overlay ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Status dot of a PR row: opens the CI checks panel instead of the PR itself.
+    /// Marked handled so the click never reaches the row (which would open the browser).
+    /// </summary>
+    private void CiStatus_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: PrItemViewModel vm })
+            return;
+
+        e.Handled = true;
+        _ = ViewModel.Checks.OpenAsync(vm);
+    }
+
+    /// <summary>Click on the dimmed area around the panel closes it.</summary>
+    private void ChecksOverlayBackdrop_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        ViewModel.Checks.Close();
+    }
+
+    /// <summary>Swallows clicks inside the panel so they do not reach the backdrop.</summary>
+    private void ChecksPanel_Click(object sender, MouseButtonEventArgs e) => e.Handled = true;
+
+    private void ChecksClose_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        ViewModel.Checks.Close();
+    }
+
+    private void ChecksRefresh_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        _ = ViewModel.Checks.RefreshAsync();
+    }
+
+    private void ChecksOpenPr_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        ViewModel.Checks.OpenPrInBrowser();
+    }
+
+    /// <summary>A job row links straight to its log page on GitHub.</summary>
+    private void CheckRow_Click(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is FrameworkElement { Tag: CheckItemViewModel check } && check.HasUrl)
+            check.OpenInBrowser();
     }
 
     private void PrRow_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
@@ -927,6 +983,8 @@ public partial class MainWindow : Window
             var copilotFlags = vm.CanRequestCopilotReview ? MF_STRING : MF_STRING | MF_GRAYED;
             var snoozeMenu = IntPtr.Zero;
 
+            AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_SHOW_CHECKS, "Show CI checks");
+            AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
             AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_COPY_URL, "Copy PR URL");
             AppendMenuW(hMenu, MF_STRING, (UIntPtr)ID_PR_COPY_BRANCH, "Copy branch name");
             if (vm.IsStacked)
@@ -1029,6 +1087,9 @@ public partial class MainWindow : Window
 
             switch (cmd)
             {
+                case ID_PR_SHOW_CHECKS:
+                    _ = ViewModel.Checks.OpenAsync(vm);
+                    break;
                 case ID_PR_COPY_URL:
                     System.Windows.Clipboard.SetText(vm.Url);
                     break;

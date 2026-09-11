@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **CI checks panel — see which jobs run, passed or failed without leaving the app.** Clicking the colored status dot of a PR row (or **Show CI checks** in its right-click menu) opens a panel over the list with every check on the PR's latest commit: a status icon per job, its duration or elapsed time, and a summary line such as `CHECKS RUNNING 3/4` or `2 CHECKS FAILED`. Failed jobs are listed first, then running, queued, succeeded and finally skipped ones. **Clicking a job opens its log page on GitHub directly**, instead of clicking through the PR, its checks tab and the workflow run. The panel also has a refresh button and an **Open on GitHub** button for the PR itself; `Esc`, the ✕ button, or a click next to the panel closes it. Checks are fetched on demand — polling is unchanged and makes no extra API calls.
+
 ### Fixed
 - **The Stacks section no longer outranks why a PR is listed.** Every stacked PR was pulled out of its own section, so a PR whose review was only requested from one of your teams showed up in **Stacks** as if you had to review it, instead of staying in **Team Review Requests**. **Hotfixes**, **Awaiting My Review** and **Team Review Requests** now keep their stacked PRs and group them in place: a stack's members are pulled together to where its bottom PR already sat, bottom PR first, with every row but that first one indented one level. Only stacked PRs with no review claim on you (your own PRs, auto-merge, drafts, Dependabot) still move to **Stacks**.
 

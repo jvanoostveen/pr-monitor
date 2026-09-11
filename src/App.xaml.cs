@@ -97,7 +97,7 @@ public partial class App : System.Windows.Application
         _updates = new UpdateService(_logger);
 
         // ── View layer ─────────────────────────────────────────────
-        var mainVm = new MainViewModel(settings, _notifications!, _updates);
+        var mainVm = new MainViewModel(settings, _notifications!, _updates, _github!, _logger);
         _mainVm = mainVm;
         mainVm.Subscribe(_polling);
 

@@ -26,7 +26,7 @@ Views/            TrayIconManager, IconGenerator, AboutWindow, SettingsWindow, F
 | Service | Responsibility |
 |---|---|
 | `DiagnosticsLogger` | Thread-safe log to `%APPDATA%\pr-monitor\logs\pr-monitor.log`; size rotation |
-| `GitHubService` | All `gh api graphql` calls; PR queries; workflow run helpers; mention notifications |
+| `GitHubService` | All `gh api graphql` calls; PR queries; per-PR check runs; workflow run helpers; mention notifications |
 | `PollingService` | Timer (120 s default); emits `PrChanged`, `Polled`, `PollFailed`, `MentionDetected` |
 | `NotificationService` | Windows toast via `Microsoft.Toolkit.Uwp.Notifications`; honours `NotificationMode` |
 | `UpdateService` | Checks latest GitHub release; timer (30 s after startup, then 24 h) |
@@ -53,7 +53,7 @@ Each section is collapsible; state persisted in `AppSettings`.
 
 ## PR row context menu (native Win32)
 
-Copy PR URL · Copy branch name · Rerun failed jobs · Request Copilot review ·  
+Show CI checks · Copy PR URL · Copy branch name · Rerun failed jobs · Request Copilot review ·  
 Move to later ▶ (1 h / 4 h / Tomorrow / Next week (Monday 09:00) / Indefinitely) · Hide · Restore · Mark as ready · Convert to draft
 
 Note: the WPF `ContextMenu` blocks in XAML are dead code — the `PreviewMouseRightButtonUp` handler always shows the native Win32 menu instead.
