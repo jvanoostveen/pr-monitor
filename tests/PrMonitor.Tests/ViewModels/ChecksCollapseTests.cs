@@ -270,6 +270,139 @@ public class ChecksCollapseTests
         Assert.Equal(CheckRunState.Failure, visible[0].Check.State);
     }
 
+    // ── Keeping a just-rerun job on screen ─────────────────────────────
+
+    private static CheckRunInfo Queued(string workflow, string name) =>
+        new() { Name = name, WorkflowName = workflow, State = CheckRunState.Queued };
+
+    [Fact]
+    public void ApplyPendingReruns_JobMissingFromTheRollup_IsStillShownAsQueued()
+    {
+        // Right after the rerun request GitHub can drop the job from the rollup entirely.
+        var rows = ChecksViewModel.Collapse([Check("Main PR", "Test", CheckRunState.Running)]);
+
+        var merged = ChecksViewModel.ApplyPendingReruns(rows, [Queued("Components", "Test")]);
+
+        Assert.Equal(2, merged.Count);
+        var rerun = Assert.Single(merged, r => r.Check.WorkflowName == "Components");
+        Assert.Equal(CheckRunState.Queued, rerun.Check.State);
+    }
+
+    [Fact]
+    public void ApplyPendingReruns_StaleFailedRow_IsReplacedByTheQueuedOne()
+    {
+        // GitHub still reports the previous attempt; showing "failed" would be misleading
+        // right after the user asked for a rerun.
+        var rows = ChecksViewModel.Collapse([Check("Components", "Test", CheckRunState.Failure)]);
+
+        var merged = ChecksViewModel.ApplyPendingReruns(rows, [Queued("Components", "Test")]);
+
+        Assert.Single(merged);
+        Assert.Equal(CheckRunState.Queued, merged[0].Check.State);
+    }
+
+    [Fact]
+    public void ApplyPendingReruns_SupersededSkippedRow_IsReplacedInsteadOfFilteredAway()
+    {
+        // The previous attempt's check run comes back as skipped, which the list hides —
+        // that is exactly how the row used to disappear on click.
+        var rows = ChecksViewModel.Collapse([Check("Components", "Test", CheckRunState.Skipped)]);
+
+        var merged = ChecksViewModel.ApplyPendingReruns(rows, [Queued("Components", "Test")]);
+        var visible = ChecksViewModel.VisibleRows(merged, showSkipped: false);
+
+        Assert.Single(visible);
+        Assert.Equal(CheckRunState.Queued, visible[0].Check.State);
+    }
+
+    [Fact]
+    public void ApplyPendingReruns_LeavesOtherJobsAlone()
+    {
+        var rows = ChecksViewModel.Collapse(
+        [
+            Check("Components", "Test", CheckRunState.Failure),
+            Check("Main PR", "Test", CheckRunState.Failure),
+            Check("CI", "Compile", CheckRunState.Success),
+        ]);
+
+        var merged = ChecksViewModel.ApplyPendingReruns(rows, [Queued("Components", "Test")]);
+
+        Assert.Equal(3, merged.Count);
+        Assert.Equal(CheckRunState.Failure, Assert.Single(merged, r => r.Check.WorkflowName == "Main PR").Check.State);
+        Assert.Equal(CheckRunState.Success, Assert.Single(merged, r => r.Check.Name == "Compile").Check.State);
+    }
+
+    [Fact]
+    public void ApplyPendingReruns_NothingPending_ReturnsTheRowsUntouched()
+    {
+        var rows = ChecksViewModel.Collapse([Check("CI", "Test", CheckRunState.Failure)]);
+
+        Assert.Same(rows, ChecksViewModel.ApplyPendingReruns(rows, []));
+    }
+
+    [Fact]
+    public void ApplyPendingReruns_KeepsTheAttentionOrdering()
+    {
+        var rows = ChecksViewModel.Collapse(
+        [
+            Check("CI", "Compile", CheckRunState.Success),
+            Check("Other", "Lint", CheckRunState.Failure),
+        ]);
+
+        var merged = ChecksViewModel.ApplyPendingReruns(rows, [Queued("CI", "Test")]);
+
+        // failure → queued → success
+        Assert.Equal(["Lint", "Test", "Compile"], merged.Select(r => r.Check.Name));
+    }
+
+    [Theory]
+    [InlineData(CheckRunState.Queued)]
+    [InlineData(CheckRunState.Running)]
+    [InlineData(CheckRunState.Success)]
+    [InlineData(CheckRunState.Neutral)]
+    public void ReflectsRerun_StatesThatMeanGitHubCaughtUp(CheckRunState state)
+    {
+        Assert.True(ChecksViewModel.ReflectsRerun(state));
+    }
+
+    [Theory]
+    [InlineData(CheckRunState.Failure)]
+    [InlineData(CheckRunState.Cancelled)]
+    [InlineData(CheckRunState.Skipped)]
+    [InlineData(CheckRunState.Unknown)]
+    public void ReflectsRerun_StatesThatMeanTheRerunHasNotLandedYet(CheckRunState state)
+    {
+        Assert.False(ChecksViewModel.ReflectsRerun(state));
+    }
+
+    [Fact]
+    public void AsQueued_CarriesTheJobIdentityButClearsTheOldOutcome()
+    {
+        var failed = new CheckRunInfo
+        {
+            Name = "Test",
+            WorkflowName = "Components",
+            Event = "pull_request",
+            State = CheckRunState.Failure,
+            Url = "https://github.com/o/r/actions/runs/1/job/2",
+            WorkflowRunId = 1,
+            JobId = 2,
+            StartedAt = DateTimeOffset.UtcNow.AddMinutes(-9),
+            CompletedAt = DateTimeOffset.UtcNow.AddMinutes(-1),
+        };
+
+        var queued = new CheckItemViewModel(failed).AsQueued();
+
+        Assert.Equal(CheckRunState.Queued, queued.State);
+        Assert.Equal("Components", queued.WorkflowName);
+        Assert.Equal("Test", queued.Name);
+        Assert.Equal(2, queued.JobId);
+        Assert.Equal(failed.Url, queued.Url);
+        Assert.Null(queued.StartedAt);
+        Assert.Null(queued.CompletedAt);
+        Assert.Null(queued.Duration);
+    }
+
     // ── Row rendering ──────────────────────────────────────────────────
 
     [Fact]

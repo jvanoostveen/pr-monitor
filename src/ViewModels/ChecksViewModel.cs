@@ -311,6 +311,7 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
         // grace period from a rerun that was triggered on a different PR.
         CancelAutoRefresh();
         _rerunGraceUntil = DateTimeOffset.MinValue;
+        _pendingReruns.Clear();
 
         CurrentPr = pr;
         Title = pr.Title;
@@ -388,7 +389,11 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
         bool keepExistingRows = result.IsFailure && _allRows.Count > 0;
         if (!keepExistingRows)
         {
-            _allRows = Collapse(result.Checks);
+            var rows = Collapse(result.Checks);
+            // A just-rerun job briefly drops out of the rollup, or comes back as skipped
+            // because its previous check run was superseded. Keep showing it as queued
+            // rather than letting the row the user just acted on vanish.
+            _allRows = ApplyPendingReruns(rows, PrunePendingReruns(rows));
             RebuildVisibleRows();
 
             // The summary counts collapsed rows, so a PR with nine identical skipped runs is
@@ -429,12 +434,14 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     private DateTimeOffset _rerunGraceUntil = DateTimeOffset.MinValue;
 
     /// <summary>
-    /// Reloads after a rerun was triggered, and keeps the auto-refresh running through the
-    /// grace period so the restarted job is picked up as soon as GitHub reports it.
+    /// Reloads after a rerun was triggered. The job is kept on screen as queued and the
+    /// auto-refresh keeps running through the grace period, so the row the user just acted on
+    /// neither disappears nor goes stale while GitHub catches up.
     /// </summary>
-    public async Task RefreshAfterRerunAsync()
+    public async Task RerunRequestedAsync(CheckItemViewModel row)
     {
         _rerunGraceUntil = DateTimeOffset.UtcNow + RerunGracePeriod;
+        _pendingReruns[(row.WorkflowName, row.Name)] = row.AsQueued();
         await RefreshAsync();
     }
 
@@ -536,18 +543,87 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
     /// and passed on a rerun is something the user has to see, not something to hide.
     /// </remarks>
     internal static List<(CheckRunInfo Check, int Count)> Collapse(IReadOnlyList<CheckRunInfo> checks) =>
+        Sort([
+            .. checks
+                .GroupBy(c => (c.WorkflowName, c.Name, c.State))
+                .Select(g => (
+                    Check: g.OrderByDescending(c => c.WorkflowRunId)
+                            .ThenByDescending(c => c.StartedAt ?? DateTimeOffset.MinValue)
+                            .First(),
+                    Count: g.Count()))
+        ]);
+
+    /// <summary>Orders rows by what needs attention first, then by workflow and job name.</summary>
+    private static List<(CheckRunInfo Check, int Count)> Sort(IEnumerable<(CheckRunInfo Check, int Count)> rows) =>
     [
-        .. checks
-            .GroupBy(c => (c.WorkflowName, c.Name, c.State))
-            .Select(g => (
-                Check: g.OrderByDescending(c => c.WorkflowRunId)
-                        .ThenByDescending(c => c.StartedAt ?? DateTimeOffset.MinValue)
-                        .First(),
-                Count: g.Count()))
+        .. rows
             .OrderBy(r => r.Check.SortRank)
             .ThenBy(r => r.Check.WorkflowName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(r => r.Check.Name, StringComparer.OrdinalIgnoreCase)
     ];
+
+    // ── Optimistic rows for jobs that were just rerun ───────────────────
+
+    /// <summary>
+    /// Jobs the user just rerun, kept on screen as queued until GitHub reports them again.
+    /// Keyed by workflow and job name, because the rerun produces a new check run with a new id.
+    /// </summary>
+    private readonly Dictionary<(string Workflow, string Name), CheckRunInfo> _pendingReruns = [];
+
+    /// <summary>
+    /// Whether a state GitHub reports for a just-rerun job means it has caught up with the
+    /// rerun. Anything else — still failed, or skipped because the previous attempt's check run
+    /// was superseded — means the rerun has not landed in the rollup yet.
+    /// </summary>
+    internal static bool ReflectsRerun(CheckRunState state) =>
+        state is CheckRunState.Queued or CheckRunState.Running or CheckRunState.Success or CheckRunState.Neutral;
+
+    /// <summary>
+    /// Substitutes the optimistic queued row for every pending rerun: replacing the stale row
+    /// when GitHub still reports the old outcome, or adding it when the job has momentarily
+    /// dropped out of the rollup entirely.
+    /// </summary>
+    internal static List<(CheckRunInfo Check, int Count)> ApplyPendingReruns(
+        List<(CheckRunInfo Check, int Count)> rows,
+        IReadOnlyCollection<CheckRunInfo> pending)
+    {
+        if (pending.Count == 0)
+            return rows;
+
+        var merged = rows
+            .Where(r => !pending.Any(p => SameJob(p, r.Check)))
+            .Concat(pending.Select(p => (Check: p, Count: 1)));
+
+        return Sort(merged);
+    }
+
+    private static bool SameJob(CheckRunInfo a, CheckRunInfo b) =>
+        string.Equals(a.WorkflowName, b.WorkflowName, StringComparison.Ordinal)
+        && string.Equals(a.Name, b.Name, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Drops pending reruns that GitHub has caught up with, or that outlived the grace period,
+    /// and returns the ones still worth showing optimistically.
+    /// </summary>
+    private List<CheckRunInfo> PrunePendingReruns(List<(CheckRunInfo Check, int Count)> rows)
+    {
+        if (_pendingReruns.Count == 0)
+            return [];
+
+        bool graceExpired = DateTimeOffset.UtcNow >= _rerunGraceUntil;
+
+        foreach (var key in _pendingReruns.Keys.ToList())
+        {
+            var reported = rows.FirstOrDefault(r =>
+                string.Equals(r.Check.WorkflowName, key.Workflow, StringComparison.Ordinal)
+                && string.Equals(r.Check.Name, key.Name, StringComparison.Ordinal)).Check;
+
+            if (graceExpired || (reported is not null && ReflectsRerun(reported.State)))
+                _pendingReruns.Remove(key);
+        }
+
+        return [.. _pendingReruns.Values];
+    }
 
     private void UpdateSummary(IReadOnlyList<CheckRunInfo> checks)
     {
@@ -590,6 +666,7 @@ public sealed class ChecksViewModel : INotifyPropertyChanged
         CancelAutoRefresh();
         _loadGeneration++;
         _rerunGraceUntil = DateTimeOffset.MinValue;
+        _pendingReruns.Clear();
         IsOpen = false;
         CurrentPr = null;
         _allRows = [];
@@ -705,6 +782,21 @@ public sealed class CheckItemViewModel
     public bool CanRerun => _check.CanRerun;
 
     public string RerunTooltip => $"Rerun this job ({Name})";
+
+    /// <summary>
+    /// The same job as freshly queued, for showing straight after a rerun request — GitHub
+    /// takes a moment before the restarted run appears in the rollup.
+    /// </summary>
+    internal CheckRunInfo AsQueued() => new()
+    {
+        Name = _check.Name,
+        WorkflowName = _check.WorkflowName,
+        Event = _check.Event,
+        State = CheckRunState.Queued,
+        Url = _check.Url,
+        WorkflowRunId = _check.WorkflowRunId,
+        JobId = _check.JobId,
+    };
 
     public string RowTooltip
     {
