@@ -40,6 +40,16 @@ commit red and never report success.
 | Architecture, settings schema, service behaviour | `ARCHITECTURE.md` |
 | Workflow/conventions for agents | this file **and** `AGENTS.md` |
 
+**Amend, don't append.** Before writing a changelog entry, check whether `[Unreleased]` already
+has one for the feature or area you're touching. If it does, edit that entry in place instead of
+adding a new bullet — fold the new behaviour into its description. This applies especially to a fix
+for a feature that is itself still under `[Unreleased]`: nobody has seen the old behaviour yet, so
+there is nothing to record as a fix — just update the existing `Added`/`Changed` entry so it
+describes what the feature does now, and drop the fixed detail from it rather than adding a
+separate `Fixed` line. Only add a new entry when the change is unrelated to anything already listed
+under `[Unreleased]`. Once a version is released this no longer applies — a fix for released
+behaviour always gets its own new `Fixed` entry.
+
 ### Step 4 — Commit
 ```powershell
 git add -A
