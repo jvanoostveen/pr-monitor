@@ -1063,10 +1063,16 @@ public partial class MainWindow : Window
             if (vm.IsOwnPr && !vm.IsDraft)
             {
                 AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
-                var autoMergeFlags = vm.CanEnableAutoMerge ? MF_STRING : MF_STRING | MF_GRAYED;
-                AppendMenuW(hMenu, autoMergeFlags, (UIntPtr)ID_PR_ENABLE_AUTOMERGE, "Enable auto-merge");
-                var disableAutoMergeFlags = vm.CanDisableAutoMerge ? MF_STRING : MF_STRING | MF_GRAYED;
-                AppendMenuW(hMenu, disableAutoMergeFlags, (UIntPtr)ID_PR_DISABLE_AUTOMERGE, "Disable auto-merge");
+                if (vm.HasAutoMerge)
+                {
+                    var disableAutoMergeFlags = vm.CanDisableAutoMerge ? MF_STRING : MF_STRING | MF_GRAYED;
+                    AppendMenuW(hMenu, disableAutoMergeFlags, (UIntPtr)ID_PR_DISABLE_AUTOMERGE, "Disable auto-merge");
+                }
+                else
+                {
+                    var autoMergeFlags = vm.CanEnableAutoMerge ? MF_STRING : MF_STRING | MF_GRAYED;
+                    AppendMenuW(hMenu, autoMergeFlags, (UIntPtr)ID_PR_ENABLE_AUTOMERGE, "Enable auto-merge");
+                }
 
                 var memberNames = _settings.OrgMembersCache
                     .Where(m => !string.IsNullOrWhiteSpace(m.Name))
