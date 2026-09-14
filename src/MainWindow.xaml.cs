@@ -92,6 +92,7 @@ public partial class MainWindow : Window
     private const uint ID_PR_OPEN_PARENT     = 1015;
     private const uint ID_PR_OPEN_STACK      = 1016;
     private const uint ID_PR_SHOW_CHECKS     = 1017;
+    private const uint ID_PR_DISABLE_AUTOMERGE = 1018;
 
     // Assign-reviewer submenu — each assigned reviewer opens a nested submenu with two actions:
     // 2000..2009 re-request review, 2010..2019 remove reviewer, 2020..2029 recent (unassigned), 2030 search
@@ -1064,6 +1065,8 @@ public partial class MainWindow : Window
                 AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
                 var autoMergeFlags = vm.CanEnableAutoMerge ? MF_STRING : MF_STRING | MF_GRAYED;
                 AppendMenuW(hMenu, autoMergeFlags, (UIntPtr)ID_PR_ENABLE_AUTOMERGE, "Enable auto-merge");
+                var disableAutoMergeFlags = vm.CanDisableAutoMerge ? MF_STRING : MF_STRING | MF_GRAYED;
+                AppendMenuW(hMenu, disableAutoMergeFlags, (UIntPtr)ID_PR_DISABLE_AUTOMERGE, "Disable auto-merge");
 
                 var memberNames = _settings.OrgMembersCache
                     .Where(m => !string.IsNullOrWhiteSpace(m.Name))
@@ -1171,6 +1174,10 @@ public partial class MainWindow : Window
                 case ID_PR_ENABLE_AUTOMERGE:
                     if (vm.CanEnableAutoMerge)
                         _ = EnableAutoMergeAsync(vm);
+                    break;
+                case ID_PR_DISABLE_AUTOMERGE:
+                    if (vm.CanDisableAutoMerge)
+                        _ = DisableAutoMergeAsync(vm);
                     break;
                 case ID_PR_REVIEWER_SEARCH:
                     _ = SearchAndAssignReviewerAsync(vm);
@@ -1702,6 +1709,46 @@ public partial class MainWindow : Window
             DarkMessageBox.Show(
                 $"Could not enable auto-merge.\n\nDetails: {ex.Message}",
                 "Enable auto-merge",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error,
+                this);
+        }
+    }
+
+    private async Task DisableAutoMergeAsync(PrItemViewModel vm)
+    {
+        if (!vm.CanDisableAutoMerge)
+            return;
+
+        if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
+        {
+            DarkMessageBox.Show(
+                "Could not determine owner/repository for this PR.",
+                "Disable auto-merge",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning,
+                this);
+            return;
+        }
+
+        try
+        {
+            var success = await _github.DisableAutoMergeAsync(owner, repo, vm.Number);
+            if (success)
+                await ViewModel.RefreshAsync();
+            else
+                DarkMessageBox.Show(
+                    "Could not disable auto-merge for this pull request.",
+                    "Disable auto-merge",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning,
+                    this);
+        }
+        catch (Exception ex)
+        {
+            DarkMessageBox.Show(
+                $"Could not disable auto-merge.\n\nDetails: {ex.Message}",
+                "Disable auto-merge",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error,
                 this);

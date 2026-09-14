@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Disable auto-merge from the PR context menu.** Own PRs with auto-merge enabled now show a **Disable auto-merge** entry alongside **Enable auto-merge**, so turning it back off no longer requires leaving the app.
+
 ## [1.14.0] - 2026-09-11
 
 ### Added

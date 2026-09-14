@@ -938,6 +938,19 @@ public sealed class GitHubService
         return exitCode == 0;
     }
 
+    /// <summary>
+    /// Disables auto-merge on a PR. Returns true on success.
+    /// </summary>
+    public async Task<bool> DisableAutoMergeAsync(string owner, string repo, int prNumber)
+    {
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo"))
+            return false;
+        var (_, stderr, exitCode) = await RunGhAsync("pr", "merge", prNumber.ToString(), "--disable-auto", "--repo", $"{owner}/{repo}");
+        if (exitCode != 0)
+            _logger.Warn($"DisableAutoMergeAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
+        return exitCode == 0;
+    }
+
     // ── Internal helpers ────────────────────────────────────────────────
 
     internal static List<string> BuildSearchQueries(string baseQuery, IReadOnlyList<string> orgs)

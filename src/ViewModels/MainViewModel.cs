@@ -1229,6 +1229,7 @@ public sealed class PrItemViewModel
     public bool CanMarkAsReady => IsOwnPr && IsDraft;
     public bool CanConvertToDraft => IsOwnPr && !IsDraft;
     public bool CanEnableAutoMerge => IsOwnPr && !IsDraft && !HasAutoMerge;
+    public bool CanDisableAutoMerge => IsOwnPr && !IsDraft && HasAutoMerge;
 
     /// <summary>Show the approved checkmark icon: PR is approved but has no unresolved review comments (comments take priority).</summary>
     public bool ShowApprovedIcon => IsApproved && !HasUnresolvedReviewComments && !HasChangesRequested;
