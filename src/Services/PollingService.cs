@@ -62,6 +62,14 @@ public sealed class PollingService : IDisposable
     /// <summary>Number of consecutive polls withheld because a section emptied out.</summary>
     internal int _withheldPollStreak;
 
+    /// <summary>
+    /// Consecutive empty polls required before an emptied section is trusted. GitHub's search API
+    /// glitch (exit 0, valid JSON, zero hits) can span more than one polling interval, so a single
+    /// confirming poll is not always enough — observed in practice as PRs vanishing from the list
+    /// for several minutes while `gh` itself still reports them.
+    /// </summary>
+    private const int ConfirmationPollThreshold = 3;
+
     private static readonly TimeSpan MemoryTrimInterval = TimeSpan.FromMinutes(10);
     private DateTimeOffset _lastMemoryTrim = DateTimeOffset.UtcNow;
 
@@ -318,8 +326,8 @@ public sealed class PollingService : IDisposable
     }
 
     /// <summary>
-    /// True when the poll result should be discarded because a section emptied out and no
-    /// second poll has confirmed it yet.
+    /// True when the poll result should be discarded because a section emptied out and
+    /// <see cref="ConfirmationPollThreshold"/> consecutive polls haven't confirmed it yet.
     /// </summary>
     internal bool ShouldWithholdSnapshot(PollSnapshot snapshot, out string emptiedSections)
     {
@@ -339,7 +347,7 @@ public sealed class PollingService : IDisposable
 
         emptiedSections = string.Join(", ", emptied);
         _withheldPollStreak++;
-        return _withheldPollStreak < 2;
+        return _withheldPollStreak < ConfirmationPollThreshold;
     }
 
     internal static List<PullRequestInfo> FilterOwnedOrAssignedHotfixPrs(

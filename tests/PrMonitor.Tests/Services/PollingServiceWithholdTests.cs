@@ -88,11 +88,22 @@ public class PollingServiceWithholdTests
     }
 
     [Fact]
-    public void ShouldWithholdSnapshot_SecondConsecutiveEmptiedSection_Publishes()
+    public void ShouldWithholdSnapshot_SecondConsecutiveEmptiedSection_StillWithholds()
     {
         var svc = CreateService();
         svc.LatestSnapshot = new PollSnapshot { MyPrs = [PR()] };
 
+        Assert.True(svc.ShouldWithholdSnapshot(new PollSnapshot(), out _));
+        Assert.True(svc.ShouldWithholdSnapshot(new PollSnapshot(), out _));
+    }
+
+    [Fact]
+    public void ShouldWithholdSnapshot_ThirdConsecutiveEmptiedSection_Publishes()
+    {
+        var svc = CreateService();
+        svc.LatestSnapshot = new PollSnapshot { MyPrs = [PR()] };
+
+        Assert.True(svc.ShouldWithholdSnapshot(new PollSnapshot(), out _));
         Assert.True(svc.ShouldWithholdSnapshot(new PollSnapshot(), out _));
         Assert.False(svc.ShouldWithholdSnapshot(new PollSnapshot(), out _));
     }
