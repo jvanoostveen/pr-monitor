@@ -15,7 +15,7 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 | **Awaiting My Review** | PRs where your review has been requested directly (including assignee-only PRs) |
 | **My PRs** | Your own open non-draft PRs without auto-merge (collapsed by default) |
 | **Dependabot** | Dependabot PRs awaiting your review (collapsed by default) |
-| **Team Review Requests** | PRs where a review was requested from a team you belong to (collapsed by default; can be disabled in Settings) |
+| **Team Review Requests** | PRs where a review was requested from a team you belong to (collapsed by default; **Settings → Sections → Hide team review requests** removes the section *and* those PRs — they do not move to Awaiting My Review) |
 | **My Draft PRs** | Your own draft PRs (collapsed by default) |
 | **Stacks** | Stacked PRs with no review claim on you — your own PRs, auto-merge, drafts, Dependabot — grouped per stack (see below) |
 | **Later** | PRs you've snoozed with "Move to later" |

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Disable auto-merge from the PR context menu.** The context menu entry now toggles: own PRs without auto-merge show **Enable auto-merge**, PRs with it already on show **Disable auto-merge** in its place — like **Mark as ready** / **Convert to draft** — so turning it back off no longer requires leaving the app.
 
+### Changed
+- **The Team Review Requests setting now says what it does.** The Sections tab offered *“Show team review requests as a separate section”* (on by default), which read as if turning it off would fold those PRs into **Awaiting My Review** — it does not; a PR whose review was only requested from one of your teams disappears from the window entirely. The checkbox is now phrased as **Hide team review requests**, unchecked by default, and its description spells out that those PRs are hidden completely rather than moved. Behaviour and the stored `showTeamReviewSection` key are unchanged.
+
 ### Fixed
 - **The PR list could still empty out on real GitHub search glitches that spanned more than one poll.** The guard added in 1.13.3 only withheld a section for a single poll before trusting it was really empty; when GitHub's search index lagged for two consecutive polls in a row (observed for several minutes at a time), the app gave up and displayed the empty result even though the PRs still existed. It now requires three consecutive empty polls before trusting the section is actually empty.
 

@@ -222,7 +222,23 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     public bool ShowTeamReviewSection
     {
         get => _showTeamReviewSection;
-        set => SetField(ref _showTeamReviewSection, value);
+        set
+        {
+            if (_showTeamReviewSection == value) return;
+            SetField(ref _showTeamReviewSection, value);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HideTeamReviewRequests)));
+        }
+    }
+
+    /// <summary>
+    /// Inverse of <see cref="ShowTeamReviewSection"/> for the settings checkbox. The option is
+    /// phrased as "hide" (unchecked by default) because turning the section off drops team-only
+    /// PRs entirely instead of folding them into another section.
+    /// </summary>
+    public bool HideTeamReviewRequests
+    {
+        get => !_showTeamReviewSection;
+        set => ShowTeamReviewSection = !value;
     }
 
     private bool _teamReviewCountsForTrayIcon;
