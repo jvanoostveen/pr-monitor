@@ -103,6 +103,8 @@ Open the **Statistics** window from the chart button in the PR Monitor window he
 
 The app automatically checks for a new release ~30 seconds after startup and again every 24 hours. When a newer version is available, a green clickable banner appears at the bottom of the PR window showing the target version. Click the banner to download the update, and once it is ready the banner switches to a restart action. The adjacent **What's new?** link opens an in-app changelog view sourced from `CHANGELOG.md`, filtered to the versions between your current build and the latest release. A manual check is also available from **About… → Check for updates…**.
 
+After an update has installed and the app has restarted, that same changelog opens by itself, showing everything released between the version you were running and the one now installed — so you do not have to read it before restarting. It appears only after a real version increase, never on a first install. Turn it off with **Show what's new after an update** on the **General** settings tab.
+
 Right-clicking a PR row shows a context menu with:
 - **Copy PR URL** — copies the PR URL to the clipboard
 - **Copy branch name** — copies the head branch name to the clipboard
@@ -162,6 +164,7 @@ Right-click the tray icon and choose **Settings** to:
 - Add the GitHub **organisations** to include in search results (leave empty for personal repos only)
 - Adjust the **polling interval** (default: 120 seconds)
 - Enable **auto-start with Windows**
+- Toggle **Show what's new after an update** — opens the changelog automatically on the first start after an update (on by default)
 - Configure **Notifications** — choose when to show toasts: **Always** (default), **Only when window is closed**, or **Never**, with per-event-type toggles for CI failures, review requests, and more
 - Configure **Flakiness** options, including limiting AI flakiness analysis to **My Auto-Merge PRs** only and setting **Maximum automatic reruns** (1-10, default 3)
 

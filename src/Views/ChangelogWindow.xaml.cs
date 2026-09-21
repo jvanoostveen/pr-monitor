@@ -13,13 +13,18 @@ public partial class ChangelogWindow : Window
 
     private const int DwmwaUseImmersiveDarkMode = 20;
 
+    private const string DefaultSubtitle = "Relevant entries from CHANGELOG.md";
+
     private readonly string? _linkUrl;
 
     public string WindowTitle { get; }
 
-    public ChangelogWindow(string title, string contentText, string? linkUrl)
+    public string WindowSubtitle { get; }
+
+    public ChangelogWindow(string title, string contentText, string? linkUrl, string? subtitle = null)
     {
         WindowTitle = title;
+        WindowSubtitle = string.IsNullOrWhiteSpace(subtitle) ? DefaultSubtitle : subtitle;
         _linkUrl = linkUrl;
 
         DataContext = this;
@@ -28,10 +33,16 @@ public partial class ChangelogWindow : Window
         ContentViewer.Document = MarkdownRenderer.ToFlowDocument(contentText);
     }
 
-    public static void ShowForOwner(Window? owner, UpdateChangelogResult changelog, string? releasePageUrl)
+    public static void ShowForOwner(
+        Window? owner,
+        UpdateChangelogResult changelog,
+        string? releasePageUrl,
+        string? titleOverride = null,
+        string? subtitle = null)
     {
         var linkUrl = !string.IsNullOrWhiteSpace(changelog.Url) ? changelog.Url : releasePageUrl;
-        var window = new ChangelogWindow(changelog.Title, changelog.Markdown, linkUrl)
+        var title = string.IsNullOrWhiteSpace(titleOverride) ? changelog.Title : titleOverride;
+        var window = new ChangelogWindow(title, changelog.Markdown, linkUrl, subtitle)
         {
             Owner = owner is { IsLoaded: true, IsVisible: true } ? owner : null,
             WindowStartupLocation = owner is { IsLoaded: true, IsVisible: true }

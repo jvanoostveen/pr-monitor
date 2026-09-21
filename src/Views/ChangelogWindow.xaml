@@ -151,7 +151,7 @@
                            Foreground="#E6EDF3"
                            FontSize="18"
                            FontWeight="SemiBold"/>
-                <TextBlock Text="Relevant entries from CHANGELOG.md"
+                <TextBlock Text="{Binding WindowSubtitle}"
                            Margin="0,6,0,0"
                            Foreground="#8B949E"
                            FontSize="12"/>

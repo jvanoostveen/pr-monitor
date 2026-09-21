@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **The changelog is shown after an update installs.** Until now the only way to find out what an in-place update actually changed was to remember to click **What's new?** in the footer *before* restarting — after the restart the banner is gone and the information with it. The app now records the version it ran as, and on the first start on a newer version it opens the same changelog dialog for everything released between the version you were running and the one that just installed, titled *Updated to vX.Y.Z / What's new since vA.B.C*. It appears only for a genuine version increase, never on a first install or a downgrade, and stays silent when the changelog cannot be fetched. A new **Show what's new after an update** checkbox on the General settings tab (on by default) turns it off.
 - **Disable auto-merge from the PR context menu.** The context menu entry now toggles: own PRs without auto-merge show **Enable auto-merge**, PRs with it already on show **Disable auto-merge** in its place — like **Mark as ready** / **Convert to draft** — so turning it back off no longer requires leaving the app.
 
 ### Changed

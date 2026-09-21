@@ -197,6 +197,56 @@ public partial class App : System.Windows.Application
         _updateTimer = new System.Threading.Timer(_ => _ = RunAutoUpdateCheckAsync(), null,
             dueTime: TimeSpan.FromSeconds(30),
             period: TimeSpan.FromHours(24));
+
+        // Show what landed if this start is the first one on a newly installed version.
+        _ = ShowChangelogAfterUpdateAsync(settings);
+    }
+
+    /// <summary>
+    /// Records the running version in settings and, when the previous run was on an older
+    /// version (i.e. an update was installed in between), shows the changelog for everything
+    /// released since then. Failures are silent: a startup dialog must never depend on the
+    /// changelog being reachable.
+    /// </summary>
+    private async Task ShowChangelogAfterUpdateAsync(AppSettings settings)
+    {
+        var currentVersion = UpdateService.GetCurrentAppVersionText();
+        var previousVersion = settings.LastRunVersion;
+
+        if (!string.Equals(previousVersion, currentVersion, StringComparison.Ordinal))
+        {
+            settings.LastRunVersion = currentVersion;
+            settings.Save();
+        }
+
+        // No recorded previous version means a first run (or the first run after this setting
+        // was introduced) — there is no "since" to report.
+        if (_updates is null
+            || !settings.ShowChangelogAfterUpdate
+            || !UpdateService.IsUpgrade(previousVersion, currentVersion))
+        {
+            return;
+        }
+
+        _logger?.Info($"App startup: version changed from {previousVersion} to {currentVersion}; showing changelog.");
+
+        try
+        {
+            var changelog = await _updates.GetRelevantChangelogAsync(previousVersion!, currentVersion);
+            if (changelog is null)
+                return;
+
+            Dispatcher.Invoke(() => ChangelogWindow.ShowForOwner(
+                _mainWindow?.IsVisible == true ? _mainWindow : null,
+                changelog,
+                UpdateService.ChangelogFileUrl,
+                titleOverride: $"Updated to v{currentVersion}",
+                subtitle: $"What's new since v{previousVersion}"));
+        }
+        catch (Exception ex)
+        {
+            _logger?.Warn($"Unable to show post-update changelog. {DiagnosticsLogger.SummarizeException(ex)}");
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

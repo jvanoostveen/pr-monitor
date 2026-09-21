@@ -270,6 +270,21 @@ public sealed class UpdateService
 
     public static string GetCurrentAppVersionText() => GetCurrentAppVersion();
 
+    /// <summary>
+    /// True when <paramref name="toVersion"/> is strictly newer than <paramref name="fromVersion"/>.
+    /// Used to tell an installed update apart from a first run, an unchanged version, or a
+    /// downgrade (e.g. a manually restored older exe), none of which should surface a changelog.
+    /// </summary>
+    public static bool IsUpgrade(string? fromVersion, string? toVersion)
+    {
+        if (string.IsNullOrWhiteSpace(fromVersion) || string.IsNullOrWhiteSpace(toVersion))
+            return false;
+
+        return TryParseSemanticVersion(fromVersion, out var from)
+            && TryParseSemanticVersion(toVersion, out var to)
+            && to > from;
+    }
+
     private static string GetCurrentAppVersion()
     {
         var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();

@@ -209,6 +209,19 @@ public sealed class AppSettings
     /// <summary>When the org-member cache was last fetched. Null means never fetched.</summary>
     public DateTimeOffset? OrgMembersCachedAt { get; set; }
 
+    // ── Updates ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// App version of the previous run, written on every startup. Compared against the
+    /// running version to detect that an update was installed in between, which is what
+    /// drives the post-update "What's new" dialog. Null means "never recorded" (first run
+    /// after this setting was introduced), and suppresses the dialog.
+    /// </summary>
+    public string? LastRunVersion { get; set; }
+
+    /// <summary>When true, the changelog for the installed versions is shown after an update.</summary>
+    public bool ShowChangelogAfterUpdate { get; set; } = true;
+
     // ── Diagnostics ──────────────────────────────────────────────────────
 
     /// <summary>When true, verbose window-placement traces are written to the log.</summary>

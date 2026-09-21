@@ -226,6 +226,21 @@ public class UpdateServiceVersionTests
         Assert.Contains("del", script);
     }
 
+    [Theory]
+    [InlineData("1.2.0", "1.3.0", true)]
+    [InlineData("1.2.0", "1.2.1", true)]
+    [InlineData("v1.2.0", "1.10.0", true)]
+    [InlineData("1.2.0", "1.2.0", false)]
+    [InlineData("1.3.0", "1.2.0", false)]
+    [InlineData(null, "1.2.0", false)]
+    [InlineData("", "1.2.0", false)]
+    [InlineData("1.2.0", null, false)]
+    [InlineData("not-a-version", "1.2.0", false)]
+    public void IsUpgrade_OnlyTrueForAStrictlyNewerVersion(string? from, string? to, bool expected)
+    {
+        Assert.Equal(expected, UpdateService.IsUpgrade(from, to));
+    }
+
     [Fact]
     public void BuildUpdateBatScript_BacksUpOldExeBeforeCopy()
     {

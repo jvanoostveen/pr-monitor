@@ -373,6 +373,8 @@ Every GraphQL query in `GitHubService` — the three search queries used by poll
   - **Ready**: "vX.Y.Z ready — click to restart"; clicking triggers the in-place swap and restarts. No toast notification is shown when the download finishes — the banner state change is sufficient.
 - Manual **Check for updates…** also offers to open that same filtered changelog dialog instead of the GitHub compare/commit view.
 - **In-place update flow**: `UpdateService.DownloadUpdateAsync()` downloads the release zip to a **uniquely-named** file (GUID-prefixed) under `%TEMP%\PrMonitor_update\` via `HttpClient` and extracts `PrMonitor.exe`. The unique name avoids collisions with a locked/leftover zip from a previous failed attempt. Stale zips from earlier failed attempts are removed best-effort before each new download, and the extraction step (which can be briefly blocked by antivirus/SmartScreen scanning the freshly-downloaded file) retries automatically with backoff (`RetryOnFileLockedAsync`) instead of failing immediately on a sharing-violation `IOException`. `UpdateService.StartUpdateProcess()` writes a `.bat` launcher script to `%TEMP%` that waits for the current PID to exit, renames the old exe to `.exe.old`, copies the new exe, starts it, and self-deletes. `MainViewModel.RestartToInstallUpdate()` calls `StartUpdateProcess` then `Application.Current.Shutdown()`.
+- **Post-update changelog**: `AppSettings.LastRunVersion` records the version the app ran as, rewritten on every startup by `App.ShowChangelogAfterUpdateAsync()`. When the recorded version is strictly older than the running one (`UpdateService.IsUpgrade(from, to)` — false for a first run with no recorded version, an unchanged version, a downgrade, or an unparseable version), that method fetches `GetRelevantChangelogAsync(previousVersion, currentVersion)` and opens `ChangelogWindow` with the title *Updated to vX.Y.Z* and the subtitle *What's new since vA.B.C*. It is fire-and-forget from `OnStartup`, and silent on any failure — a startup dialog must not depend on the changelog being reachable. `AppSettings.ShowChangelogAfterUpdate` (default `true`, **Settings → General → "Show what's new after an update"**) suppresses the dialog; the version is still recorded so enabling it later does not replay old releases.
+- `ChangelogWindow.ShowForOwner()` takes optional `titleOverride` and `subtitle` arguments; without them the title comes from `UpdateChangelogResult.Title` and the subtitle reads "Relevant entries from CHANGELOG.md".
 - On each startup, `App.CleanupOldExe()` deletes `{exePath}.old` if it exists (leftover from previous update).
 - `MainViewModel.SetUpdateAvailable(version, releaseUrl, releaseNotesUrl, releaseNotes)` takes 4 parameters.
 - `MainViewModel` accepts `UpdateService` as a constructor parameter (injected in `App.xaml.cs`).
@@ -497,6 +499,8 @@ Every GraphQL query in `GitHubService` — the three search queries used by poll
     { "login": "alice", "name": "Alice Smith" }
   ],
   "orgMembersCachedAt": "2026-04-01T12:00:00Z",
+  "lastRunVersion": "1.14.0",
+  "showChangelogAfterUpdate": true,
   "verboseLogging": false
 }
 ```

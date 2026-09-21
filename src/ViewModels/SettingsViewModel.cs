@@ -101,6 +101,12 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set { _settings.CompactMode = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompactMode))); }
     }
 
+    public bool ShowChangelogAfterUpdate
+    {
+        get => _settings.ShowChangelogAfterUpdate;
+        set { _settings.ShowChangelogAfterUpdate = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowChangelogAfterUpdate))); }
+    }
+
     public bool VerboseLogging
     {
         get => _settings.VerboseLogging;
