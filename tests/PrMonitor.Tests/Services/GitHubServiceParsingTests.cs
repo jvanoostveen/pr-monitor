@@ -480,6 +480,59 @@ public class GitHubServiceParsingTests
         Assert.False(result[0].IsTeamReviewRequested);
     }
 
+    // ── Labels ────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("""{"labels":null}""")]
+    [InlineData("""{"labels":{"nodes":null}}""")]
+    public void ParseLabels_MissingOrNull_ReturnsEmpty(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        Assert.Empty(GitHubService.ParseLabels(doc.RootElement));
+    }
+
+    [Fact]
+    public void ParseLabels_SkipsEmptyAndDuplicateNames_KeepsGitHubOrder()
+    {
+        using var doc = JsonDocument.Parse(
+            """{"labels":{"nodes":[{"name":"Prioriteit/High"},{"name":""},{"name":null},{"name":"bug"},{"name":"BUG"}]}}""");
+        Assert.Equal(["Prioriteit/High", "bug"], GitHubService.ParseLabels(doc.RootElement));
+    }
+
+    [Fact]
+    public void ParseMyPrs_WithLabels_SetsLabels()
+    {
+        var node = WithLabels(BuildPrNode(number: 7), "Prioriteit/High", "bug");
+        using var doc = JsonDocument.Parse(BuildMyPrsJson(node));
+
+        var result = GitHubService.ParseMyPrs(doc.RootElement);
+
+        Assert.Equal(["Prioriteit/High", "bug"], Assert.Single(result).Labels);
+    }
+
+    [Fact]
+    public void ParseReviewPrs_WithLabels_SetsLabels()
+    {
+        var node = WithLabels(BuildReviewPrNode(number: 8), "Prioriteit/High");
+        using var doc = JsonDocument.Parse(BuildReviewPrsJson(node));
+
+        var result = GitHubService.ParseReviewPrs(doc.RootElement, "alice");
+
+        Assert.Equal(["Prioriteit/High"], Assert.Single(result).Labels);
+    }
+
+    [Fact]
+    public void ParseMyPrs_WithoutLabels_LabelsEmpty()
+    {
+        using var doc = JsonDocument.Parse(BuildMyPrsJson(BuildPrNode(number: 9)));
+        Assert.Empty(Assert.Single(GitHubService.ParseMyPrs(doc.RootElement)).Labels);
+    }
+
+    private static string WithLabels(string prNode, params string[] labels) =>
+        prNode[..^1] + ",\"labels\":{\"nodes\":["
+        + string.Join(",", labels.Select(l => "{\"name\":\"" + l + "\"}")) + "]}}";
+
     private static string BuildMyPrsJson(string prNode) =>
         "{\"data\":{\"search\":{\"nodes\":[" + prNode + "]}}}";
 

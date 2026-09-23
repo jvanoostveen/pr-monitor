@@ -326,6 +326,64 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public void Constructor_LoadsDefaultLabelRule()
+    {
+        var vm = new SettingsViewModel(MakeSettings());
+
+        var rule = Assert.Single(vm.LabelRules);
+        Assert.Equal("Prioriteit/High", rule.Label);
+        Assert.True(rule.IsPriority);
+    }
+
+    [Fact]
+    public void Save_LabelRules_TrimsFields_DropsEmptyLabels_ClearsInvalidColour()
+    {
+        var path = TempPath();
+        using var _ = AppSettings.UseSettingsPathOverride(path);
+
+        var settings = MakeSettings();
+        var vm = new SettingsViewModel(settings);
+        vm.AddLabelRule();
+        vm.LabelRules[1].Label = "  bug  ";
+        vm.LabelRules[1].Text = " BUG ";
+        vm.LabelRules[1].Color = "purple";
+        vm.AddLabelRule();
+        vm.LabelRules[2].Label = "   ";
+        vm.AddLabelRule();
+        vm.LabelRules[3].Label = "docs";
+        vm.LabelRules[3].Color = " #a371f7 ";
+
+        vm.Save();
+
+        Assert.Equal(["Prioriteit/High", "bug", "docs"], settings.LabelRules.Select(r => r.Label));
+        Assert.Equal("BUG", settings.LabelRules[1].Text);
+        Assert.Equal("", settings.LabelRules[1].Color);
+        Assert.Equal("#A371F7", settings.LabelRules[2].Color);
+
+        File.Delete(path);
+        File.Delete(path + ".bak");
+    }
+
+    [Fact]
+    public void RemoveLabelRule_RemovesFromCollection_AndSaveKeepsListEmpty()
+    {
+        var path = TempPath();
+        using var _ = AppSettings.UseSettingsPathOverride(path);
+
+        var settings = MakeSettings();
+        var vm = new SettingsViewModel(settings);
+        vm.RemoveLabelRule(vm.LabelRules[0]);
+
+        vm.Save();
+
+        Assert.Empty(settings.LabelRules);
+        Assert.Empty(AppSettings.LoadFrom(path).LabelRules);
+
+        File.Delete(path);
+        File.Delete(path + ".bak");
+    }
+
+    [Fact]
     public void Save_RemovedManualHiddenPr_IsRemovedButSnoozedStaysHidden()
     {
         var path = TempPath();

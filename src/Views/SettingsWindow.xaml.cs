@@ -56,6 +56,14 @@ public partial class SettingsWindow : Window
         rulesWindow.Show();
     }
 
+    private void LabelRuleAdd_Click(object sender, RoutedEventArgs e) => _viewModel.AddLabelRule();
+
+    private void LabelRuleRemove_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: SettingsViewModel.LabelRuleViewModel rule })
+            _viewModel.RemoveLabelRule(rule);
+    }
+
     private void HiddenPrRemove_Click(object sender, RoutedEventArgs e)
     {
         if (sender is System.Windows.Controls.Button { Tag: string key } && !string.IsNullOrWhiteSpace(key))

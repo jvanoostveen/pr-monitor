@@ -53,6 +53,9 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         foreach (var rule in settings.FlakinessRules)
             FlakinessRules.Add(new FlakinessRuleViewModel(rule));
 
+        foreach (var rule in settings.LabelRules)
+            LabelRules.Add(new LabelRuleViewModel(rule));
+
         foreach (var key in settings.ManuallyHiddenPrKeys
             .OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
         {
@@ -316,6 +319,13 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     public ObservableCollection<HiddenPrEntryViewModel> HiddenPrs { get; } = [];
     public ObservableCollection<HiddenReviewerEntryViewModel> HiddenReviewers { get; } = [];
 
+    /// <summary>GitHub label → chip rules, edited on the Labels tab.</summary>
+    public ObservableCollection<LabelRuleViewModel> LabelRules { get; } = [];
+
+    public void AddLabelRule() => LabelRules.Add(new LabelRuleViewModel(new LabelRule()));
+
+    public void RemoveLabelRule(LabelRuleViewModel rule) => LabelRules.Remove(rule);
+
     public void RemoveHiddenReviewer(string login)
     {
         var vm = HiddenReviewers.FirstOrDefault(
@@ -422,6 +432,10 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             MatchCount = vm.MatchCount,
         }).ToList();
         _settings.HiddenStatReviewRequesters = HiddenReviewers.Select(h => h.Login).ToList();
+        _settings.LabelRules = LabelRules
+            .Select(vm => vm.ToRule())
+            .Where(r => r.Label.Length > 0)
+            .ToList();
         _settings.Save();
 
         ApplyAutoStart(_autoStartWithWindows);
@@ -499,6 +513,68 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
+    }
+
+    // ── Label rule view model ──────────────────────────────────────────────
+
+    public sealed class LabelRuleViewModel : INotifyPropertyChanged
+    {
+        public LabelRuleViewModel(LabelRule rule)
+        {
+            _label = rule.Label ?? "";
+            _text = rule.Text ?? "";
+            _color = rule.Color ?? "";
+            _isPriority = rule.IsPriority;
+        }
+
+        private string _label;
+        public string Label { get => _label; set => Set(ref _label, value ?? ""); }
+
+        private string _text;
+        public string Text { get => _text; set => Set(ref _text, value ?? ""); }
+
+        private string _color;
+        public string Color
+        {
+            get => _color;
+            set
+            {
+                if (!Set(ref _color, value ?? "")) return;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PreviewBrush)));
+            }
+        }
+
+        private bool _isPriority;
+        public bool IsPriority { get => _isPriority; set => Set(ref _isPriority, value); }
+
+        /// <summary>Swatch next to the colour box: the entered colour, or transparent when the chip follows CI.</summary>
+        public System.Windows.Media.Brush PreviewBrush => LabelRule.IsValidColor(Color.Trim())
+            ? new System.Windows.Media.SolidColorBrush(
+                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(Color.Trim()))
+            : System.Windows.Media.Brushes.Transparent;
+
+        /// <summary>Trimmed copy; an invalid colour is cleared so the chip follows the CI colour.</summary>
+        public LabelRule ToRule()
+        {
+            var color = Color.Trim();
+            return new LabelRule
+            {
+                Label = Label.Trim(),
+                Text = Text.Trim(),
+                Color = LabelRule.IsValidColor(color) ? color.ToUpperInvariant() : "",
+                IsPriority = IsPriority,
+            };
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private bool Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
+        {
+            if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+            field = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            return true;
+        }
     }
 
     public sealed class HiddenPrEntryViewModel

@@ -66,6 +66,16 @@ A stacked PR keeps its own CI colour, so a PR that is green but still waiting on
 
 The separate section and whether stack-blocked PRs count towards the tray icon can be configured in **Settings → Sections → Stacked PRs**.
 
+### Label chips and priority PRs
+
+GitHub labels can be shown as small chips next to a PR's `repo #number`. You choose which labels appear, and how, in **Settings → Labels**. Each rule maps a label name (case-insensitive) to:
+
+- a **chip text** (empty shows the label name),
+- a **colour** as `#RRGGBB` (empty makes the chip follow the row's CI status colour: green, amber, red or grey),
+- a **Priority** flag: the row gets an accent bar on its left edge in its CI status colour, and the PR moves to the top of its section.
+
+By default `Prioriteit/High` is a priority label shown as a `HIGH` chip. Remove or change the rule if your repositories label priority differently. Hover a row to see all of its labels, including unmapped ones.
+
 ### Reviewer indicator on your own PRs
 
 Your own PR rows show an amber "no reviewer assigned" icon until someone is requested as reviewer. Because CODEOWNERS requests a *team* on every PR automatically, a team request alone does **not** count as an assigned reviewer by default — the tooltip then reads `No individual reviewer assigned (team: …)`. Enable **Settings → Sections → Review requests → "Team review request counts as an assigned reviewer"** to treat a team request as a real reviewer.
@@ -166,6 +176,7 @@ Right-click the tray icon and choose **Settings** to:
 - Enable **auto-start with Windows**
 - Toggle **Show what's new after an update** — opens the changelog automatically on the first start after an update (on by default)
 - Configure **Notifications** — choose when to show toasts: **Always** (default), **Only when window is closed**, or **Never**, with per-event-type toggles for CI failures, review requests, and more
+- Map GitHub **Labels** to chips on PR rows, and mark labels as priority (default: `Prioriteit/High`)
 - Configure **Flakiness** options, including limiting AI flakiness analysis to **My Auto-Merge PRs** only and setting **Maximum automatic reruns** (1-10, default 3)
 
 With a fresh settings file, section defaults are: **My PRs** expanded, **Later** collapsed, and **Dependabot** collapsed.

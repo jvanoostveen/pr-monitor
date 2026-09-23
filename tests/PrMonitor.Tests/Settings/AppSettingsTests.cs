@@ -412,6 +412,80 @@ public class AppSettingsTests
         Assert.False(settings.DependabotExpanded);
     }
 
+    // ── Label rules ───────────────────────────────────────────────────
+
+    [Fact]
+    public void LabelRules_Default_IsPrioriteitHighPriorityRule()
+    {
+        var rule = Assert.Single(new AppSettings().LabelRules);
+        Assert.Equal("Prioriteit/High", rule.Label);
+        Assert.Equal("HIGH", rule.Text);
+        Assert.Equal("", rule.Color);
+        Assert.True(rule.IsPriority);
+    }
+
+    [Fact]
+    public void LoadFrom_MissingLabelRulesKey_UsesDefaultRule()
+    {
+        var path = TempPath();
+        try
+        {
+            File.WriteAllText(path, """{"pollingIntervalSeconds":60}""");
+            var loaded = AppSettings.LoadFrom(path);
+            Assert.Equal("Prioriteit/High", Assert.Single(loaded.LabelRules).Label);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void LoadFrom_ExplicitEmptyLabelRules_StaysEmpty()
+    {
+        var path = TempPath();
+        try
+        {
+            File.WriteAllText(path, """{"labelRules":[]}""");
+            Assert.Empty(AppSettings.LoadFrom(path).LabelRules);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void LoadFrom_DropsLabelRulesWithoutLabel()
+    {
+        var path = TempPath();
+        try
+        {
+            File.WriteAllText(path, """{"labelRules":[{"label":"  "},{"label":"bug","text":"BUG"}]}""");
+            Assert.Equal("bug", Assert.Single(AppSettings.LoadFrom(path).LabelRules).Label);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void SaveTo_LoadFrom_RoundTrip_PreservesLabelRules()
+    {
+        var path = TempPath();
+        try
+        {
+            var settings = new AppSettings
+            {
+                LabelRules = [new LabelRule { Label = "bug", Text = "BUG", Color = "#A371F7", IsPriority = false }],
+            };
+            settings.SaveTo(path);
+
+            var rule = Assert.Single(AppSettings.LoadFrom(path).LabelRules);
+            Assert.Equal("bug", rule.Label);
+            Assert.Equal("BUG", rule.Text);
+            Assert.Equal("#A371F7", rule.Color);
+            Assert.False(rule.IsPriority);
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(path + ".bak");
+        }
+    }
+
     private static string TempPath() =>
         Path.Combine(Path.GetTempPath(), $"prtests_{Guid.NewGuid()}.json");
 }

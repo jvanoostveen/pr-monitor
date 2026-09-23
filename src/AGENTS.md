@@ -14,7 +14,7 @@ This folder contains the entire WPF application (`PrMonitor.csproj`, targeting `
 ```
 Assets/           icon.ico
 Converters/       WPF value converters (registered in App.xaml resources)
-Models/           Plain data models (CIState, PullRequestInfo, FlakinessRule, ...)
+Models/           Plain data models (CIState, PullRequestInfo, FlakinessRule, LabelRule, ...)
 Services/         All business logic (GitHub API, polling, notifications, flakiness, updates)
 Settings/         AppSettings — JSON persistence in %APPDATA%\pr-monitor\settings.json
 ViewModels/       MainViewModel (+ inner PrItemViewModel), SettingsViewModel

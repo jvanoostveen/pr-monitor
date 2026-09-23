@@ -24,7 +24,8 @@ public sealed class CIStateToBrushConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         throw new NotSupportedException();
 
-    private static SolidColorBrush StateToColor(CIState state) => state switch
+    /// <summary>The frozen status brush for <paramref name="state"/>, for use outside bindings.</summary>
+    internal static SolidColorBrush StateToColor(CIState state) => state switch
     {
         CIState.Success => Green,
         CIState.Failure => Red,

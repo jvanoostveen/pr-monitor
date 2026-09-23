@@ -340,6 +340,19 @@ Every GraphQL query in `GitHubService` — the three search queries used by poll
 - Rendered in `MainWindow.xaml` in the PR row icon `StackPanel`, present in Hotfixes, My Auto-Merge PRs, My PRs, My Draft PRs, and Later sections (Draft PRs section omits the Approved icon, matching prior behavior). Non-own-PR sections (Awaiting My Review, Dependabot, Team Review Requests) don't show these reviewer-state icons since they aren't `IsOwnPr`.
 - `PrTooltip`'s reviewer line includes each reviewer's display state, e.g. `Reviewers: alice (Approved), bob (Pending)`, via `ReviewState.ToDisplayString()`.
 
+### Label chips and priority indicator
+- All three search queries fetch `labels(first: 20) { nodes { name } }`. `GitHubService.ParseLabels(node)` fills `PullRequestInfo.Labels`, keeping GitHub's order and dropping empty and case-insensitively duplicate names. Labels are not part of the delta detection in `PollingService`, so they never trigger notifications.
+- `AppSettings.LabelRules` (`List<LabelRule>`: `Label`, `Text`, `Color`, `IsPriority`) holds the mapping. If the key is missing, the default is one rule: `Prioriteit/High` → `HIGH`, no colour, priority. An explicit `[]` stays empty. `LoadFrom` drops rules without a label. `SettingsViewModel.Save()` trims fields and clears any colour that is not `#RRGGBB`.
+- `PrItemViewModel.From(..., labelRules)` calls `MatchLabels`. For each rule, in rule order, whose label is on the PR (OrdinalIgnoreCase), it adds one `LabelChipViewModel`, skipping duplicate chip texts. It also sets `IsPriority` when any matching rule is a priority rule.
+  - Chip colour: the rule's colour when valid. Otherwise it is the colour of `EffectiveCIState` from `CIStateToBrushConverter.StateToColor`, with one exception: `Unknown` (e.g. drafts) uses the muted text grey `#8B949E`, because the dot grey is too dark for text.
+  - The chip is drawn as text and a 1px border in that colour, on a background of the same colour at 20% alpha. Its brushes are frozen.
+- `PrTooltip` ends with `Labels: a, b` listing every label on the PR, mapped or not. `DisplaySignature` includes `IsPriority` and the chips' text and colour, so a label change rebuilds the rows.
+- `MainViewModel.PriorityFirst` stable-sorts priority rows to the top of every section, including Later. The Stacks section is left in chain order. Hotfixes, Awaiting My Review and Team Review Requests are sorted before `ApplyInlineStackGrouping`, so a stack anchors where its first member lands.
+- XAML:
+  - The `PrRow` style reserves a `3,0,0,0` left border on every row, transparent by default, so contents stay aligned. A `DataTrigger` on `IsPriority` colours that border through `CIStateToBrush`.
+  - Every row template wraps the repo line in a horizontal `StackPanel` with an `ItemsControl` using the shared `LabelChips` style.
+  - The chips are static: there is no animation.
+
 
 ### Assign reviewer submenu
 - Own non-draft PR rows (My Auto-Merge PRs, My PRs, Hotfixes, own PRs in Later) show an **Assign reviewer** submenu in their right-click context menus.
@@ -490,6 +503,9 @@ Every GraphQL query in `GitHubService` — the three search queries used by poll
       "createdAt": "2026-03-24T00:00:00Z",
       "matchCount": 0
     }
+  ],
+  "labelRules": [
+    { "label": "Prioriteit/High", "text": "HIGH", "color": "", "isPriority": true }
   ],
   "flakinessRerunCounts": {
     "owner/repo#123": { "count": 1, "lastAttempt": "2026-03-24T00:00:00Z" }

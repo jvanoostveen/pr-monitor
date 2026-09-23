@@ -99,6 +99,7 @@ public sealed class GitHubService
                 mergeable
                 baseRefName
                 headRefName
+                labels(first: 20) { nodes { name } }
                 reviewDecision
                 autoMergeRequest { enabledAt }
                 reviewRequests(first: 10) {
@@ -163,6 +164,7 @@ public sealed class GitHubService
                 baseRefName
                 mergeable
                 headRefName
+                labels(first: 20) { nodes { name } }
                 reviewDecision
                 reviewRequests(first: 10) {
                   nodes {
@@ -214,6 +216,7 @@ public sealed class GitHubService
                 baseRefName
                 mergeable
                 headRefName
+                labels(first: 20) { nodes { name } }
                 reviewDecision
                 reviewRequests(first: 10) {
                   nodes {
@@ -1124,6 +1127,7 @@ public sealed class GitHubService
                 ReviewerLogins = ParseReviewerLogins(node),
                 TeamReviewerSlugs = ParseTeamReviewerSlugs(node),
                 ReviewerStates = ParseReviewerStates(node),
+                Labels = ParseLabels(node),
             });
         }
 
@@ -1219,10 +1223,31 @@ public sealed class GitHubService
                 ReviewerLogins = ParseReviewerLogins(node),
                 TeamReviewerSlugs = ParseTeamReviewerSlugs(node),
                 IsTeamReviewRequested = isTeamOnly,
+                Labels = ParseLabels(node),
             });
         }
 
         return result;
+    }
+
+    internal static IReadOnlyList<string> ParseLabels(JsonElement node)
+    {
+        if (!node.TryGetProperty("labels", out var labels)) return [];
+        if (labels.ValueKind != JsonValueKind.Object) return [];
+        if (!labels.TryGetProperty("nodes", out var nodes)) return [];
+        if (nodes.ValueKind != JsonValueKind.Array) return [];
+
+        var names = new List<string>();
+        foreach (var labelNode in nodes.EnumerateArray())
+        {
+            if (labelNode.ValueKind == JsonValueKind.Object
+                && labelNode.TryGetProperty("name", out var name)
+                && name.ValueKind == JsonValueKind.String
+                && name.GetString() is { Length: > 0 } value
+                && !names.Contains(value, StringComparer.OrdinalIgnoreCase))
+                names.Add(value);
+        }
+        return names;
     }
 
     internal static IReadOnlyList<string> ParseReviewerLogins(JsonElement node)

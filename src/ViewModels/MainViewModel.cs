@@ -739,6 +739,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var hidden = _settings.HiddenPrKeys;
         var showStacks = _settings.ShowStackRelations;
         var teamCountsAsReviewer = _settings.TeamReviewCountsAsReviewer;
+        var labelRules = _settings.LabelRules;
         var (chains, parentIsMine) = BuildStackContext(snapshot);
         var stacked = new List<PrItemViewModel>();
 
@@ -759,7 +760,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 isDependabot: isDependabot, isDraftSection: isDraftSection, snoozedUntilText: snoozedUntilText,
                 showStackRelations: showStacks, stackChainTooltip: chains.GetValueOrDefault(pr.Key, ""),
                 stackParentIsMine: parentIsMine.Contains(pr.Key),
-                teamReviewCountsAsReviewer: teamCountsAsReviewer);
+                teamReviewCountsAsReviewer: teamCountsAsReviewer, labelRules: labelRules);
 
         // Stacked PRs are collected in their own section instead of their regular one — but only
         // when that section carries no review claim on you. Moving a PR you were asked to review
@@ -815,6 +816,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         var orderedStacked = OrderStackSection(stacked).ToList();
 
+        // Priority PRs lead their section. The Stacks section keeps its chain order.
+        autoMerge = PriorityFirst(autoMerge);
+        myPrs = PriorityFirst(myPrs);
+        review = PriorityFirst(review);
+        teamReview = PriorityFirst(teamReview);
+        dependabot = PriorityFirst(dependabot);
+        hotfix = PriorityFirst(hotfix);
+        drafts = PriorityFirst(drafts);
+
         // Sections that kept their stacked PRs show them grouped and indented in place.
         if (showStacks)
         {
@@ -839,8 +849,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 showStackRelations: showStacks,
                 stackChainTooltip: chains.GetValueOrDefault(x.pr.Key, ""),
                 stackParentIsMine: parentIsMine.Contains(x.pr.Key),
-                teamReviewCountsAsReviewer: teamCountsAsReviewer));
+                teamReviewCountsAsReviewer: teamCountsAsReviewer, labelRules: labelRules));
         }
+
+        hiddenItems = PriorityFirst(hiddenItems);
 
         var signature = BuildDisplaySignature(
             autoMerge, myPrs, review, teamReview, dependabot, hotfix, drafts, orderedStacked, hiddenItems);
@@ -986,6 +998,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// where its first member already sat, bottom PR first, with every row but that first one
     /// indented one level. Rows that are not part of a stack keep their position and stay flush.
     /// </summary>
+    /// <summary>Moves priority PRs to the top; the order within both groups is kept (stable sort).</summary>
+    internal static List<PrItemViewModel> PriorityFirst(IReadOnlyList<PrItemViewModel> items) =>
+        items.OrderByDescending(i => i.IsPriority).ToList();
+
     internal static List<PrItemViewModel> ApplyInlineStackGrouping(IReadOnlyList<PrItemViewModel> items)
     {
         // A stack's anchor is the position of its first member; unstacked rows anchor to themselves.
@@ -1155,6 +1171,17 @@ public sealed class PrItemViewModel
 
     public IReadOnlyDictionary<string, ReviewState> ReviewerStates { get; init; } = new Dictionary<string, ReviewState>();
 
+    // ── Labels ──
+
+    /// <summary>All GitHub labels on the PR, mapped or not; listed in the tooltip.</summary>
+    public IReadOnlyList<string> Labels { get; init; } = [];
+
+    /// <summary>Chips for the labels that match a configured <see cref="LabelRule"/>, in rule order.</summary>
+    public IReadOnlyList<LabelChipViewModel> LabelChips { get; init; } = [];
+
+    /// <summary>True when a matching rule is a priority rule: accent bar and top of the section.</summary>
+    public bool IsPriority { get; init; }
+
     /// <summary>
     /// Reviewers that count towards the reviewer indicator. With CODEOWNERS every PR gets a team
     /// request automatically, so teams are excluded unless <see cref="TeamReviewCountsAsReviewer"/> is set.
@@ -1221,6 +1248,8 @@ public sealed class PrItemViewModel
                 parts.Add(UnresolvedReviewCommentsToolTip);
             if (ShowApprovedIcon)
                 parts.Add("Approved");
+            if (Labels.Count > 0)
+                parts.Add($"Labels: {string.Join(", ", Labels)}");
             return string.Join(System.Environment.NewLine, parts);
         }
     }
@@ -1239,10 +1268,12 @@ public sealed class PrItemViewModel
     /// has merge conflicts. A PR that only waits for an open parent PR in its stack keeps its own
     /// CI colour, so a healthy stacked PR still shows green.
     /// </summary>
-    public CIState EffectiveCIState =>
-        HasConflicts ? CIState.Failure
-        : IsDraft ? CIState.Unknown
-        : CIState;
+    public CIState EffectiveCIState => ToEffectiveCIState(CIState, HasConflicts, IsDraft);
+
+    internal static CIState ToEffectiveCIState(CIState ciState, bool hasConflicts, bool isDraft) =>
+        hasConflicts ? CIState.Failure
+        : isDraft ? CIState.Unknown
+        : ciState;
 
     public void OpenInBrowser()
     {
@@ -1258,10 +1289,53 @@ public sealed class PrItemViewModel
         Key, Repository, Title, Author, TimeAgo, SnoozedUntilText, CIIcon, EffectiveCIState,
         StackBadgeText, IsStackGroupStart, ShowStackGroupSeparator,
         HasUnresolvedReviewComments, ShowChangesRequestedIcon, ShowNoReviewerWarning,
-        ShowReviewPendingIcon, ShowCommentedIcon, ShowApprovedIcon, PrTooltip);
+        ShowReviewPendingIcon, ShowCommentedIcon, ShowApprovedIcon, PrTooltip,
+        IsPriority, string.Join(',', LabelChips.Select(c => $"{c.Text}:{c.Foreground.Color}")));
 
-    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "", bool showStackRelations = true, string stackChainTooltip = "", bool stackParentIsMine = false, bool teamReviewCountsAsReviewer = false) => new()
+    public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "", bool showStackRelations = true, string stackChainTooltip = "", bool stackParentIsMine = false, bool teamReviewCountsAsReviewer = false, IReadOnlyList<LabelRule>? labelRules = null)
     {
+        var effectiveCiState = ToEffectiveCIState(pr.CIState, pr.HasConflicts, pr.IsDraft);
+        var (chips, isPriority) = MatchLabels(pr.Labels, labelRules ?? [], effectiveCiState);
+        return Create(pr, isAutoMerge, isMyPr, isHotfix, isTeamReview, isDependabot, isDraftSection, snoozedUntilText,
+            showStackRelations, stackChainTooltip, stackParentIsMine, teamReviewCountsAsReviewer, chips, isPriority);
+    }
+
+    /// <summary>
+    /// Builds the chips for the labels that match a rule, in rule order, one chip per distinct text.
+    /// A rule without a valid colour follows the CI colour of the row.
+    /// </summary>
+    internal static (IReadOnlyList<LabelChipViewModel> Chips, bool IsPriority) MatchLabels(
+        IReadOnlyList<string> labels, IReadOnlyList<LabelRule> rules, CIState effectiveCiState)
+    {
+        if (labels.Count == 0 || rules.Count == 0) return ([], false);
+
+        var chips = new List<LabelChipViewModel>();
+        var isPriority = false;
+        foreach (var rule in rules)
+        {
+            var label = rule.Label?.Trim() ?? "";
+            if (label.Length == 0 || !labels.Contains(label, StringComparer.OrdinalIgnoreCase)) continue;
+
+            isPriority |= rule.IsPriority;
+            var text = string.IsNullOrWhiteSpace(rule.Text) ? label : rule.Text.Trim();
+            if (chips.Any(c => string.Equals(c.Text, text, StringComparison.OrdinalIgnoreCase))) continue;
+
+            var color = LabelRule.IsValidColor(rule.Color?.Trim())
+                ? (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(rule.Color!.Trim())
+                : effectiveCiState == CIState.Unknown
+                    // The unknown-state dot grey is too dark for chip text; use the muted text grey.
+                    ? System.Windows.Media.Color.FromRgb(0x8B, 0x94, 0x9E)
+                    : Converters.CIStateToBrushConverter.StateToColor(effectiveCiState).Color;
+            chips.Add(new LabelChipViewModel(text, color));
+        }
+        return (chips, isPriority);
+    }
+
+    private static PrItemViewModel Create(PullRequestInfo pr, bool isAutoMerge, bool isMyPr, bool isHotfix, bool isTeamReview, bool isDependabot, bool isDraftSection, string snoozedUntilText, bool showStackRelations, string stackChainTooltip, bool stackParentIsMine, bool teamReviewCountsAsReviewer, IReadOnlyList<LabelChipViewModel> labelChips, bool isPriority) => new()
+    {
+        Labels = pr.Labels,
+        LabelChips = labelChips,
+        IsPriority = isPriority,
         Key = pr.Key,
         Repository = pr.Repository,
         Title = pr.Title,
@@ -1316,5 +1390,29 @@ public sealed class PrItemViewModel
         if (span.TotalDays < 1) return $"{(int)span.TotalHours}h ago";
         if (span.TotalDays < 30) return $"{(int)span.TotalDays}d ago";
         return created.ToString("MMM dd");
+    }
+}
+
+/// <summary>
+/// A label chip on a PR row: text in <see cref="Foreground"/> on a translucent tint of the same colour.
+/// </summary>
+public sealed class LabelChipViewModel
+{
+    public LabelChipViewModel(string text, System.Windows.Media.Color color)
+    {
+        Text = text;
+        Foreground = Frozen(color);
+        Background = Frozen(System.Windows.Media.Color.FromArgb(0x33, color.R, color.G, color.B));
+    }
+
+    public string Text { get; }
+    public System.Windows.Media.SolidColorBrush Foreground { get; }
+    public System.Windows.Media.SolidColorBrush Background { get; }
+
+    private static System.Windows.Media.SolidColorBrush Frozen(System.Windows.Media.Color color)
+    {
+        var brush = new System.Windows.Media.SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
     }
 }

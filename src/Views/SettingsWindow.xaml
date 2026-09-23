@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="PR Monitor – Settings"
-        Width="560" MinHeight="340"
+        Width="600" MinHeight="340"
         SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
@@ -423,6 +423,81 @@
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="48,4,0,0" TextWrapping="Wrap"
                                    IsEnabled="{Binding ShowStackRelations}"
                                    Text="When disabled, a PR that is only waiting on its stack parent no longer turns the tray icon purple."/>
+
+                    </StackPanel>
+                </TabItem>
+
+                <!-- ══ Labels tab ════════════════════════════════════════════ -->
+                <TabItem Header="Labels">
+                    <StackPanel Margin="0,20,0,0">
+
+                        <TextBlock Text="LABEL CHIPS" Style="{StaticResource SectionLabel}"/>
+                        <TextBlock Foreground="#6E7681" FontSize="11" Margin="0,0,0,10" TextWrapping="Wrap"
+                                   Text="Map GitHub labels to chips on PR rows. Priority labels add a coloured bar and sort the PR to the top of its section. Leave the colour empty to follow the CI status colour, or enter one as #RRGGBB."/>
+
+                        <Grid Margin="8,0,8,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="76"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="GitHub label" Foreground="#8B949E" FontSize="11"/>
+                            <TextBlock Grid.Column="1" Text="Chip text" Foreground="#8B949E" FontSize="11" Margin="8,0,0,0"/>
+                            <TextBlock Grid.Column="2" Text="Colour" Foreground="#8B949E" FontSize="11" Margin="8,0,0,0"/>
+                            <TextBlock Grid.Column="3" Text="Priority" Foreground="#8B949E" FontSize="11" Margin="8,0,0,0"/>
+                        </Grid>
+
+                        <Border Background="#0D1117" BorderBrush="#30363D" BorderThickness="1" CornerRadius="6" Padding="8">
+                            <StackPanel>
+                                <TextBlock Foreground="#6E7681" FontSize="11" Text="No label rules. Add one below."
+                                           Visibility="{Binding LabelRules.Count, Converter={StaticResource ZeroToVisibleConverter}}"/>
+                                <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding LabelRules}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,0,0,6">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="90"/>
+                                                        <ColumnDefinition Width="110"/>
+                                                        <ColumnDefinition Width="70"/>
+                                                        <ColumnDefinition Width="76"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox Grid.Column="0" Style="{StaticResource SettingsTextBox}"
+                                                             Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
+                                                             ToolTip="GitHub label name (case-insensitive)"/>
+                                                    <TextBox Grid.Column="1" Style="{StaticResource SettingsTextBox}" Margin="8,0,0,0"
+                                                             Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                                                             ToolTip="Text on the chip; empty shows the label name"/>
+                                                    <DockPanel Grid.Column="2" Margin="8,0,0,0">
+                                                        <Border DockPanel.Dock="Right" Width="14" Height="14" CornerRadius="3"
+                                                                Margin="6,0,0,0" VerticalAlignment="Center"
+                                                                BorderBrush="#30363D" BorderThickness="1"
+                                                                Background="{Binding PreviewBrush}"/>
+                                                        <TextBox Style="{StaticResource SettingsTextBox}"
+                                                                 Text="{Binding Color, UpdateSourceTrigger=PropertyChanged}"
+                                                                 ToolTip="#RRGGBB; empty follows the CI status colour"/>
+                                                    </DockPanel>
+                                                    <CheckBox Grid.Column="3" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                              IsChecked="{Binding IsPriority}"
+                                                              ToolTip="Coloured bar on the row and sorted to the top of its section"/>
+                                                    <Button Grid.Column="4" Content="Remove" Margin="8,0,0,0"
+                                                            Tag="{Binding}"
+                                                            Style="{StaticResource SecondaryButton}"
+                                                            Click="LabelRuleRemove_Click"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+
+                        <Button Content="Add label rule" HorizontalAlignment="Left" Margin="0,10,0,0"
+                                Style="{StaticResource SecondaryButton}"
+                                Click="LabelRuleAdd_Click"/>
 
                     </StackPanel>
                 </TabItem>

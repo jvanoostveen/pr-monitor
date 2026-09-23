@@ -104,6 +104,9 @@ public sealed class PullRequestInfo
     /// </summary>
     public IReadOnlyDictionary<string, ReviewState> ReviewerStates { get; init; } = new Dictionary<string, ReviewState>();
 
+    /// <summary>Names of the GitHub labels on this PR, in GitHub's order.</summary>
+    public IReadOnlyList<string> Labels { get; init; } = [];
+
     /// <summary>
     /// Unique key used for delta-detection across polls.
     /// </summary>

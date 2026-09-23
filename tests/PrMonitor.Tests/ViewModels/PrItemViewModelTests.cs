@@ -360,6 +360,102 @@ public class PrItemViewModelTests
         Assert.Contains("No individual reviewer assigned (team: platform-team)", vm.PrTooltip);
     }
 
+    // ── Label chips & priority ────────────────────────────────────────
+
+    private static readonly LabelRule PrioRule = LabelRule.DefaultPriority();
+
+    private static PrItemViewModel FromLabels(IReadOnlyList<string> labels, IReadOnlyList<LabelRule> rules,
+        CIState ci = CIState.Success, bool hasConflicts = false, bool isDraft = false) =>
+        PrItemViewModel.From(new PullRequestInfo
+        {
+            Number = 1,
+            Title = "PR",
+            Url = "https://github.com/org/repo/pull/1",
+            Repository = "org/repo",
+            Author = "alice",
+            CIState = ci,
+            HasConflicts = hasConflicts,
+            IsDraft = isDraft,
+            Labels = labels,
+        }, labelRules: rules);
+
+    [Fact]
+    public void From_PriorityLabel_MatchesCaseInsensitively_AndSetsPriority()
+    {
+        var vm = FromLabels(["prioriteit/high"], [PrioRule]);
+
+        Assert.True(vm.IsPriority);
+        Assert.Equal("HIGH", Assert.Single(vm.LabelChips).Text);
+    }
+
+    [Theory]
+    [InlineData(CIState.Success, false, false, "#FF3FB950")]
+    [InlineData(CIState.Pending, false, false, "#FFD29922")]
+    [InlineData(CIState.Success, true, false, "#FFF85149")]   // conflicts → failure colour
+    [InlineData(CIState.Success, false, true, "#FF8B949E")]   // draft → muted grey
+    public void From_RuleWithoutColour_FollowsEffectiveCiColour(CIState ci, bool conflicts, bool draft, string expected)
+    {
+        var vm = FromLabels(["Prioriteit/High"], [PrioRule], ci, conflicts, draft);
+
+        Assert.Equal(expected, Assert.Single(vm.LabelChips).Foreground.Color.ToString());
+    }
+
+    [Fact]
+    public void From_RuleWithColour_UsesThatColour()
+    {
+        var vm = FromLabels(["bug"], [new LabelRule { Label = "bug", Text = "BUG", Color = "#A371F7" }], CIState.Failure);
+
+        var chip = Assert.Single(vm.LabelChips);
+        Assert.Equal("#FFA371F7", chip.Foreground.Color.ToString());
+        Assert.Equal(0x33, chip.Background.Color.A);
+        Assert.False(vm.IsPriority);
+    }
+
+    [Fact]
+    public void From_RuleWithoutText_ShowsLabelName()
+    {
+        var vm = FromLabels(["bug"], [new LabelRule { Label = "bug" }]);
+
+        Assert.Equal("bug", Assert.Single(vm.LabelChips).Text);
+    }
+
+    [Fact]
+    public void From_UnmappedLabels_NoChipsButListedInTooltip()
+    {
+        var vm = FromLabels(["bug", "docs"], [PrioRule]);
+
+        Assert.Empty(vm.LabelChips);
+        Assert.False(vm.IsPriority);
+        Assert.Contains("Labels: bug, docs", vm.PrTooltip);
+    }
+
+    [Fact]
+    public void From_ChipsFollowRuleOrder_AndSkipDuplicateText()
+    {
+        var rules = new[]
+        {
+            new LabelRule { Label = "b", Text = "B" },
+            new LabelRule { Label = "a", Text = "A" },
+            new LabelRule { Label = "c", Text = "a" },
+        };
+
+        var vm = FromLabels(["a", "b", "c"], rules);
+
+        Assert.Equal(["B", "A"], vm.LabelChips.Select(c => c.Text));
+    }
+
+    [Fact]
+    public void From_NoLabelRules_NoChips()
+    {
+        var vm = PrItemViewModel.From(new PullRequestInfo
+        {
+            Number = 1, Title = "PR", Url = "u", Repository = "org/repo", Author = "a", Labels = ["Prioriteit/High"],
+        });
+
+        Assert.Empty(vm.LabelChips);
+        Assert.False(vm.IsPriority);
+    }
+
     private static PrItemViewModel MakeVm(
         CIState ciState = CIState.Unknown,
         bool isDraft = false,

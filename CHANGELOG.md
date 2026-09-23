@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Label chips and a priority indicator on PR rows.** PR Monitor now fetches each PR's GitHub labels and lets you map them to small chips shown next to `repo #number`. A rule on the new **Labels** settings tab maps a label name (case-insensitive) to a chip text, an optional colour (`#RRGGBB`; left empty, the chip follows the row's CI status colour) and a **Priority** flag. A priority PR also gets a left accent bar in its CI status colour and moves to the top of its section, keeping the existing order otherwise; the Stacks section keeps its chain order. The default rule shows `Prioriteit/High` as a `HIGH` priority chip. All of a PR's labels, mapped or not, are listed in the row tooltip. The Settings window is slightly wider so all tabs still fit on one row.
+
 ## [1.15.0] - 2026-09-22
 
 ### Added

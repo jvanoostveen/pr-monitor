@@ -96,15 +96,49 @@ public class MainViewModelRebuildTests
         Assert.NotSame(first, vm.AutoMergePrs[0]);
     }
 
+    [Fact]
+    public void UpdateFromSnapshot_ChangedLabels_RebuildsRows()
+    {
+        var vm = CreateViewModel();
+        vm.UpdateFromSnapshot(new PollSnapshot { AutoMergePrs = [MakePr()] });
+        var first = vm.AutoMergePrs[0];
+
+        vm.UpdateFromSnapshot(new PollSnapshot { AutoMergePrs = [MakePr(labels: ["Prioriteit/High"])] });
+
+        Assert.NotSame(first, vm.AutoMergePrs[0]);
+        Assert.True(vm.AutoMergePrs[0].IsPriority);
+    }
+
+    [Fact]
+    public void UpdateFromSnapshot_PriorityPrs_SortedToTopOfSection_OthersKeepOrder()
+    {
+        var vm = CreateViewModel();
+
+        vm.UpdateFromSnapshot(new PollSnapshot
+        {
+            MyPrs =
+            [
+                MakePr(number: 1),
+                MakePr(number: 2, labels: ["Prioriteit/High"]),
+                MakePr(number: 3),
+                MakePr(number: 4, labels: ["Prioriteit/High"]),
+            ],
+        });
+
+        Assert.Equal([2, 4, 1, 3], vm.MyPrs.Select(p => p.Number));
+    }
+
     private static MainViewModel CreateViewModel()
     {
         var settings = new AppSettings();
         return new MainViewModel(settings, new NotificationService(settings), new UpdateService(DiagnosticsLogger.Null));
     }
 
-    private static PullRequestInfo MakePr(int number = 1, string title = "PR", CIState ci = CIState.Success) =>
+    private static PullRequestInfo MakePr(int number = 1, string title = "PR", CIState ci = CIState.Success,
+        IReadOnlyList<string>? labels = null) =>
         new()
         {
+            Labels = labels ?? [],
             Number = number,
             Title = title,
             Url = $"https://github.com/org/repo/pull/{number}",
