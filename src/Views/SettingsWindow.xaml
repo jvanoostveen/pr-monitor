@@ -104,6 +104,89 @@
             </Setter>
         </Style>
 
+        <!-- ── Label colour picker ─────────────────────────────────────── -->
+        <!-- Four CI status colours in one swatch: stands for "follows the CI status" -->
+        <LinearGradientBrush x:Key="CiSwatchBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#3FB950" Offset="0"/>
+            <GradientStop Color="#3FB950" Offset="0.33"/>
+            <GradientStop Color="#D29922" Offset="0.33"/>
+            <GradientStop Color="#D29922" Offset="0.66"/>
+            <GradientStop Color="#F85149" Offset="0.66"/>
+            <GradientStop Color="#F85149" Offset="1"/>
+        </LinearGradientBrush>
+
+        <Style x:Key="ColorPickerToggle" TargetType="ToggleButton">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Foreground" Value="#C9D1D9"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Background="#161B22" BorderBrush="#30363D" BorderThickness="1"
+                                Padding="8,6">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#58A6FF"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#58A6FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <!-- While open, a click on the toggle must only close the popup (StaysOpen=False),
+                     not reopen it straight after. -->
+                <DataTrigger Binding="{Binding IsColorPickerOpen}" Value="True">
+                    <Setter Property="IsHitTestVisible" Value="False"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ColorPickerRow" TargetType="Button">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Foreground" Value="#C9D1D9"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="6,5">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#21262D"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ColorSwatchButton" TargetType="Button">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Height="20" CornerRadius="4" Background="{TemplateBinding Background}"
+                                BorderBrush="#30363D" BorderThickness="1"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#E6EDF3"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ── Buttons ─────────────────────────────────────────────────── -->
         <!--
             OverridesDefaultStyle removes WPF's ButtonChrome which adds a
@@ -506,7 +589,7 @@
 
                         <TextBlock Text="LABEL CHIPS" Style="{StaticResource SectionLabel}"/>
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="0,0,0,10" TextWrapping="Wrap"
-                                   Text="Map GitHub labels to chips on PR rows. High priority adds a coloured bar and sorts the PR to the top of its section; low priority sorts it to the bottom. Leave the colour empty to follow the CI status colour, or enter one as #RRGGBB."/>
+                                   Text="Map GitHub labels to chips on PR rows. High priority adds a coloured bar and sorts the PR to the top of its section; low priority sorts it to the bottom. The default colour follows the row's CI status; pick a colour to fix it."/>
 
                         <Grid Margin="8,0,8,4">
                             <Grid.ColumnDefinitions>
@@ -544,15 +627,62 @@
                                                     <TextBox Grid.Column="1" Style="{StaticResource SettingsTextBox}" Margin="8,0,0,0"
                                                              Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
                                                              ToolTip="Text on the chip; empty shows the label name"/>
-                                                    <DockPanel Grid.Column="2" Margin="8,0,0,0">
-                                                        <Border DockPanel.Dock="Right" Width="14" Height="14" CornerRadius="3"
-                                                                Margin="6,0,0,0" VerticalAlignment="Center"
-                                                                BorderBrush="#30363D" BorderThickness="1"
-                                                                Background="{Binding PreviewBrush}"/>
-                                                        <TextBox Style="{StaticResource SettingsTextBox}"
-                                                                 Text="{Binding Color, UpdateSourceTrigger=PropertyChanged}"
-                                                                 ToolTip="#RRGGBB; empty follows the CI status colour"/>
-                                                    </DockPanel>
+                                                    <Grid Grid.Column="2" Margin="8,0,0,0">
+                                                        <ToggleButton IsChecked="{Binding IsColorPickerOpen, Mode=TwoWay}"
+                                                                      Style="{StaticResource ColorPickerToggle}"
+                                                                      ToolTip="Chip colour; CI status follows the row's CI colour">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <Grid Width="14" Height="14" VerticalAlignment="Center">
+                                                                    <Border CornerRadius="3" BorderBrush="#30363D" BorderThickness="1"
+                                                                            Background="{Binding PreviewBrush}"/>
+                                                                    <!-- Default: a CI-coloured split swatch -->
+                                                                    <Grid Visibility="{Binding IsDefaultColor, Converter={StaticResource BoolToVisibility}}">
+                                                                        <Ellipse Width="10" Height="10" Fill="{StaticResource CiSwatchBrush}"/>
+                                                                    </Grid>
+                                                                </Grid>
+                                                                <TextBlock Text="{Binding ColorDisplayText}" Margin="6,0,0,0"
+                                                                           FontFamily="Consolas" VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </ToggleButton>
+                                                        <Popup IsOpen="{Binding IsColorPickerOpen, Mode=TwoWay}" StaysOpen="False"
+                                                               Placement="Bottom" AllowsTransparency="True" PopupAnimation="None">
+                                                            <Border Background="#161B22" BorderBrush="#30363D" BorderThickness="1"
+                                                                    CornerRadius="6" Padding="8" Margin="0,2,0,0">
+                                                                <StackPanel Width="150">
+                                                                    <Button Style="{StaticResource ColorPickerRow}" Tag=""
+                                                                            Click="LabelColorPick_Click">
+                                                                        <StackPanel Orientation="Horizontal">
+                                                                            <Ellipse Width="12" Height="12" Fill="{StaticResource CiSwatchBrush}"/>
+                                                                            <TextBlock Text="Default (CI status)" Margin="8,0,0,0"/>
+                                                                        </StackPanel>
+                                                                    </Button>
+                                                                    <ItemsControl ItemsSource="{Binding PresetColors}" Margin="0,6,0,6">
+                                                                        <ItemsControl.ItemsPanel>
+                                                                            <ItemsPanelTemplate>
+                                                                                <UniformGrid Columns="5"/>
+                                                                            </ItemsPanelTemplate>
+                                                                        </ItemsControl.ItemsPanel>
+                                                                        <ItemsControl.ItemTemplate>
+                                                                            <DataTemplate>
+                                                                                <Button Style="{StaticResource ColorSwatchButton}"
+                                                                                        Tag="{Binding}" Background="{Binding}"
+                                                                                        ToolTip="{Binding}"
+                                                                                        Click="LabelColorPick_Click"/>
+                                                                            </DataTemplate>
+                                                                        </ItemsControl.ItemTemplate>
+                                                                    </ItemsControl>
+                                                                    <Button Style="{StaticResource ColorPickerRow}"
+                                                                            Click="LabelColorCustom_Click">
+                                                                        <StackPanel Orientation="Horizontal">
+                                                                            <TextBlock Text="&#xE40A;" FontFamily="{StaticResource MaterialSymbols}"
+                                                                                       FontSize="14" Foreground="#8B949E" VerticalAlignment="Center"/>
+                                                                            <TextBlock Text="Custom colour…" Margin="6,0,0,0"/>
+                                                                        </StackPanel>
+                                                                    </Button>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </Popup>
+                                                    </Grid>
                                                     <ComboBox Grid.Column="3" Margin="8,0,0,0"
                                                               Style="{StaticResource SettingsComboBox}"
                                                               ItemsSource="{Binding PriorityOptions}"

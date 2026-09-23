@@ -351,7 +351,7 @@ Every GraphQL query in `GitHubService` — the three search queries used by poll
 - XAML:
   - The `PrRow` style reserves a `3,0,0,0` left border on every row, transparent by default, so contents stay aligned. A `DataTrigger` on `IsHighPriority` colours that border through `CIStateToBrush`.
   - Every row template wraps the repo line in a horizontal `StackPanel` with an `ItemsControl` using the shared `LabelChips` style.
-  - The chips are static: there is no animation. On the Labels settings tab, the priority is a `ComboBox` using the dark `SettingsComboBox` style.
+  - The chips are static: there is no animation. On the Labels settings tab, the priority is a `ComboBox` using the dark `SettingsComboBox` style. The colour is a `ToggleButton` bound to `LabelRuleViewModel.IsColorPickerOpen`, with a `Popup` (`StaysOpen=False`). The popup offers **Default (CI status)** (clears `Color`), the `PresetColors` palette, and **Custom colour…**, which opens the WinForms `ColorDialog` owned by the settings window. While the popup is open, the toggle is not hit-testable, so a click on it only closes the popup instead of reopening it.
 
 
 ### Assign reviewer submenu

@@ -64,6 +64,59 @@ public partial class SettingsWindow : Window
             _viewModel.RemoveLabelRule(rule);
     }
 
+    /// <summary>Palette swatch or "Default" row: Tag holds the hex value, empty for the CI colour.</summary>
+    private void LabelColorPick_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string hex } element
+            || FindLabelRule(element) is not { } rule)
+            return;
+
+        rule.Color = hex;
+        rule.IsColorPickerOpen = false;
+    }
+
+    private void LabelColorCustom_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement element || FindLabelRule(element) is not { } rule)
+            return;
+
+        rule.IsColorPickerOpen = false;
+        using var dialog = new System.Windows.Forms.ColorDialog { FullOpen = true, AnyColor = true };
+        if (!rule.IsDefaultColor)
+        {
+            var current = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(rule.Color.Trim());
+            dialog.Color = System.Drawing.Color.FromArgb(current.R, current.G, current.B);
+        }
+
+        var owner = new System.Windows.Forms.NativeWindow();
+        owner.AssignHandle(new System.Windows.Interop.WindowInteropHelper(this).Handle);
+        try
+        {
+            if (dialog.ShowDialog(owner) == System.Windows.Forms.DialogResult.OK)
+                rule.Color = $"#{dialog.Color.R:X2}{dialog.Color.G:X2}{dialog.Color.B:X2}";
+        }
+        finally
+        {
+            owner.ReleaseHandle();
+        }
+    }
+
+    /// <summary>
+    /// The rule a popup element belongs to. Swatches inside the palette have a colour string as
+    /// DataContext, so walk up the logical tree to the element bound to the rule.
+    /// </summary>
+    private static SettingsViewModel.LabelRuleViewModel? FindLabelRule(DependencyObject? element)
+    {
+        while (element is not null)
+        {
+            if (element is FrameworkElement { DataContext: SettingsViewModel.LabelRuleViewModel rule })
+                return rule;
+            element = LogicalTreeHelper.GetParent(element)
+                      ?? System.Windows.Media.VisualTreeHelper.GetParent(element);
+        }
+        return null;
+    }
+
     private void HiddenPrRemove_Click(object sender, RoutedEventArgs e)
     {
         if (sender is System.Windows.Controls.Button { Tag: string key } && !string.IsNullOrWhiteSpace(key))

@@ -364,6 +364,42 @@ public class SettingsViewModelTests
         File.Delete(path + ".bak");
     }
 
+    [Theory]
+    [InlineData("", true, "CI status")]
+    [InlineData("nonsense", true, "CI status")]
+    [InlineData("#a371f7", false, "#A371F7")]
+    public void LabelRule_ColorDisplay_DefaultOrHex(string color, bool isDefault, string text)
+    {
+        var rule = new SettingsViewModel.LabelRuleViewModel(new LabelRule { Label = "x", Color = color });
+
+        Assert.Equal(isDefault, rule.IsDefaultColor);
+        Assert.Equal(text, rule.ColorDisplayText);
+    }
+
+    [Fact]
+    public void LabelRule_ChangingColor_RaisesDisplayProperties()
+    {
+        var rule = new SettingsViewModel.LabelRuleViewModel(new LabelRule { Label = "x" });
+        var raised = new List<string?>();
+        rule.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        rule.Color = "#3FB950";
+
+        Assert.Contains(nameof(rule.PreviewBrush), raised);
+        Assert.Contains(nameof(rule.IsDefaultColor), raised);
+        Assert.Contains(nameof(rule.ColorDisplayText), raised);
+    }
+
+    [Fact]
+    public void LabelRule_PresetColors_AreDistinctValidHex()
+    {
+        var presets = new SettingsViewModel.LabelRuleViewModel(new LabelRule()).PresetColors;
+
+        Assert.NotEmpty(presets);
+        Assert.All(presets, c => Assert.True(LabelRule.IsValidColor(c), c));
+        Assert.Equal(presets.Count, presets.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
     [Fact]
     public void RemoveLabelRule_RemovesFromCollection_AndSaveKeepsListEmpty()
     {

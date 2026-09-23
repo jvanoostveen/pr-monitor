@@ -541,8 +541,29 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             {
                 if (!Set(ref _color, value ?? "")) return;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PreviewBrush)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsDefaultColor)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ColorDisplayText)));
             }
         }
+
+        /// <summary>True when no valid colour is set, so the chip follows the CI status colour.</summary>
+        public bool IsDefaultColor => !LabelRule.IsValidColor(Color.Trim());
+
+        /// <summary>Text on the colour button: "CI status" for the default, otherwise the hex value.</summary>
+        public string ColorDisplayText => IsDefaultColor ? "CI status" : Color.Trim().ToUpperInvariant();
+
+        private bool _isColorPickerOpen;
+        /// <summary>Whether the colour popup is open; bound to both its toggle button and the popup.</summary>
+        public bool IsColorPickerOpen { get => _isColorPickerOpen; set => Set(ref _isColorPickerOpen, value); }
+
+        /// <summary>Palette offered in the colour popup; chosen to stay readable on the dark rows.</summary>
+        public IReadOnlyList<string> PresetColors => Presets;
+
+        private static readonly IReadOnlyList<string> Presets =
+        [
+            "#58A6FF", "#39C5CF", "#3FB950", "#D29922", "#F0883E",
+            "#F85149", "#DB61A2", "#A371F7", "#8B949E", "#E6EDF3",
+        ];
 
         private LabelPriority _priority;
         public LabelPriority Priority { get => _priority; set => Set(ref _priority, value); }
