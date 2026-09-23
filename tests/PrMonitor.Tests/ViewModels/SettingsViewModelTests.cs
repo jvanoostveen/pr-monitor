@@ -326,13 +326,12 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public void Constructor_LoadsDefaultLabelRule()
+    public void Constructor_LoadsDefaultLabelRules()
     {
         var vm = new SettingsViewModel(MakeSettings());
 
-        var rule = Assert.Single(vm.LabelRules);
-        Assert.Equal("Prioriteit/High", rule.Label);
-        Assert.Equal(LabelPriority.High, rule.Priority);
+        Assert.Equal(["Prioriteit/High", "Prioriteit/Low"], vm.LabelRules.Select(r => r.Label));
+        Assert.Equal([LabelPriority.High, LabelPriority.Low], vm.LabelRules.Select(r => r.Priority));
     }
 
     [Fact]
@@ -342,6 +341,7 @@ public class SettingsViewModelTests
         using var _ = AppSettings.UseSettingsPathOverride(path);
 
         var settings = MakeSettings();
+        settings.LabelRules = [LabelRule.DefaultRules()[0]];
         var vm = new SettingsViewModel(settings);
         vm.AddLabelRule();
         vm.LabelRules[1].Label = "  bug  ";
@@ -408,7 +408,8 @@ public class SettingsViewModelTests
 
         var settings = MakeSettings();
         var vm = new SettingsViewModel(settings);
-        vm.RemoveLabelRule(vm.LabelRules[0]);
+        foreach (var rule in vm.LabelRules.ToList())
+            vm.RemoveLabelRule(rule);
 
         vm.Save();
 

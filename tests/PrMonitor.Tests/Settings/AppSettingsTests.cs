@@ -415,24 +415,31 @@ public class AppSettingsTests
     // ── Label rules ───────────────────────────────────────────────────
 
     [Fact]
-    public void LabelRules_Default_IsPrioriteitHighPriorityRule()
+    public void LabelRules_Default_ArePrioriteitHighAndLowRules()
     {
-        var rule = Assert.Single(new AppSettings().LabelRules);
-        Assert.Equal("Prioriteit/High", rule.Label);
-        Assert.Equal("HIGH", rule.Text);
-        Assert.Equal("", rule.Color);
-        Assert.Equal(LabelPriority.High, rule.Priority);
+        var rules = new AppSettings().LabelRules;
+        Assert.Equal(2, rules.Count);
+
+        Assert.Equal("Prioriteit/High", rules[0].Label);
+        Assert.Equal("HIGH", rules[0].Text);
+        Assert.Equal("", rules[0].Color);
+        Assert.Equal(LabelPriority.High, rules[0].Priority);
+
+        Assert.Equal("Prioriteit/Low", rules[1].Label);
+        Assert.Equal("LOW", rules[1].Text);
+        Assert.Equal("#8B949E", rules[1].Color);
+        Assert.Equal(LabelPriority.Low, rules[1].Priority);
     }
 
     [Fact]
-    public void LoadFrom_MissingLabelRulesKey_UsesDefaultRule()
+    public void LoadFrom_MissingLabelRulesKey_UsesDefaultRules()
     {
         var path = TempPath();
         try
         {
             File.WriteAllText(path, """{"pollingIntervalSeconds":60}""");
             var loaded = AppSettings.LoadFrom(path);
-            Assert.Equal("Prioriteit/High", Assert.Single(loaded.LabelRules).Label);
+            Assert.Equal(["Prioriteit/High", "Prioriteit/Low"], loaded.LabelRules.Select(r => r.Label));
         }
         finally { File.Delete(path); }
     }

@@ -74,7 +74,7 @@ GitHub labels can be shown as small chips next to a PR's `repo #number`. You cho
 - a **colour**: click the colour button to pick one from the palette, choose **Custom colour…** for the Windows colour dialog, or pick **Default (CI status)** to make the chip follow the row's CI status colour (green, amber, red or grey),
 - a **Priority**: **None** shows only the chip, **High** adds an accent bar on the row's left edge in its CI status colour and moves the PR to the top of its section, **Low** moves the PR to the bottom of its section. If a PR matches both a High and a Low rule, High wins.
 
-By default `Prioriteit/High` is a High-priority label shown as a `HIGH` chip. Add a rule such as `Prioriteit/Low` → Low to push less urgent PRs down. Remove or change the rule if your repositories label priority differently. Hover a row to see all of its labels, including unmapped ones.
+By default `Prioriteit/High` is a High-priority label shown as a `HIGH` chip, and `Prioriteit/Low` is a Low-priority label shown as a muted grey `LOW` chip that pushes less urgent PRs down. Remove or change these rules if your repositories label priority differently. Hover a row to see all of its labels, including unmapped ones.
 
 ### Reviewer indicator on your own PRs
 
@@ -176,7 +176,7 @@ Right-click the tray icon and choose **Settings** to:
 - Enable **auto-start with Windows**
 - Toggle **Show what's new after an update** — opens the changelog automatically on the first start after an update (on by default)
 - Configure **Notifications** — choose when to show toasts: **Always** (default), **Only when window is closed**, or **Never**, with per-event-type toggles for CI failures, review requests, and more
-- Map GitHub **Labels** to chips on PR rows, and give labels High or Low priority (default: `Prioriteit/High` → High)
+- Map GitHub **Labels** to chips on PR rows, and give labels High or Low priority (default: `Prioriteit/High` → High, `Prioriteit/Low` → Low)
 - Configure **Flakiness** options, including limiting AI flakiness analysis to **My Auto-Merge PRs** only and setting **Maximum automatic reruns** (1-10, default 3)
 
 With a fresh settings file, section defaults are: **My PRs** expanded, **Later** collapsed, and **Dependabot** collapsed.

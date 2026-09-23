@@ -362,7 +362,7 @@ public class PrItemViewModelTests
 
     // ── Label chips & priority ────────────────────────────────────────
 
-    private static readonly LabelRule PrioRule = LabelRule.DefaultPriority();
+    private static readonly LabelRule PrioRule = LabelRule.DefaultRules()[0];
 
     private static PrItemViewModel FromLabels(IReadOnlyList<string> labels, IReadOnlyList<LabelRule> rules,
         CIState ci = CIState.Success, bool hasConflicts = false, bool isDraft = false) =>

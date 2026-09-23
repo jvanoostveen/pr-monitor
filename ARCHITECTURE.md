@@ -342,7 +342,7 @@ Every GraphQL query in `GitHubService` — the three search queries used by poll
 
 ### Label chips and priority indicator
 - All three search queries fetch `labels(first: 20) { nodes { name } }`. `GitHubService.ParseLabels(node)` fills `PullRequestInfo.Labels`, keeping GitHub's order and dropping empty and case-insensitively duplicate names. Labels are not part of the delta detection in `PollingService`, so they never trigger notifications.
-- `AppSettings.LabelRules` (`List<LabelRule>`: `Label`, `Text`, `Color`, `Priority`) holds the mapping. `Priority` is a `LabelPriority` (`None`, `High`, `Low`), stored as a string and read by `TolerantLabelPriorityConverter` (case-insensitive name or number; anything else becomes `None` instead of failing the whole file). A legacy `isPriority: true` from the earlier checkbox is read as `High` and never written back. If the key is missing, the default is one rule: `Prioriteit/High` → `HIGH`, no colour, `High`. An explicit `[]` stays empty. `LoadFrom` drops rules without a label. `SettingsViewModel.Save()` trims fields and clears any colour that is not `#RRGGBB`.
+- `AppSettings.LabelRules` (`List<LabelRule>`: `Label`, `Text`, `Color`, `Priority`) holds the mapping. `Priority` is a `LabelPriority` (`None`, `High`, `Low`), stored as a string and read by `TolerantLabelPriorityConverter` (case-insensitive name or number; anything else becomes `None` instead of failing the whole file). A legacy `isPriority: true` from the earlier checkbox is read as `High` and never written back. If the key is missing, the defaults are two rules (`LabelRule.DefaultRules()`): `Prioriteit/High` → `HIGH`, no colour, `High`; and `Prioriteit/Low` → `LOW`, muted grey `#8B949E`, `Low`. An explicit `[]` stays empty. `LoadFrom` drops rules without a label. `SettingsViewModel.Save()` trims fields and clears any colour that is not `#RRGGBB`.
 - `PrItemViewModel.From(..., labelRules)` calls `MatchLabels`. For each rule, in rule order, whose label is on the PR (OrdinalIgnoreCase), it adds one `LabelChipViewModel`, skipping duplicate chip texts. It also sets `Priority` to the strongest priority among the matching rules: `High` beats `Low`, and `Low` beats `None`. `IsHighPriority` is `Priority == High`.
   - Chip colour: the rule's colour when valid. Otherwise it is the colour of `EffectiveCIState` from `CIStateToBrushConverter.StateToColor`, with one exception: `Unknown` (e.g. drafts) uses the muted text grey `#8B949E`, because the dot grey is too dark for text.
   - The chip is drawn as text and a 1px border in that colour, on a background of the same colour at 20% alpha. Its brushes are frozen.
@@ -505,7 +505,8 @@ Every GraphQL query in `GitHubService` — the three search queries used by poll
     }
   ],
   "labelRules": [
-    { "label": "Prioriteit/High", "text": "HIGH", "color": "", "priority": "High" }
+    { "label": "Prioriteit/High", "text": "HIGH", "color": "", "priority": "High" },
+    { "label": "Prioriteit/Low", "text": "LOW", "color": "#8B949E", "priority": "Low" }
   ],
   "flakinessRerunCounts": {
     "owner/repo#123": { "count": 1, "lastAttempt": "2026-03-24T00:00:00Z" }

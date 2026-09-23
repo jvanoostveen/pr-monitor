@@ -153,7 +153,7 @@ public class MainViewModelRebuildTests
     {
         var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"prtests_{Guid.NewGuid()}.json");
         using var _ = AppSettings.UseSettingsPathOverride(path);
-        var settings = new AppSettings();
+        var settings = new AppSettings { LabelRules = [LabelRule.DefaultRules()[0]] };
         var vm = new MainViewModel(settings, new NotificationService(settings), new UpdateService(DiagnosticsLogger.Null));
         var snapshot = new PollSnapshot
         {

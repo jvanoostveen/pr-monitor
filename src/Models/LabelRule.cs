@@ -47,13 +47,18 @@ public sealed class LabelRule
         }
     }
 
-    /// <summary>The rule that ships by default: 'Prioriteit/High' marks a PR as high priority.</summary>
-    public static LabelRule DefaultPriority() => new()
-    {
-        Label = "Prioriteit/High",
-        Text = "HIGH",
-        Priority = LabelPriority.High,
-    };
+    /// <summary>Muted grey that stays unobtrusive on both the dark and the light theme.</summary>
+    public const string MutedGrey = "#8B949E";
+
+    /// <summary>
+    /// The rules that ship by default: 'Prioriteit/High' marks a PR as high priority,
+    /// 'Prioriteit/Low' as low priority with a muted grey chip.
+    /// </summary>
+    public static List<LabelRule> DefaultRules() =>
+    [
+        new() { Label = "Prioriteit/High", Text = "HIGH", Priority = LabelPriority.High },
+        new() { Label = "Prioriteit/Low", Text = "LOW", Color = MutedGrey, Priority = LabelPriority.Low },
+    ];
 
     /// <summary>True when <paramref name="value"/> is a "#RRGGBB" colour.</summary>
     public static bool IsValidColor(string? value) =>

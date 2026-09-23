@@ -199,9 +199,9 @@ public sealed class AppSettings
 
     /// <summary>
     /// GitHub label → chip mappings shown on PR rows. A missing key yields the default
-    /// 'Prioriteit/High' priority rule; an explicit empty list stays empty.
+    /// 'Prioriteit/High' and 'Prioriteit/Low' priority rules; an explicit empty list stays empty.
     /// </summary>
-    public List<LabelRule> LabelRules { get; set; } = [LabelRule.DefaultPriority()];
+    public List<LabelRule> LabelRules { get; set; } = LabelRule.DefaultRules();
 
     /// <summary>Per-PR rerun counts. Key = "owner/repo#number".</summary>
     public Dictionary<string, RerunRecord> FlakinessRerunCounts { get; set; } = [];
@@ -278,7 +278,7 @@ public sealed class AppSettings
         settings.OrgMembersCache ??= [];
         settings.FlakinessCustomHints ??= "";
         settings.HiddenStatReviewRequesters ??= [];
-        settings.LabelRules ??= [LabelRule.DefaultPriority()];
+        settings.LabelRules ??= LabelRule.DefaultRules();
         settings.LabelRules = settings.LabelRules
             .Where(r => r is not null && !string.IsNullOrWhiteSpace(r.Label))
             .ToList();
