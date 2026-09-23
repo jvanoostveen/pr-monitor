@@ -148,6 +148,35 @@ public class MainViewModelRebuildTests
         Assert.Equal([3, 2, 5, 1, 4], vm.ReviewRequestedPrs.Select(p => p.Number));
     }
 
+    [Fact]
+    public void RefreshFromSnapshot_AfterLabelSettingsSaved_AppliesNewRulesAndPriority()
+    {
+        var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"prtests_{Guid.NewGuid()}.json");
+        using var _ = AppSettings.UseSettingsPathOverride(path);
+        var settings = new AppSettings();
+        var vm = new MainViewModel(settings, new NotificationService(settings), new UpdateService(DiagnosticsLogger.Null));
+        var snapshot = new PollSnapshot
+        {
+            MyPrs = [MakePr(number: 1, labels: ["Prioriteit/Low"]), MakePr(number: 2)],
+        };
+        vm.UpdateFromSnapshot(snapshot);
+        Assert.Equal([1, 2], vm.MyPrs.Select(p => p.Number));
+
+        var settingsVm = new SettingsViewModel(settings);
+        settingsVm.AddLabelRule();
+        settingsVm.LabelRules[1].Label = "Prioriteit/Low";
+        settingsVm.LabelRules[1].Text = "LOW";
+        settingsVm.LabelRules[1].Priority = LabelPriority.Low;
+        settingsVm.Save();
+        vm.RefreshFromSnapshot(snapshot);
+
+        Assert.Equal([2, 1], vm.MyPrs.Select(p => p.Number));
+        Assert.Equal("LOW", Assert.Single(vm.MyPrs[1].LabelChips).Text);
+
+        System.IO.File.Delete(path);
+        System.IO.File.Delete(path + ".bak");
+    }
+
     private static MainViewModel CreateViewModel(params LabelRule[] extraLabelRules)
     {
         var settings = new AppSettings();
