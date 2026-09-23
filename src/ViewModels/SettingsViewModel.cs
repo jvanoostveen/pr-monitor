@@ -524,7 +524,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             _label = rule.Label ?? "";
             _text = rule.Text ?? "";
             _color = rule.Color ?? "";
-            _isPriority = rule.IsPriority;
+            _priority = rule.Priority;
         }
 
         private string _label;
@@ -544,8 +544,14 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             }
         }
 
-        private bool _isPriority;
-        public bool IsPriority { get => _isPriority; set => Set(ref _isPriority, value); }
+        private LabelPriority _priority;
+        public LabelPriority Priority { get => _priority; set => Set(ref _priority, value); }
+
+        /// <summary>Choices for the Priority dropdown.</summary>
+        public IReadOnlyList<LabelPriority> PriorityOptions => AllPriorities;
+
+        private static readonly IReadOnlyList<LabelPriority> AllPriorities =
+            [LabelPriority.None, LabelPriority.High, LabelPriority.Low];
 
         /// <summary>Swatch next to the colour box: the entered colour, or transparent when the chip follows CI.</summary>
         public System.Windows.Media.Brush PreviewBrush => LabelRule.IsValidColor(Color.Trim())
@@ -562,7 +568,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
                 Label = Label.Trim(),
                 Text = Text.Trim(),
                 Color = LabelRule.IsValidColor(color) ? color.ToUpperInvariant() : "",
-                IsPriority = IsPriority,
+                Priority = Priority,
             };
         }
 

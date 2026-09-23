@@ -816,14 +816,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         var orderedStacked = OrderStackSection(stacked).ToList();
 
-        // Priority PRs lead their section. The Stacks section keeps its chain order.
-        autoMerge = PriorityFirst(autoMerge);
-        myPrs = PriorityFirst(myPrs);
-        review = PriorityFirst(review);
-        teamReview = PriorityFirst(teamReview);
-        dependabot = PriorityFirst(dependabot);
-        hotfix = PriorityFirst(hotfix);
-        drafts = PriorityFirst(drafts);
+        // High-priority PRs lead their section, low-priority PRs close it. The Stacks section keeps its chain order.
+        autoMerge = OrderByPriority(autoMerge);
+        myPrs = OrderByPriority(myPrs);
+        review = OrderByPriority(review);
+        teamReview = OrderByPriority(teamReview);
+        dependabot = OrderByPriority(dependabot);
+        hotfix = OrderByPriority(hotfix);
+        drafts = OrderByPriority(drafts);
 
         // Sections that kept their stacked PRs show them grouped and indented in place.
         if (showStacks)
@@ -852,7 +852,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 teamReviewCountsAsReviewer: teamCountsAsReviewer, labelRules: labelRules));
         }
 
-        hiddenItems = PriorityFirst(hiddenItems);
+        hiddenItems = OrderByPriority(hiddenItems);
 
         var signature = BuildDisplaySignature(
             autoMerge, myPrs, review, teamReview, dependabot, hotfix, drafts, orderedStacked, hiddenItems);
@@ -994,14 +994,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// High-priority PRs first, low-priority PRs last; the order within each group is kept (stable sort).
+    /// </summary>
+    internal static List<PrItemViewModel> OrderByPriority(IReadOnlyList<PrItemViewModel> items) =>
+        items.OrderBy(i => i.Priority switch
+        {
+            LabelPriority.High => 0,
+            LabelPriority.Low => 2,
+            _ => 1,
+        }).ToList();
+
+    /// <summary>
     /// Groups stacked PRs inside a section that keeps them: a stack's members move together to
     /// where its first member already sat, bottom PR first, with every row but that first one
     /// indented one level. Rows that are not part of a stack keep their position and stay flush.
     /// </summary>
-    /// <summary>Moves priority PRs to the top; the order within both groups is kept (stable sort).</summary>
-    internal static List<PrItemViewModel> PriorityFirst(IReadOnlyList<PrItemViewModel> items) =>
-        items.OrderByDescending(i => i.IsPriority).ToList();
-
     internal static List<PrItemViewModel> ApplyInlineStackGrouping(IReadOnlyList<PrItemViewModel> items)
     {
         // A stack's anchor is the position of its first member; unstacked rows anchor to themselves.
@@ -1179,8 +1186,14 @@ public sealed class PrItemViewModel
     /// <summary>Chips for the labels that match a configured <see cref="LabelRule"/>, in rule order.</summary>
     public IReadOnlyList<LabelChipViewModel> LabelChips { get; init; } = [];
 
-    /// <summary>True when a matching rule is a priority rule: accent bar and top of the section.</summary>
-    public bool IsPriority { get; init; }
+    /// <summary>
+    /// Strongest priority among the matching rules (High beats Low): High gets the accent bar and
+    /// the top of the section, Low the bottom.
+    /// </summary>
+    public LabelPriority Priority { get; init; }
+
+    /// <summary>Drives the accent bar on the row.</summary>
+    public bool IsHighPriority => Priority == LabelPriority.High;
 
     /// <summary>
     /// Reviewers that count towards the reviewer indicator. With CODEOWNERS every PR gets a team
@@ -1290,33 +1303,35 @@ public sealed class PrItemViewModel
         StackBadgeText, IsStackGroupStart, ShowStackGroupSeparator,
         HasUnresolvedReviewComments, ShowChangesRequestedIcon, ShowNoReviewerWarning,
         ShowReviewPendingIcon, ShowCommentedIcon, ShowApprovedIcon, PrTooltip,
-        IsPriority, string.Join(',', LabelChips.Select(c => $"{c.Text}:{c.Foreground.Color}")));
+        Priority, string.Join(',', LabelChips.Select(c => $"{c.Text}:{c.Foreground.Color}")));
 
     public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "", bool showStackRelations = true, string stackChainTooltip = "", bool stackParentIsMine = false, bool teamReviewCountsAsReviewer = false, IReadOnlyList<LabelRule>? labelRules = null)
     {
         var effectiveCiState = ToEffectiveCIState(pr.CIState, pr.HasConflicts, pr.IsDraft);
-        var (chips, isPriority) = MatchLabels(pr.Labels, labelRules ?? [], effectiveCiState);
+        var (chips, priority) = MatchLabels(pr.Labels, labelRules ?? [], effectiveCiState);
         return Create(pr, isAutoMerge, isMyPr, isHotfix, isTeamReview, isDependabot, isDraftSection, snoozedUntilText,
-            showStackRelations, stackChainTooltip, stackParentIsMine, teamReviewCountsAsReviewer, chips, isPriority);
+            showStackRelations, stackChainTooltip, stackParentIsMine, teamReviewCountsAsReviewer, chips, priority);
     }
 
     /// <summary>
     /// Builds the chips for the labels that match a rule, in rule order, one chip per distinct text.
-    /// A rule without a valid colour follows the CI colour of the row.
+    /// A rule without a valid colour follows the CI colour of the row. High beats Low when both match.
     /// </summary>
-    internal static (IReadOnlyList<LabelChipViewModel> Chips, bool IsPriority) MatchLabels(
+    internal static (IReadOnlyList<LabelChipViewModel> Chips, LabelPriority Priority) MatchLabels(
         IReadOnlyList<string> labels, IReadOnlyList<LabelRule> rules, CIState effectiveCiState)
     {
-        if (labels.Count == 0 || rules.Count == 0) return ([], false);
+        if (labels.Count == 0 || rules.Count == 0) return ([], LabelPriority.None);
 
         var chips = new List<LabelChipViewModel>();
-        var isPriority = false;
+        var priority = LabelPriority.None;
         foreach (var rule in rules)
         {
             var label = rule.Label?.Trim() ?? "";
             if (label.Length == 0 || !labels.Contains(label, StringComparer.OrdinalIgnoreCase)) continue;
 
-            isPriority |= rule.IsPriority;
+            if (rule.Priority == LabelPriority.High
+                || (rule.Priority == LabelPriority.Low && priority == LabelPriority.None))
+                priority = rule.Priority;
             var text = string.IsNullOrWhiteSpace(rule.Text) ? label : rule.Text.Trim();
             if (chips.Any(c => string.Equals(c.Text, text, StringComparison.OrdinalIgnoreCase))) continue;
 
@@ -1328,14 +1343,14 @@ public sealed class PrItemViewModel
                     : Converters.CIStateToBrushConverter.StateToColor(effectiveCiState).Color;
             chips.Add(new LabelChipViewModel(text, color));
         }
-        return (chips, isPriority);
+        return (chips, priority);
     }
 
-    private static PrItemViewModel Create(PullRequestInfo pr, bool isAutoMerge, bool isMyPr, bool isHotfix, bool isTeamReview, bool isDependabot, bool isDraftSection, string snoozedUntilText, bool showStackRelations, string stackChainTooltip, bool stackParentIsMine, bool teamReviewCountsAsReviewer, IReadOnlyList<LabelChipViewModel> labelChips, bool isPriority) => new()
+    private static PrItemViewModel Create(PullRequestInfo pr, bool isAutoMerge, bool isMyPr, bool isHotfix, bool isTeamReview, bool isDependabot, bool isDraftSection, string snoozedUntilText, bool showStackRelations, string stackChainTooltip, bool stackParentIsMine, bool teamReviewCountsAsReviewer, IReadOnlyList<LabelChipViewModel> labelChips, LabelPriority priority) => new()
     {
         Labels = pr.Labels,
         LabelChips = labelChips,
-        IsPriority = isPriority,
+        Priority = priority,
         Key = pr.Key,
         Repository = pr.Repository,
         Title = pr.Title,

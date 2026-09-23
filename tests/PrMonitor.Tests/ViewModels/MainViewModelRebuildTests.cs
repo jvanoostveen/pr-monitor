@@ -106,7 +106,7 @@ public class MainViewModelRebuildTests
         vm.UpdateFromSnapshot(new PollSnapshot { AutoMergePrs = [MakePr(labels: ["Prioriteit/High"])] });
 
         Assert.NotSame(first, vm.AutoMergePrs[0]);
-        Assert.True(vm.AutoMergePrs[0].IsPriority);
+        Assert.Equal(LabelPriority.High, vm.AutoMergePrs[0].Priority);
     }
 
     [Fact]
@@ -128,9 +128,30 @@ public class MainViewModelRebuildTests
         Assert.Equal([2, 4, 1, 3], vm.MyPrs.Select(p => p.Number));
     }
 
-    private static MainViewModel CreateViewModel()
+    [Fact]
+    public void UpdateFromSnapshot_LowPriorityPrs_SortedToBottomOfSection()
+    {
+        var vm = CreateViewModel(new LabelRule { Label = "Prioriteit/Low", Priority = LabelPriority.Low });
+
+        vm.UpdateFromSnapshot(new PollSnapshot
+        {
+            ReviewRequestedPrs =
+            [
+                MakePr(number: 1, labels: ["prioriteit/low"]),
+                MakePr(number: 2),
+                MakePr(number: 3, labels: ["Prioriteit/High"]),
+                MakePr(number: 4, labels: ["Prioriteit/Low"]),
+                MakePr(number: 5),
+            ],
+        });
+
+        Assert.Equal([3, 2, 5, 1, 4], vm.ReviewRequestedPrs.Select(p => p.Number));
+    }
+
+    private static MainViewModel CreateViewModel(params LabelRule[] extraLabelRules)
     {
         var settings = new AppSettings();
+        settings.LabelRules.AddRange(extraLabelRules);
         return new MainViewModel(settings, new NotificationService(settings), new UpdateService(DiagnosticsLogger.Null));
     }
 

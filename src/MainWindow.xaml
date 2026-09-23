@@ -40,7 +40,7 @@
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#21262D"/>
                 </Trigger>
-                <DataTrigger Binding="{Binding IsPriority}" Value="True">
+                <DataTrigger Binding="{Binding IsHighPriority}" Value="True">
                     <Setter Property="BorderBrush"
                             Value="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"/>
                 </DataTrigger>

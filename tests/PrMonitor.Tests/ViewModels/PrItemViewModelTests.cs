@@ -384,7 +384,7 @@ public class PrItemViewModelTests
     {
         var vm = FromLabels(["prioriteit/high"], [PrioRule]);
 
-        Assert.True(vm.IsPriority);
+        Assert.Equal(LabelPriority.High, vm.Priority);
         Assert.Equal("HIGH", Assert.Single(vm.LabelChips).Text);
     }
 
@@ -408,7 +408,31 @@ public class PrItemViewModelTests
         var chip = Assert.Single(vm.LabelChips);
         Assert.Equal("#FFA371F7", chip.Foreground.Color.ToString());
         Assert.Equal(0x33, chip.Background.Color.A);
-        Assert.False(vm.IsPriority);
+        Assert.Equal(LabelPriority.None, vm.Priority);
+    }
+
+    [Fact]
+    public void From_LowPriorityLabel_SetsLow_NoAccentBar()
+    {
+        var vm = FromLabels(["Prioriteit/Low"], [new LabelRule { Label = "Prioriteit/Low", Text = "LOW", Priority = LabelPriority.Low }]);
+
+        Assert.Equal(LabelPriority.Low, vm.Priority);
+        Assert.False(vm.IsHighPriority);
+        Assert.Equal("LOW", Assert.Single(vm.LabelChips).Text);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void From_HighAndLowBothMatch_HighWinsRegardlessOfRuleOrder(bool lowFirst)
+    {
+        var low = new LabelRule { Label = "low", Priority = LabelPriority.Low };
+        var high = new LabelRule { Label = "high", Priority = LabelPriority.High };
+
+        var vm = FromLabels(["low", "high"], lowFirst ? [low, high] : [high, low]);
+
+        Assert.Equal(LabelPriority.High, vm.Priority);
+        Assert.True(vm.IsHighPriority);
     }
 
     [Fact]
@@ -425,7 +449,7 @@ public class PrItemViewModelTests
         var vm = FromLabels(["bug", "docs"], [PrioRule]);
 
         Assert.Empty(vm.LabelChips);
-        Assert.False(vm.IsPriority);
+        Assert.Equal(LabelPriority.None, vm.Priority);
         Assert.Contains("Labels: bug, docs", vm.PrTooltip);
     }
 
@@ -453,7 +477,7 @@ public class PrItemViewModelTests
         });
 
         Assert.Empty(vm.LabelChips);
-        Assert.False(vm.IsPriority);
+        Assert.Equal(LabelPriority.None, vm.Priority);
     }
 
     private static PrItemViewModel MakeVm(

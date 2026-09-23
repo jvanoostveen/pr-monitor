@@ -31,6 +31,79 @@
             </Style.Triggers>
         </Style>
 
+        <!-- ── ComboBox (dark, matches SettingsTextBox) ──────────────────── -->
+        <Style x:Key="SettingsComboBoxItem" TargetType="ComboBoxItem">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Foreground" Value="#C9D1D9"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" Padding="8,5">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#21262D"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="#58A6FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SettingsComboBox" TargetType="ComboBox">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Foreground" Value="#C9D1D9"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ItemContainerStyle" Value="{StaticResource SettingsComboBoxItem}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="Toggle" Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Bd" Background="#161B22" BorderBrush="#30363D"
+                                                BorderThickness="1">
+                                            <TextBlock Text="&#xE5CF;" FontFamily="{StaticResource MaterialSymbols}"
+                                                       FontSize="16" Foreground="#8B949E"
+                                                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                       Margin="0,0,4,0"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#58A6FF"/>
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#58A6FF"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter IsHitTestVisible="False" Margin="8,6,24,6"
+                                              VerticalAlignment="Center"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
+                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="None">
+                                <Border Background="#161B22" BorderBrush="#30363D" BorderThickness="1"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ── Buttons ─────────────────────────────────────────────────── -->
         <!--
             OverridesDefaultStyle removes WPF's ButtonChrome which adds a
@@ -433,14 +506,14 @@
 
                         <TextBlock Text="LABEL CHIPS" Style="{StaticResource SectionLabel}"/>
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="0,0,0,10" TextWrapping="Wrap"
-                                   Text="Map GitHub labels to chips on PR rows. Priority labels add a coloured bar and sort the PR to the top of its section. Leave the colour empty to follow the CI status colour, or enter one as #RRGGBB."/>
+                                   Text="Map GitHub labels to chips on PR rows. High priority adds a coloured bar and sorts the PR to the top of its section; low priority sorts it to the bottom. Leave the colour empty to follow the CI status colour, or enter one as #RRGGBB."/>
 
                         <Grid Margin="8,0,8,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="90"/>
-                                <ColumnDefinition Width="110"/>
-                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="80"/>
                                 <ColumnDefinition Width="76"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="GitHub label" Foreground="#8B949E" FontSize="11"/>
@@ -460,9 +533,9 @@
                                                 <Grid Margin="0,0,0,6">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="90"/>
-                                                        <ColumnDefinition Width="110"/>
-                                                        <ColumnDefinition Width="70"/>
+                                                        <ColumnDefinition Width="80"/>
+                                                        <ColumnDefinition Width="100"/>
+                                                        <ColumnDefinition Width="80"/>
                                                         <ColumnDefinition Width="76"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBox Grid.Column="0" Style="{StaticResource SettingsTextBox}"
@@ -480,9 +553,11 @@
                                                                  Text="{Binding Color, UpdateSourceTrigger=PropertyChanged}"
                                                                  ToolTip="#RRGGBB; empty follows the CI status colour"/>
                                                     </DockPanel>
-                                                    <CheckBox Grid.Column="3" Margin="8,0,0,0" VerticalAlignment="Center"
-                                                              IsChecked="{Binding IsPriority}"
-                                                              ToolTip="Coloured bar on the row and sorted to the top of its section"/>
+                                                    <ComboBox Grid.Column="3" Margin="8,0,0,0"
+                                                              Style="{StaticResource SettingsComboBox}"
+                                                              ItemsSource="{Binding PriorityOptions}"
+                                                              SelectedItem="{Binding Priority}"
+                                                              ToolTip="High: coloured bar and top of its section. Low: bottom of its section. None: chip only."/>
                                                     <Button Grid.Column="4" Content="Remove" Margin="8,0,0,0"
                                                             Tag="{Binding}"
                                                             Style="{StaticResource SecondaryButton}"

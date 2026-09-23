@@ -421,7 +421,7 @@ public class AppSettingsTests
         Assert.Equal("Prioriteit/High", rule.Label);
         Assert.Equal("HIGH", rule.Text);
         Assert.Equal("", rule.Color);
-        Assert.True(rule.IsPriority);
+        Assert.Equal(LabelPriority.High, rule.Priority);
     }
 
     [Fact]
@@ -462,6 +462,50 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void LoadFrom_LegacyIsPriority_MapsToHigh_AndIsNotWrittenBack()
+    {
+        var path = TempPath();
+        try
+        {
+            File.WriteAllText(path, """{"labelRules":[{"label":"a","isPriority":true},{"label":"b","isPriority":false}]}""");
+
+            var loaded = AppSettings.LoadFrom(path);
+            Assert.Equal([LabelPriority.High, LabelPriority.None], loaded.LabelRules.Select(r => r.Priority));
+
+            loaded.SaveTo(path);
+            var json = File.ReadAllText(path);
+            Assert.DoesNotContain("isPriority", json);
+            Assert.Contains("\"priority\": \"High\"", json);
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(path + ".bak");
+        }
+    }
+
+    [Theory]
+    [InlineData("\"low\"", LabelPriority.Low)]
+    [InlineData("\"High\"", LabelPriority.High)]
+    [InlineData("\"urgent\"", LabelPriority.None)]
+    [InlineData("2", LabelPriority.Low)]
+    [InlineData("42", LabelPriority.None)]
+    public void LoadFrom_LabelPriority_IsReadTolerantly(string value, LabelPriority expected)
+    {
+        var path = TempPath();
+        try
+        {
+            File.WriteAllText(path, "{\"pollingIntervalSeconds\":60,\"labelRules\":[{\"label\":\"a\",\"priority\":" + value + "}]}");
+
+            var loaded = AppSettings.LoadFrom(path);
+
+            Assert.Equal(60, loaded.PollingIntervalSeconds);
+            Assert.Equal(expected, Assert.Single(loaded.LabelRules).Priority);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
     public void SaveTo_LoadFrom_RoundTrip_PreservesLabelRules()
     {
         var path = TempPath();
@@ -469,7 +513,7 @@ public class AppSettingsTests
         {
             var settings = new AppSettings
             {
-                LabelRules = [new LabelRule { Label = "bug", Text = "BUG", Color = "#A371F7", IsPriority = false }],
+                LabelRules = [new LabelRule { Label = "bug", Text = "BUG", Color = "#A371F7", Priority = LabelPriority.Low }],
             };
             settings.SaveTo(path);
 
@@ -477,7 +521,7 @@ public class AppSettingsTests
             Assert.Equal("bug", rule.Label);
             Assert.Equal("BUG", rule.Text);
             Assert.Equal("#A371F7", rule.Color);
-            Assert.False(rule.IsPriority);
+            Assert.Equal(LabelPriority.Low, rule.Priority);
         }
         finally
         {

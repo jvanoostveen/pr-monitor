@@ -332,7 +332,7 @@ public class SettingsViewModelTests
 
         var rule = Assert.Single(vm.LabelRules);
         Assert.Equal("Prioriteit/High", rule.Label);
-        Assert.True(rule.IsPriority);
+        Assert.Equal(LabelPriority.High, rule.Priority);
     }
 
     [Fact]
