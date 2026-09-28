@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.1] - 2026-09-28
+
 ### Changed
 
 - **Stacked PRs you have reviewed leave Awaiting My Review.** Stack authors often assign you to every PR in the stack. A review request disappears once you review, but an assignment stays, so the whole stack kept standing in **Awaiting My Review** after you had reviewed it. A stacked PR you are only assigned to is now dropped once you have submitted a review on it, comment-only reviews included. Assigned PRs outside a stack (such as Copilot PRs) and PRs with a pending direct review request stay listed as before.
