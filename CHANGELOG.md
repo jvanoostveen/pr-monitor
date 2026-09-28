@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Set a PR's priority from its context menu.** When at least one label rule on the **Labels** settings tab has a High or Low priority, right-clicking a PR shows a **Set priority** submenu. It lists those labels, High first, with a checkmark on the ones the PR has, plus **No priority**. Picking a label adds it to the PR on GitHub and removes the PR's other priority labels; **No priority** removes them all. Labels that are not priority rules are left alone. The label must already exist in the repository; PR Monitor does not create it.
+
 ## [1.16.1] - 2026-09-28
 
 ### Changed

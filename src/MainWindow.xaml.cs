@@ -101,6 +101,10 @@ public partial class MainWindow : Window
     private const uint ID_PR_RECENT_BASE     = 2020;
     private const uint ID_PR_REVIEWER_SEARCH = 2030;
 
+    // Set-priority submenu: 2040..2049 one per priority label rule, 2050 no priority
+    private const uint ID_PR_PRIORITY_BASE = 2040;
+    private const uint ID_PR_PRIORITY_NONE = 2050;
+
     public MainWindow(MainViewModel viewModel, AppSettings settings, GitHubService github, NotificationService notifications, DiagnosticsLogger logger)
     {
         ViewModel = viewModel;
@@ -1033,6 +1037,7 @@ public partial class MainWindow : Window
             .OrderBy(r => r, StringComparer.OrdinalIgnoreCase)
             .Take(10)
             .ToArray();
+        var priorityRules = PrItemViewModel.PriorityRules(_settings.LabelRules).Take(10).ToArray();
 
         try
         {
@@ -1058,6 +1063,24 @@ public partial class MainWindow : Window
             AppendMenuW(hMenu, MF_SEPARATOR, UIntPtr.Zero, null);
             AppendMenuW(hMenu, rerunFlags, (UIntPtr)ID_PR_RERUN_FAILED, "Rerun failed jobs");
             AppendMenuW(hMenu, copilotFlags, (UIntPtr)ID_PR_COPILOT, "Request Copilot review");
+
+            // "Set priority" submenu — only when label rules define a priority
+            if (priorityRules.Length > 0)
+            {
+                var priorityMenu = CreatePopupMenu();
+                var hasAny = false;
+                for (int i = 0; i < priorityRules.Length; i++)
+                {
+                    var label = priorityRules[i].Label.Trim();
+                    var isSet = vm.Labels.Contains(label, StringComparer.OrdinalIgnoreCase);
+                    hasAny |= isSet;
+                    AppendMenuW(priorityMenu, isSet ? MF_STRING | MF_CHECKED : MF_STRING,
+                        (UIntPtr)(ID_PR_PRIORITY_BASE + (uint)i), $"{label} ({priorityRules[i].Priority})");
+                }
+                AppendMenuW(priorityMenu, MF_SEPARATOR, UIntPtr.Zero, null);
+                AppendMenuW(priorityMenu, hasAny ? MF_STRING : MF_STRING | MF_CHECKED, (UIntPtr)ID_PR_PRIORITY_NONE, "No priority");
+                AppendMenuW(hMenu, MF_POPUP, (UIntPtr)(ulong)priorityMenu.ToInt64(), "Set priority");
+            }
 
             // "Assign reviewer" submenu — only for own non-draft PRs
             if (vm.IsOwnPr && !vm.IsDraft)
@@ -1220,6 +1243,9 @@ public partial class MainWindow : Window
                     if (vm.CanConvertToDraft)
                         _ = SetPrDraftAsync(vm);
                     break;
+                case ID_PR_PRIORITY_NONE:
+                    _ = SetPriorityAsync(vm, priorityRules, null);
+                    break;
                 default:
                     // Assigned reviewer range: re-request review
                     if (cmd >= ID_PR_ASSIGN_REREQUEST_BASE && cmd < ID_PR_ASSIGN_REREQUEST_BASE + (uint)assignedLogins.Length)
@@ -1238,6 +1264,11 @@ public partial class MainWindow : Window
                     {
                         var login = recentLogins[cmd - ID_PR_RECENT_BASE];
                         _ = AssignReviewerAsync(vm, login);
+                    }
+                    // Priority range: set that priority label
+                    else if (cmd >= ID_PR_PRIORITY_BASE && cmd < ID_PR_PRIORITY_BASE + (uint)priorityRules.Length)
+                    {
+                        _ = SetPriorityAsync(vm, priorityRules, priorityRules[cmd - ID_PR_PRIORITY_BASE]);
                     }
                     break;
             }
@@ -1599,6 +1630,48 @@ public partial class MainWindow : Window
         if (_settings.RecentReviewers.Count > 10)
             _settings.RecentReviewers.RemoveRange(10, _settings.RecentReviewers.Count - 10);
         _settings.Save();
+    }
+
+    /// <summary>Leaves only the label of <paramref name="target"/> among the priority labels on the PR; null removes them all.</summary>
+    private async Task SetPriorityAsync(PrItemViewModel vm, IReadOnlyList<LabelRule> priorityRules, LabelRule? target)
+    {
+        var (add, remove) = PrItemViewModel.PriorityLabelChange(vm.Labels, priorityRules, target);
+        if (add.Count == 0 && remove.Count == 0)
+            return;
+
+        if (!TrySplitRepository(vm.Repository, out var owner, out var repo))
+        {
+            DarkMessageBox.Show(
+                "Could not determine owner/repository for this PR.",
+                "Set priority",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning,
+                this);
+            return;
+        }
+
+        try
+        {
+            var success = await _github.EditLabelsAsync(owner, repo, vm.Number, add, remove);
+            if (success)
+                await ViewModel.RefreshAsync();
+            else
+                DarkMessageBox.Show(
+                    "Could not change the priority label of this pull request. Check that the label exists in the repository and that you can edit labels there.",
+                    "Set priority",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning,
+                    this);
+        }
+        catch (Exception ex)
+        {
+            DarkMessageBox.Show(
+                $"Could not set priority.\n\nDetails: {ex.Message}",
+                "Set priority",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error,
+                this);
+        }
     }
 
     private async Task SetPrReadyAsync(PrItemViewModel vm)

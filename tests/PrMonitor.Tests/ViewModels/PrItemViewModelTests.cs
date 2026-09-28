@@ -480,6 +480,56 @@ public class PrItemViewModelTests
         Assert.Equal(LabelPriority.None, vm.Priority);
     }
 
+    // ── Set priority menu ─────────────────────────────────────────────
+
+    [Fact]
+    public void PriorityRules_SkipsChipOnlyRules_OrdersHighFirst_OnePerLabel()
+    {
+        var rules = new[]
+        {
+            new LabelRule { Label = "bug" },
+            new LabelRule { Label = "later", Priority = LabelPriority.Low },
+            new LabelRule { Label = "urgent", Priority = LabelPriority.High },
+            new LabelRule { Label = "URGENT", Priority = LabelPriority.High },
+            new LabelRule { Label = " ", Priority = LabelPriority.High },
+        };
+
+        Assert.Equal(["urgent", "later"], PrItemViewModel.PriorityRules(rules).Select(r => r.Label));
+    }
+
+    [Fact]
+    public void PriorityLabelChange_AddsTarget_RemovesOtherPriorityLabels_KeepsTheRest()
+    {
+        var rules = PrItemViewModel.PriorityRules(LabelRule.DefaultRules());
+
+        var (add, remove) = PrItemViewModel.PriorityLabelChange(["bug", "prioriteit/low"], rules, rules[0]);
+
+        Assert.Equal(["Prioriteit/High"], add);
+        Assert.Equal(["prioriteit/low"], remove);
+    }
+
+    [Fact]
+    public void PriorityLabelChange_TargetAlreadySet_NothingToDo()
+    {
+        var rules = PrItemViewModel.PriorityRules(LabelRule.DefaultRules());
+
+        var (add, remove) = PrItemViewModel.PriorityLabelChange(["Prioriteit/High"], rules, rules[0]);
+
+        Assert.Empty(add);
+        Assert.Empty(remove);
+    }
+
+    [Fact]
+    public void PriorityLabelChange_NoTarget_RemovesAllPriorityLabels()
+    {
+        var rules = PrItemViewModel.PriorityRules(LabelRule.DefaultRules());
+
+        var (add, remove) = PrItemViewModel.PriorityLabelChange(["Prioriteit/High", "bug", "Prioriteit/Low"], rules, null);
+
+        Assert.Empty(add);
+        Assert.Equal(["Prioriteit/High", "Prioriteit/Low"], remove);
+    }
+
     private static PrItemViewModel MakeVm(
         CIState ciState = CIState.Unknown,
         bool isDraft = false,

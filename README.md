@@ -78,6 +78,8 @@ GitHub labels can be shown as small chips next to a PR's `repo #number`. You cho
 
 By default `Prioriteit/High` is a High-priority label shown as a `HIGH` chip, and `Prioriteit/Low` is a Low-priority label shown as a muted grey `LOW` chip that pushes less urgent PRs down. Remove or change these rules if your repositories label priority differently. Hover a row to see all of its labels, including unmapped ones.
 
+To change a PR's priority without going to GitHub, right-click it and use **Set priority** (shown when at least one rule has a High or Low priority). Picking a label adds it and removes the PR's other priority labels; **No priority** removes them all. The label must already exist in the repository.
+
 ### Reviewer indicator on your own PRs
 
 Your own PR rows show an amber "no reviewer assigned" icon until someone is requested as reviewer. Because CODEOWNERS requests a *team* on every PR automatically, a team request alone does **not** count as an assigned reviewer by default — the tooltip then reads `No individual reviewer assigned (team: …)`. Enable **Settings → Sections → Review requests → "Team review request counts as an assigned reviewer"** to treat a team request as a real reviewer.
@@ -122,6 +124,7 @@ Right-clicking a PR row shows a context menu with:
 - **Copy branch name** — copies the head branch name to the clipboard
 - **Rerun failed jobs** — retriggers failed CI runs for the PR (enabled for failed, non-draft PRs)
 - **Request Copilot review** — requests (or re-requests) a Copilot review for the PR
+- **Set priority** (submenu, shown when a label rule has a High or Low priority) — sets one of the priority labels on the PR, or removes them with **No priority**; the PR's current priority label is checked
 - **Assign reviewer** (submenu, shown for own non-draft PRs) — currently assigned reviewers appear with a checkmark (click to remove); up to 10 recently used reviewers are listed in alphabetical order for one-click assignment, showing full names when known (fallback to handle); **Search…** opens a dialog to find any org member by login or display name
 - **Move to later** (submenu: 1 hour / 4 hours / Tomorrow morning / Next week (Monday 09:00) / Indefinitely) — snoozes the PR into the Later section
 - **Hide** — hides the PR completely from the main window (no dedicated window section)

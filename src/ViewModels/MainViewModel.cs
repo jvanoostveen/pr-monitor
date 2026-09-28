@@ -1397,6 +1397,32 @@ public sealed class PrItemViewModel
         return (chips, priority);
     }
 
+    /// <summary>The rules that set a priority, High before Low, one per label: the choices of the "Set priority" menu.</summary>
+    internal static IReadOnlyList<LabelRule> PriorityRules(IReadOnlyList<LabelRule> rules) =>
+        rules
+            .Where(r => r.Priority != LabelPriority.None && !string.IsNullOrWhiteSpace(r.Label))
+            .DistinctBy(r => r.Label.Trim(), StringComparer.OrdinalIgnoreCase)
+            .OrderBy(r => r.Priority == LabelPriority.High ? 0 : 1)
+            .ToList();
+
+    /// <summary>
+    /// The labels to add and remove so the PR carries only the label of <paramref name="target"/>
+    /// among the <paramref name="priorityRules"/>; a null target removes all of them.
+    /// </summary>
+    internal static (IReadOnlyList<string> Add, IReadOnlyList<string> Remove) PriorityLabelChange(
+        IReadOnlyList<string> labels, IReadOnlyList<LabelRule> priorityRules, LabelRule? target)
+    {
+        var targetLabel = target?.Label.Trim();
+        var remove = labels
+            .Where(l => !string.Equals(l, targetLabel, StringComparison.OrdinalIgnoreCase)
+                && priorityRules.Any(r => string.Equals(r.Label.Trim(), l, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        IReadOnlyList<string> add = targetLabel is null || labels.Contains(targetLabel, StringComparer.OrdinalIgnoreCase)
+            ? []
+            : [targetLabel];
+        return (add, remove);
+    }
+
     private static PrItemViewModel Create(PullRequestInfo pr, bool isAutoMerge, bool isMyPr, bool isHotfix, bool isTeamReview, bool isDependabot, bool isDraftSection, string snoozedUntilText, bool showStackRelations, string stackChainTooltip, bool stackParentIsMine, bool teamReviewCountsAsReviewer, IReadOnlyList<LabelChipViewModel> labelChips, LabelPriority priority) => new()
     {
         Labels = pr.Labels,

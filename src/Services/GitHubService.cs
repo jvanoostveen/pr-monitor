@@ -865,6 +865,25 @@ public sealed class GitHubService
     }
 
     /// <summary>
+    /// Adds and removes labels on a pull request in one call. Labels that do not exist in the
+    /// repository are not created; the call fails instead. Returns true on success.
+    /// </summary>
+    public async Task<bool> EditLabelsAsync(string owner, string repo, int prNumber, IReadOnlyList<string> add, IReadOnlyList<string> remove)
+    {
+        if (!ValidateSlug(owner, "owner") || !ValidateSlug(repo, "repo"))
+            return false;
+        var args = new List<string> { "pr", "edit", prNumber.ToString(), "--repo", $"{owner}/{repo}" };
+        foreach (var label in add)
+            args.AddRange(["--add-label", label]);
+        foreach (var label in remove)
+            args.AddRange(["--remove-label", label]);
+        var (_, stderr, exitCode) = await RunGhAsync([.. args]);
+        if (exitCode != 0)
+            _logger.Warn($"EditLabelsAsync failed (exit={exitCode}) for {owner}/{repo}#{prNumber}: {stderr?.Trim()}");
+        return exitCode == 0;
+    }
+
+    /// <summary>
     /// Converts a draft PR to ready for review. Returns true on success.
     /// </summary>
     public async Task<bool> SetPrReadyAsync(string owner, string repo, int prNumber)
