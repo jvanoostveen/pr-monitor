@@ -185,6 +185,11 @@ public sealed class GitHubService
                     }
                   }
                 }
+                latestReviews(first: 20) {
+                  nodes {
+                    author { login }
+                  }
+                }
                                 reviewThreads(first: 50) {
                                     nodes {
                                         isResolved
@@ -1223,6 +1228,7 @@ public sealed class GitHubService
                 ReviewerLogins = ParseReviewerLogins(node),
                 TeamReviewerSlugs = ParseTeamReviewerSlugs(node),
                 IsTeamReviewRequested = isTeamOnly,
+                ReviewedByLogins = ParseReviewedByLogins(node),
                 Labels = ParseLabels(node),
             });
         }
@@ -1299,6 +1305,27 @@ public sealed class GitHubService
         }
 
         return [.. loginsSet];
+    }
+
+    /// <summary>Logins of everyone who submitted a review, comment-only reviews included (<c>latestReviews</c>).</summary>
+    internal static IReadOnlyList<string> ParseReviewedByLogins(JsonElement node)
+    {
+        if (!node.TryGetProperty("latestReviews", out var latestReviews)) return [];
+        if (latestReviews.ValueKind != JsonValueKind.Object) return [];
+        if (!latestReviews.TryGetProperty("nodes", out var nodes)) return [];
+        if (nodes.ValueKind != JsonValueKind.Array) return [];
+
+        var logins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var reviewNode in nodes.EnumerateArray())
+        {
+            if (!reviewNode.TryGetProperty("author", out var author) || author.ValueKind != JsonValueKind.Object) continue;
+            if (!author.TryGetProperty("login", out var login)) continue;
+            var loginStr = login.GetString() ?? "";
+            if (!string.IsNullOrEmpty(loginStr))
+                logins.Add(loginStr);
+        }
+
+        return [.. logins];
     }
 
     /// <summary>Team slugs among the pending review requests (CODEOWNERS teams are auto-requested).</summary>

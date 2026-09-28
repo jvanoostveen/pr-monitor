@@ -231,6 +231,10 @@ public sealed class PollingService : IDisposable
                 .. teamReviewPrs, .. hotfixPrs, .. dependabotPrs,
             ]);
 
+            // Needs the stack relations derived above, so it runs after ApplyStackRelations.
+            combinedReviewPrs = DropReviewedStackedAssigneePrs(
+                combinedReviewPrs, directReviewPrs.Select(p => p.Key).ToHashSet(), _settings.GitHubUsername);
+
             if (_settings.ShowStackRelations)
             {
                 autoMergePrs      = OrderByStack(autoMergePrs);
@@ -357,6 +361,26 @@ public sealed class PollingService : IDisposable
     {
         return hotfixPrs
             .Where(p => myPrKeys.Contains(p.Key) || assignedPrKeys.Contains(p.Key))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Drops stacked PRs that are only in Awaiting My Review because you are their assignee, once
+    /// you have submitted a review. Stack authors often assign the reviewer to every PR in the
+    /// stack, and unlike a review request an assignment stays after you review, so the whole
+    /// stack would keep standing there. A pending direct review request always keeps the PR.
+    /// </summary>
+    internal static List<PullRequestInfo> DropReviewedStackedAssigneePrs(
+        IEnumerable<PullRequestInfo> reviewPrs,
+        IReadOnlySet<string> directReviewKeys,
+        string? currentUsername)
+    {
+        if (string.IsNullOrEmpty(currentUsername)) return reviewPrs.ToList();
+
+        return reviewPrs
+            .Where(p => !(p.IsStacked
+                          && !directReviewKeys.Contains(p.Key)
+                          && p.ReviewedByLogins.Contains(currentUsername, StringComparer.OrdinalIgnoreCase)))
             .ToList();
     }
 

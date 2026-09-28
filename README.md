@@ -12,7 +12,7 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 |---|---|
 | **Hotfixes** | Open PRs targeting a `release/*` branch that are yours or explicitly assigned to you |
 | **My Auto-Merge PRs** | Your own PRs with auto-merge enabled, including their CI status |
-| **Awaiting My Review** | PRs where your review has been requested directly (including assignee-only PRs) |
+| **Awaiting My Review** | PRs where your review has been requested directly (including assignee-only PRs; a stacked PR you are only assigned to disappears once you have reviewed it) |
 | **My PRs** | Your own open non-draft PRs without auto-merge (collapsed by default) |
 | **Dependabot** | Dependabot PRs awaiting your review (collapsed by default) |
 | **Team Review Requests** | PRs where a review was requested from a team you belong to (collapsed by default; **Settings → Sections → Hide team review requests** removes the section *and* those PRs — they do not move to Awaiting My Review) |

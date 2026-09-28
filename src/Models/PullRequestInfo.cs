@@ -125,6 +125,12 @@ public sealed class PullRequestInfo
     /// </summary>
     public IReadOnlyDictionary<string, ReviewState> ReviewerStates { get; init; } = new Dictionary<string, ReviewState>();
 
+    /// <summary>
+    /// Logins of everyone who has submitted a review, comment-only reviews included. Filled by the
+    /// assignee and hotfix searches; empty for PRs from the review-requested search.
+    /// </summary>
+    public IReadOnlyList<string> ReviewedByLogins { get; init; } = [];
+
     /// <summary>Names of the GitHub labels on this PR, in GitHub's order.</summary>
     public IReadOnlyList<string> Labels { get; init; } = [];
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Stacked PRs you have reviewed leave Awaiting My Review.** Stack authors often assign you to every PR in the stack. A review request disappears once you review, but an assignment stays, so the whole stack kept standing in **Awaiting My Review** after you had reviewed it. A stacked PR you are only assigned to is now dropped once you have submitted a review on it, comment-only reviews included. Assigned PRs outside a stack (such as Copilot PRs) and PRs with a pending direct review request stay listed as before.
+
 ### Fixed
 
 - Several stacks built on the same bottom PR are now shown as separate stacks. They used to be listed level by level, which mixed the stacks together, and every row counted the whole tree (`stack 2/14`). Each branch is now listed as one block with a small gap above it. The badge shows the position in the PR's own stack (`stack 3/5`), and a PR that several stacks rest on shows `stack 1 · 4 branches`. The tooltip shows only the PR's own stack, with branches indented.

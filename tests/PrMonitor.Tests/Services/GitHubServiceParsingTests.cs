@@ -480,6 +480,33 @@ public class GitHubServiceParsingTests
         Assert.False(result[0].IsTeamReviewRequested);
     }
 
+    [Fact]
+    public void ParseReviewedByLogins_IncludesCommentOnlyReviews_Deduplicates()
+    {
+        const string json = """
+            {
+              "latestReviews": {
+                "nodes": [
+                  { "author": { "login": "alice" } },
+                  { "author": { "login": "ALICE" } },
+                  { "author": null },
+                  { "author": { "login": "copilot-pull-request-reviewer" } }
+                ]
+              }
+            }
+            """;
+        using var doc = JsonDocument.Parse(json);
+
+        Assert.Equal(["alice", "copilot-pull-request-reviewer"], GitHubService.ParseReviewedByLogins(doc.RootElement));
+    }
+
+    [Fact]
+    public void ParseReviewedByLogins_Missing_ReturnsEmpty()
+    {
+        using var doc = JsonDocument.Parse("{}");
+        Assert.Empty(GitHubService.ParseReviewedByLogins(doc.RootElement));
+    }
+
     // ── Labels ────────────────────────────────────────────────────────
 
     [Theory]

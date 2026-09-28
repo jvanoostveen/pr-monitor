@@ -217,4 +217,61 @@ public class PollingServiceDeltaTests
         Assert.Single(result);
         Assert.Equal("org/repo#12", result[0].Key);
     }
+
+    private static PullRequestInfo AssignedPr(int number, bool stacked, params string[] reviewedBy) => new()
+    {
+        Number = number,
+        Title = "Test",
+        Url = "https://github.com/test",
+        Repository = "org/repo",
+        Author = "alice",
+        StackSize = stacked ? 3 : 1,
+        ReviewedByLogins = reviewedBy,
+    };
+
+    [Fact]
+    public void DropReviewedStackedAssigneePrs_StackedAndReviewedByMe_IsDropped()
+    {
+        var result = PollingService.DropReviewedStackedAssigneePrs(
+            [AssignedPr(1, stacked: true, "Bob")], new HashSet<string>(), "bob");
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void DropReviewedStackedAssigneePrs_StackedNotYetReviewedByMe_IsKept()
+    {
+        var result = PollingService.DropReviewedStackedAssigneePrs(
+            [AssignedPr(1, stacked: true, "carol")], new HashSet<string>(), "bob");
+
+        Assert.Single(result);
+    }
+
+    [Fact]
+    public void DropReviewedStackedAssigneePrs_UnstackedReviewedByMe_IsKept()
+    {
+        // Assigned PRs outside a stack (e.g. Copilot PRs you iterate on) stay after a review.
+        var result = PollingService.DropReviewedStackedAssigneePrs(
+            [AssignedPr(1, stacked: false, "bob")], new HashSet<string>(), "bob");
+
+        Assert.Single(result);
+    }
+
+    [Fact]
+    public void DropReviewedStackedAssigneePrs_PendingDirectReviewRequest_IsKept()
+    {
+        var result = PollingService.DropReviewedStackedAssigneePrs(
+            [AssignedPr(1, stacked: true, "bob")], new HashSet<string> { "org/repo#1" }, "bob");
+
+        Assert.Single(result);
+    }
+
+    [Fact]
+    public void DropReviewedStackedAssigneePrs_UnknownUsername_KeepsEverything()
+    {
+        var result = PollingService.DropReviewedStackedAssigneePrs(
+            [AssignedPr(1, stacked: true, "bob")], new HashSet<string>(), "");
+
+        Assert.Single(result);
+    }
 }
