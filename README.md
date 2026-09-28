@@ -62,6 +62,8 @@ Being stacked never outranks *why* a PR is listed: **Hotfixes**, **Awaiting My R
 
 The repository line shows a `· stack 2/3 · waits on #8632 (you)` badge, and the tooltip lists the whole chain with each member's number, author and status (`▸` marks the PR you're hovering).
 
+Several stacks can share one bottom PR. They are kept in one group under that PR, listed one branch after the other, with a small gap above each branch. The badge counts each PR's position in its own branch (`stack 3/5`), and a PR that several stacks rest on shows `stack 1 · 4 branches`. The tooltip shows only the hovered PR's own stack: the PRs below it and everything stacked on it, with each branch indented.
+
 A stacked PR keeps its own CI colour, so a PR that is green but still waiting on the PR below it stays green. Right-clicking such a PR offers **Open parent PR** and **Open whole stack**.
 
 The separate section and whether stack-blocked PRs count towards the tray icon can be configured in **Settings → Sections → Stacked PRs**.

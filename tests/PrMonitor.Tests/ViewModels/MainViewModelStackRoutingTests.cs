@@ -148,7 +148,9 @@ public class MainViewModelStackRoutingTests
         var pr = Plain(number);
         pr.StackRootKey = "org/repo#1";
         pr.StackDepth = depth;
+        pr.StackOrder = depth;
         pr.StackSize = 2;
+        pr.StackChainLength = 2;
         if (depth > 0)
         {
             pr.StackParentKey = "org/repo#1";

@@ -377,6 +377,11 @@ public sealed class PollingService : IDisposable
             pr.StackRootKey = pr.Key;
             pr.StackDepth = 0;
             pr.StackSize = 1;
+            pr.StackOrder = 0;
+            pr.StackChainLength = 1;
+            pr.StackBranchCount = 1;
+            pr.StackForkLevel = 0;
+            pr.IsStackBranchStart = false;
         }
 
         var unique = allPrs
@@ -421,18 +426,55 @@ public sealed class PollingService : IDisposable
             .GroupBy(r => r, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
 
+        // Several stacks can share a bottom PR, which makes a tree. Walk it depth-first so each
+        // branch is listed contiguously instead of level by level.
+        var children = parents
+            .GroupBy(kv => kv.Value.Key, kv => unique[kv.Key], StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.OrderBy(c => c.Number).ToList(), StringComparer.OrdinalIgnoreCase);
+        var tree = new Dictionary<string, (int Order, int Height, int Branches, int ForkLevel)>(StringComparer.OrdinalIgnoreCase);
+        var order = 0;
+
+        (int Height, int Branches) Walk(PullRequestInfo pr, int forkLevel)
+        {
+            var own = order++;
+            tree[pr.Key] = (own, 0, 1, forkLevel);
+            var kids = children.GetValueOrDefault(pr.Key, []).Where(c => !tree.ContainsKey(c.Key)).ToList();
+            int height = 0, branches = 0;
+            foreach (var kid in kids)
+            {
+                var (h, b) = Walk(kid, kids.Count > 1 ? forkLevel + 1 : forkLevel);
+                height = Math.Max(height, h + 1);
+                branches += b;
+            }
+            branches = Math.Max(branches, 1);
+            tree[pr.Key] = (own, height, branches, forkLevel);
+            return (height, branches);
+        }
+
+        foreach (var pr in unique.Values.Where(p => !parents.ContainsKey(p.Key)).OrderBy(p => p.Number))
+            Walk(pr, 0);
+        // PRs on a branch cycle have no bottom PR to start from; give them a stable order.
+        foreach (var pr in unique.Values.Where(p => !tree.ContainsKey(p.Key)).OrderBy(p => p.Number))
+            Walk(pr, 0);
+
         foreach (var pr in allPrs)
         {
             if (!roots.TryGetValue(pr.Key, out var root)) continue;
             pr.StackRootKey = root;
             pr.StackDepth = depths[pr.Key];
             pr.StackSize = sizes.GetValueOrDefault(root, 1);
+            var node = tree[pr.Key];
+            pr.StackOrder = node.Order;
+            pr.StackChainLength = pr.StackDepth + 1 + node.Height;
+            pr.StackBranchCount = node.Branches;
+            pr.StackForkLevel = node.ForkLevel;
             if (parents.TryGetValue(pr.Key, out var parent))
             {
                 pr.StackParentKey = parent.Key;
                 pr.StackParentNumber = parent.Number;
                 pr.StackParentUrl = parent.Url;
                 pr.StackParentAuthor = parent.Author;
+                pr.IsStackBranchStart = children[parent.Key].Count > 1;
             }
         }
     }
@@ -441,8 +483,8 @@ public sealed class PollingService : IDisposable
 
     /// <summary>
     /// Reorders a section so PRs belonging to the same stack appear consecutively,
-    /// bottom PR first. The relative order of unrelated PRs (and of stacks as a whole)
-    /// is preserved based on first appearance.
+    /// bottom PR first and one branch after the other. The relative order of unrelated PRs (and of
+    /// stacks as a whole) is preserved based on first appearance.
     /// </summary>
     internal static List<PullRequestInfo> OrderByStack(IReadOnlyList<PullRequestInfo> prs)
     {
@@ -450,7 +492,7 @@ public sealed class PollingService : IDisposable
             .GroupBy(p => p.StackRootKey ?? p.Key, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(
                 g => g.Key,
-                g => g.OrderBy(p => p.StackDepth).ThenBy(p => p.Number).ToList(),
+                g => g.OrderBy(p => p.StackOrder).ThenBy(p => p.Number).ToList(),
                 StringComparer.OrdinalIgnoreCase);
 
         var result = new List<PullRequestInfo>(prs.Count);

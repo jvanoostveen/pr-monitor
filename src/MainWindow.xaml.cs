@@ -1013,7 +1013,7 @@ public partial class MainWindow : Window
         var members = ViewModel.AllPrs
             .Where(p => p.StackRootKey.Equals(vm.StackRootKey, StringComparison.OrdinalIgnoreCase))
             .DistinctBy(p => p.Key)
-            .OrderBy(p => p.StackDepth)
+            .OrderBy(p => p.StackOrder)
             .ToList();
 
         foreach (var member in members)

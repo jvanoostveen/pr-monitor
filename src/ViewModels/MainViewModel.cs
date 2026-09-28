@@ -945,22 +945,58 @@ public sealed class MainViewModel : INotifyPropertyChanged
         foreach (var group in all.Where(p => p.IsStacked)
                                  .GroupBy(p => p.StackRootKey ?? p.Key, StringComparer.OrdinalIgnoreCase))
         {
-            var members = group.OrderBy(p => p.StackDepth).ThenBy(p => p.Number).ToList();
+            var members = group.OrderBy(p => p.StackOrder).ThenBy(p => p.Number).ToList();
             foreach (var pr in members)
-                chains[pr.Key] = BuildStackChainTooltip(pr, members);
+                chains[pr.Key] = BuildStackChainTooltip(pr, StackLineage(pr, members));
         }
 
         return (chains, parentIsMine);
     }
 
+    /// <summary>
+    /// The PRs that share a stack with <paramref name="pr"/>: the PRs below it and everything stacked
+    /// on it. Sibling branches that only share a lower PR are left out. Keeps the order of <paramref name="members"/>.
+    /// </summary>
+    internal static List<PullRequestInfo> StackLineage(PullRequestInfo pr, IReadOnlyList<PullRequestInfo> members)
+    {
+        var byKey = members.ToDictionary(m => m.Key, StringComparer.OrdinalIgnoreCase);
+
+        bool IsAncestorOf(PullRequestInfo ancestor, PullRequestInfo descendant)
+        {
+            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var current = descendant;
+            while (current.StackParentKey is { } parentKey && visited.Add(current.Key)
+                   && byKey.TryGetValue(parentKey, out var parent))
+            {
+                if (parent.Key.Equals(ancestor.Key, StringComparison.OrdinalIgnoreCase)) return true;
+                current = parent;
+            }
+            return false;
+        }
+
+        return members
+            .Where(m => m.Key.Equals(pr.Key, StringComparison.OrdinalIgnoreCase)
+                     || IsAncestorOf(m, pr) || IsAncestorOf(pr, m))
+            .ToList();
+    }
+
+    /// <summary>"2/4" on a single stack; "1 · 3 branches" when several stacks rest on the PR.</summary>
+    internal static string StackPositionLabel(int depth, int chainLength, int branchCount) =>
+        branchCount > 1 ? $"{depth + 1} · {branchCount} branches" : $"{depth + 1}/{chainLength}";
+
     internal static string BuildStackChainTooltip(PullRequestInfo pr, IReadOnlyList<PullRequestInfo> members)
     {
-        var lines = new List<string> { $"Stack ({members.Count} PRs):" };
+        var header = pr.StackBranchCount > 1
+            ? $"Stack ({members.Count} PRs, {pr.StackBranchCount} branches):"
+            : $"Stack ({members.Count} PRs):";
+        var baseForkLevel = members.Count > 0 ? members.Min(m => m.StackForkLevel) : 0;
+        var lines = new List<string> { header };
         foreach (var m in members)
         {
             var marker = m.Key.Equals(pr.Key, StringComparison.OrdinalIgnoreCase) ? "\u25b8" : " ";
             var state = m.IsDraft ? "Draft" : m.HasConflicts ? "Conflicts" : m.CIState.ToString();
-            lines.Add($" {marker} {m.StackDepth + 1}/{members.Count}  #{m.Number} {m.Author} — {state}");
+            var indent = new string(' ', 3 * (m.StackForkLevel - baseForkLevel));
+            lines.Add($" {marker} {indent}{StackPositionLabel(m.StackDepth, m.StackChainLength, m.StackBranchCount)}  #{m.Number} {m.Author} — {state}");
         }
         return string.Join(Environment.NewLine, lines);
     }
@@ -977,7 +1013,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         var ordered = items
             .OrderBy(i => rootOrder[i.StackRootKey])
-            .ThenBy(i => i.StackDepth)
+            .ThenBy(i => i.StackOrder)
             .ThenBy(i => i.Number)
             .ToList();
 
@@ -1025,7 +1061,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         var ordered = positioned
             .OrderBy(p => p.Anchor)
-            .ThenBy(p => p.Item.StackDepth)
+            .ThenBy(p => p.Item.StackOrder)
             .ThenBy(p => p.Item.Number)
             .Select(p => p.Item)
             .ToList();
@@ -1118,6 +1154,10 @@ public sealed class PrItemViewModel
     // ── Stacked-PR relations ──
     public int StackDepth { get; init; }
     public int StackSize { get; init; } = 1;
+    public int StackOrder { get; init; }
+    public int StackChainLength { get; init; } = 1;
+    public int StackBranchCount { get; init; } = 1;
+    public bool IsStackBranchStart { get; init; }
     public string StackRootKey { get; init; } = "";
     public int StackParentNumber { get; init; }
     public string StackParentUrl { get; init; } = "";
@@ -1135,8 +1175,13 @@ public sealed class PrItemViewModel
     /// <summary>True for the topmost visible row of a stack group in the Stacks section.</summary>
     public bool IsStackGroupStart { get; internal set; }
 
-    /// <summary>Row margin for a grouped stack: every row but the group's first is indented one level.</summary>
-    public Thickness StackIndentMargin => new(ShowStackIndicator && !IsStackGroupStart ? 14 : 0, 2, 0, 2);
+    /// <summary>
+    /// Row margin for a grouped stack: every row but the group's first is indented one level, and
+    /// the first row of each branch of a forked stack gets extra space above it.
+    /// </summary>
+    public Thickness StackIndentMargin => ShowStackIndicator && !IsStackGroupStart
+        ? new(14, IsStackBranchStart ? 8 : 2, 0, 2)
+        : new(0, 2, 0, 2);
 
     /// <summary>Whether stack grouping/indentation is enabled in settings.</summary>
     public bool ShowStackRelations { get; init; } = true;
@@ -1147,6 +1192,12 @@ public sealed class PrItemViewModel
     /// <summary>1-based position of this PR within its stack.</summary>
     public int StackPosition => StackDepth + 1;
 
+    /// <summary>
+    /// Position within this PR's own stack, e.g. "2/4". A PR that several stacks build on has no
+    /// single length, so it shows how many branches rest on it instead, e.g. "1 · 3 branches".
+    /// </summary>
+    public string StackPositionText => MainViewModel.StackPositionLabel(StackDepth, StackChainLength, StackBranchCount);
+
     /// <summary>Whether the stack visuals (indent, badge) should be rendered.</summary>
     public bool ShowStackIndicator => IsStacked && ShowStackRelations;
 
@@ -1156,7 +1207,7 @@ public sealed class PrItemViewModel
         get
         {
             if (!ShowStackIndicator) return "";
-            var badge = $" · stack {StackPosition}/{StackSize}";
+            var badge = $" · stack {StackPositionText}";
             if (IsBlockedByStack && StackParentNumber > 0)
                 badge += $" · waits on #{StackParentNumber}{(StackParentIsMine ? " (you)" : "")}";
             return badge;
@@ -1242,8 +1293,8 @@ public sealed class PrItemViewModel
             {
                 parts.Add(string.IsNullOrEmpty(StackChainTooltip)
                     ? IsBlockedByStack
-                        ? $"Stack: {StackPosition} of {StackSize} — waiting on #{StackParentNumber}"
-                        : $"Stack: {StackPosition} of {StackSize} — bottom of the stack"
+                        ? $"Stack: {StackPositionText} — waiting on #{StackParentNumber}"
+                        : $"Stack: {StackPositionText} — bottom of the stack"
                     : StackChainTooltip);
             }
             if (HasConflicts)
@@ -1371,6 +1422,10 @@ public sealed class PrItemViewModel
         HeadCommitSha = pr.HeadCommitSha,
         StackDepth = pr.StackDepth,
         StackSize = pr.StackSize,
+        StackOrder = pr.StackOrder,
+        StackChainLength = pr.StackChainLength,
+        StackBranchCount = pr.StackBranchCount,
+        IsStackBranchStart = pr.IsStackBranchStart,
         StackRootKey = pr.StackRootKey ?? pr.Key,
         StackParentNumber = pr.StackParentNumber,
         StackParentUrl = pr.StackParentUrl,

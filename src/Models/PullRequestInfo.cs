@@ -80,8 +80,29 @@ public sealed class PullRequestInfo
     /// <summary>0 for the bottom PR of a stack, incremented per level upwards.</summary>
     public int StackDepth { get; set; }
 
-    /// <summary>Total number of open PRs in this stack; 1 when the PR is not stacked.</summary>
+    /// <summary>
+    /// Total number of open PRs in this stack; 1 when the PR is not stacked. Several stacks that
+    /// share a bottom PR form one tree, and this counts the whole tree.
+    /// </summary>
     public int StackSize { get; set; } = 1;
+
+    /// <summary>Depth-first position within the stack tree, so every branch is listed contiguously.</summary>
+    public int StackOrder { get; set; }
+
+    /// <summary>
+    /// Length of the stack this PR is part of: its depth plus the longest chain above it. Only
+    /// unambiguous when <see cref="StackBranchCount"/> is 1.
+    /// </summary>
+    public int StackChainLength { get; set; } = 1;
+
+    /// <summary>Number of branch tips at or above this PR; greater than 1 when the stack forks above it.</summary>
+    public int StackBranchCount { get; set; } = 1;
+
+    /// <summary>True when this PR starts one of several branches stacked on the same parent.</summary>
+    public bool IsStackBranchStart { get; set; }
+
+    /// <summary>Number of forks between the bottom of the stack and this PR.</summary>
+    public int StackForkLevel { get; set; }
 
     /// <summary>True when this PR belongs to a stack of two or more open PRs.</summary>
     public bool IsStacked => StackSize > 1;

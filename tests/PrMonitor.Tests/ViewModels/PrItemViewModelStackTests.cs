@@ -77,6 +77,13 @@ public class PrItemViewModelStackTests
     }
 
     [Fact]
+    public void StackBadgeText_SeveralStacksRestOnPr_ShowsBranchCountInsteadOfLength()
+    {
+        var vm = Make(CIState.Success, blocked: false, stackDepth: 0, stackSize: 14, stackBranchCount: 4);
+        Assert.Equal(" · stack 1 · 4 branches", vm.StackBadgeText);
+    }
+
+    [Fact]
     public void StackBadgeText_StackDisplayDisabled_IsEmpty()
     {
         var vm = Make(CIState.Success, blocked: true, stackDepth: 1, stackSize: 3, showStackRelations: false);
@@ -96,14 +103,14 @@ public class PrItemViewModelStackTests
         var vm = Make(CIState.Success, blocked: true, stackDepth: 1, stackSize: 2,
             stackChainTooltip: "Stack (2 PRs):\n  1/2  #41 alice — Success");
         Assert.Contains("Stack (2 PRs):", vm.PrTooltip);
-        Assert.DoesNotContain("Stack: 2 of 2", vm.PrTooltip);
+        Assert.DoesNotContain("Stack: 2/2", vm.PrTooltip);
     }
 
     [Fact]
     public void PrTooltip_BlockedByStack_MentionsParent()
     {
         var vm = Make(CIState.Success, blocked: true, stackDepth: 1, stackSize: 2);
-        Assert.Contains("Stack: 2 of 2 — waiting on #41", vm.PrTooltip);
+        Assert.Contains("Stack: 2/2 — waiting on #41", vm.PrTooltip);
     }
 
     [Fact]
@@ -129,7 +136,8 @@ public class PrItemViewModelStackTests
         int stackSize = 2,
         bool showStackRelations = true,
         bool stackParentIsMine = false,
-        string stackChainTooltip = "")
+        string stackChainTooltip = "",
+        int stackBranchCount = 1)
     {
         var pr = new PullRequestInfo
         {
@@ -143,6 +151,8 @@ public class PrItemViewModelStackTests
             IsDraft = isDraft,
             StackDepth = stackDepth,
             StackSize = stackSize,
+            StackChainLength = stackSize,
+            StackBranchCount = stackBranchCount,
             StackRootKey = "org/repo#41",
         };
 

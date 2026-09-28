@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Several stacks built on the same bottom PR are now shown as separate stacks. They used to be listed level by level, which mixed the stacks together, and every row counted the whole tree (`stack 2/14`). Each branch is now listed as one block with a small gap above it. The badge shows the position in the PR's own stack (`stack 3/5`), and a PR that several stacks rest on shows `stack 1 · 4 branches`. The tooltip shows only the PR's own stack, with branches indented.
+
 ## [1.16.0] - 2026-09-23
 
 ### Added

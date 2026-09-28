@@ -114,6 +114,106 @@ public class PollingServiceStackTests
         Assert.Equal(1, pr.StackSize);
     }
 
+    // ── Stack trees (several stacks sharing a bottom PR) ──────────────
+
+    /// <summary>
+    /// base ← a1 ← a2, base ← b1 ← b2 ← b3, base ← c1: three stacks on one bottom PR,
+    /// listed out of order to check the walk does not depend on input order.
+    /// </summary>
+    private static List<PullRequestInfo> MakeTree() =>
+    [
+        MakePr(22, "b2", "b3"),
+        MakePr(11, "base", "a1"),
+        MakePr(20, "base", "b1"),
+        MakePr(30, "base", "c1"),
+        MakePr(12, "a1", "a2"),
+        MakePr(21, "b1", "b2"),
+        MakePr(1, "main", "base"),
+    ];
+
+    [Fact]
+    public void OrderByStack_Tree_ListsEachBranchContiguously()
+    {
+        var prs = MakeTree();
+        PollingService.ApplyStackRelations(prs);
+
+        var ordered = PollingService.OrderByStack(prs);
+
+        Assert.Equal([1, 11, 12, 20, 21, 22, 30], ordered.Select(p => p.Number));
+    }
+
+    [Fact]
+    public void ApplyStackRelations_Tree_CountsPositionPerBranch()
+    {
+        var prs = MakeTree();
+        PollingService.ApplyStackRelations(prs);
+        var byNumber = prs.ToDictionary(p => p.Number);
+
+        Assert.All(prs, p => Assert.Equal(7, p.StackSize));
+        Assert.Equal(3, byNumber[1].StackBranchCount);
+        Assert.Equal((3, 3), (byNumber[12].StackDepth + 1, byNumber[12].StackChainLength));
+        Assert.Equal((3, 4), (byNumber[21].StackDepth + 1, byNumber[21].StackChainLength));
+        Assert.Equal((2, 2), (byNumber[30].StackDepth + 1, byNumber[30].StackChainLength));
+        Assert.All(prs.Where(p => p.Number != 1), p => Assert.Equal(1, p.StackBranchCount));
+    }
+
+    [Fact]
+    public void ApplyStackRelations_Tree_MarksTheFirstPrOfEachBranch()
+    {
+        var prs = MakeTree();
+        PollingService.ApplyStackRelations(prs);
+
+        Assert.Equal([11, 20, 30], prs.Where(p => p.IsStackBranchStart).Select(p => p.Number).Order());
+    }
+
+    [Fact]
+    public void ApplyStackRelations_ForkHigherUp_ReportsBranchesOnEveryPrBelowIt()
+    {
+        // a ← b ← {c, d ← e}
+        var a = MakePr(1, "main", "a");
+        var b = MakePr(2, "a", "b");
+        var c = MakePr(3, "b", "c");
+        var d = MakePr(4, "b", "d");
+        var e = MakePr(5, "d", "e");
+
+        PollingService.ApplyStackRelations([a, b, c, d, e]);
+
+        Assert.Equal(2, a.StackBranchCount);
+        Assert.Equal(2, b.StackBranchCount);
+        Assert.False(b.IsStackBranchStart);
+        Assert.True(c.IsStackBranchStart);
+        Assert.Equal(3, c.StackChainLength);
+        Assert.Equal(4, e.StackChainLength);
+        Assert.Equal(1, e.StackForkLevel);
+    }
+
+    [Fact]
+    public void ApplyStackRelations_Tree_DuplicateInstancesGetTheSameOrder()
+    {
+        var prs = MakeTree();
+        var duplicate = MakePr(21, "b1", "b2");
+
+        PollingService.ApplyStackRelations([.. prs, duplicate]);
+
+        var original = prs.Single(p => p.Number == 21);
+        Assert.Equal(original.StackOrder, duplicate.StackOrder);
+        Assert.Equal(original.StackChainLength, duplicate.StackChainLength);
+    }
+
+    [Fact]
+    public void OrderByStack_CycleWithTail_OrdersDeterministically()
+    {
+        var a = MakePr(1, "branch-b", "branch-a");
+        var b = MakePr(2, "branch-a", "branch-b");
+        var tail = MakePr(3, "branch-b", "branch-c");
+
+        PollingService.ApplyStackRelations([tail, b, a]);
+        var ordered = PollingService.OrderByStack([tail, b, a]);
+
+        Assert.Equal(3, ordered.Select(p => p.StackOrder).Distinct().Count());
+        Assert.True(ordered.IndexOf(b) < ordered.IndexOf(tail));
+    }
+
     // ── OrderByStack ─────────────────────────────────────────────────
 
     [Fact]
