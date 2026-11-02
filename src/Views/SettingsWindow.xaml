@@ -805,7 +805,42 @@
                         <CheckBox IsChecked="{Binding FlakinessAnalysisEnabled}"
                                   Content="Enable flakiness analysis and auto-rerun"/>
                         <TextBlock Foreground="#6E7681" FontSize="11" Margin="24,4,0,12" TextWrapping="Wrap"
-                                   Text="When enabled, CI failures on your own PRs are analyzed using the GitHub Models API (gpt-4o-mini) via your existing GitHub account. Flaky failures are automatically retried up to your configured maximum."/>
+                                   Text="When enabled, CI failures on your own PRs are analyzed by the AI provider below. Flaky failures are automatically retried up to your configured maximum."/>
+
+                        <StackPanel Margin="24,0,0,12">
+                            <TextBlock Foreground="#C9D1D9" FontSize="12" Margin="0,0,0,6"
+                                   Text="AI provider"/>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Check again"
+                                        Width="100" Margin="8,0,0,0"
+                                        Style="{StaticResource SecondaryButton}"
+                                        Click="CheckFlakinessAiProvider_Click"/>
+                                <ComboBox Style="{StaticResource SettingsComboBox}"
+                                          SelectedValuePath="Tag"
+                                          SelectedValue="{Binding FlakinessAiProvider}">
+                                    <ComboBoxItem Tag="GitHubModels" Content="GitHub Models (gpt-4o-mini, free, uses your gh login)"/>
+                                    <ComboBoxItem Tag="Claude" Content="Claude (haiku, uses your Claude Code login)"/>
+                                </ComboBox>
+                            </DockPanel>
+                            <TextBlock FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#8B949E"/>
+                                        <Setter Property="Text" Value="{Binding FlakinessAiProviderMessage}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding FlakinessAiProviderState}" Value="Ready">
+                                                <Setter Property="Foreground" Value="#3FB950"/>
+                                                <Setter Property="Text" Value="{Binding FlakinessAiProviderMessage, StringFormat='✓ {0}'}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding FlakinessAiProviderState}" Value="Failed">
+                                                <Setter Property="Foreground" Value="#F85149"/>
+                                                <Setter Property="Text" Value="{Binding FlakinessAiProviderMessage, StringFormat='✗ {0}'}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
 
                         <CheckBox IsChecked="{Binding FlakinessAutoMergeOnly}"
                                   Content="Only analyze auto-merge PRs"

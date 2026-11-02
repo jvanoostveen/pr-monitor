@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.Win32;
 using PrMonitor.Models;
+using PrMonitor.Services;
 using PrMonitor.Settings;
 using NotificationMode = PrMonitor.Models.NotificationMode;
 
@@ -17,10 +18,14 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     private const string AutoStartValueName = "PrBot";
 
     private readonly AppSettings _settings;
+    private readonly Func<string, Task<AnalyzerCheckResult>>? _checkFlakinessAiProvider;
 
-    public SettingsViewModel(AppSettings settings)
+    /// <param name="checkFlakinessAiProvider">Checks whether the given flakiness AI provider is usable.
+    /// When null (tests), no provider checks run.</param>
+    public SettingsViewModel(AppSettings settings, Func<string, Task<AnalyzerCheckResult>>? checkFlakinessAiProvider = null)
     {
         _settings = settings;
+        _checkFlakinessAiProvider = checkFlakinessAiProvider;
         _organizationsText = string.Join(Environment.NewLine, settings.Organizations);
         _pollingIntervalSeconds = settings.PollingIntervalSeconds;
         _autoStartWithWindows = settings.AutoStartWithWindows;
@@ -44,6 +49,9 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _flakinessAutoMergeOnly = settings.FlakinessAutoMergeOnly;
         _flakinessMaxReruns = Math.Clamp(settings.FlakinessMaxReruns, 1, 10);
         _flakinessCustomHints = settings.FlakinessCustomHints;
+        _flakinessAiProvider = settings.FlakinessAiProvider == AppSettings.FlakinessAiProviderClaude
+            ? AppSettings.FlakinessAiProviderClaude
+            : AppSettings.FlakinessAiProviderGitHubModels;
         _autoMergeMergeMethod = settings.AutoMergeMergeMethod switch
         {
             "squash" => "squash",
@@ -315,6 +323,56 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetField(ref _flakinessCustomHints, value is null ? "" : value.Length <= 500 ? value : value[..500]);
     }
 
+    private string _flakinessAiProvider;
+    /// <summary>The selected AI provider; changing it re-runs the provider check.</summary>
+    public string FlakinessAiProvider
+    {
+        get => _flakinessAiProvider;
+        set
+        {
+            if (value == _flakinessAiProvider) return;
+            SetField(ref _flakinessAiProvider, value);
+            _ = CheckFlakinessAiProviderAsync();
+        }
+    }
+
+    public enum ProviderCheckState { None, Checking, Ready, Failed }
+
+    private ProviderCheckState _flakinessAiProviderState;
+    public ProviderCheckState FlakinessAiProviderState
+    {
+        get => _flakinessAiProviderState;
+        private set => SetField(ref _flakinessAiProviderState, value);
+    }
+
+    private string _flakinessAiProviderMessage = "";
+    public string FlakinessAiProviderMessage
+    {
+        get => _flakinessAiProviderMessage;
+        private set => SetField(ref _flakinessAiProviderMessage, value);
+    }
+
+    private int _flakinessAiProviderCheckVersion;
+
+    /// <summary>
+    /// Checks the selected provider and shows the outcome. A check that finishes after a newer one
+    /// was started (the provider changed in between) is discarded.
+    /// </summary>
+    public async Task CheckFlakinessAiProviderAsync()
+    {
+        if (_checkFlakinessAiProvider is null) return;
+
+        var version = ++_flakinessAiProviderCheckVersion;
+        FlakinessAiProviderState = ProviderCheckState.Checking;
+        FlakinessAiProviderMessage = "Checking…";
+
+        var result = await _checkFlakinessAiProvider(_flakinessAiProvider);
+        if (version != _flakinessAiProviderCheckVersion) return;
+
+        FlakinessAiProviderState = result.IsReady ? ProviderCheckState.Ready : ProviderCheckState.Failed;
+        FlakinessAiProviderMessage = result.Message;
+    }
+
     public ObservableCollection<FlakinessRuleViewModel> FlakinessRules { get; } = [];
     public ObservableCollection<HiddenPrEntryViewModel> HiddenPrs { get; } = [];
     public ObservableCollection<HiddenReviewerEntryViewModel> HiddenReviewers { get; } = [];
@@ -412,6 +470,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _settings.FlakinessAutoMergeOnly = _flakinessAutoMergeOnly;
         _settings.FlakinessMaxReruns = _flakinessMaxReruns;
         _settings.FlakinessCustomHints = _flakinessCustomHints;
+        _settings.FlakinessAiProvider = _flakinessAiProvider;
         _settings.AutoMergeMergeMethod = _autoMergeMergeMethod;
 
         var snoozedKeys = _settings.SnoozedPrs.Keys.ToHashSet(StringComparer.Ordinal);

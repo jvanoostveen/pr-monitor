@@ -22,20 +22,23 @@ public sealed class FlakinessService
     ];
 
     private readonly GitHubService _github;
-    private readonly CopilotService _copilot;
+    private readonly IFlakinessAnalyzer _gitHubModels;
+    private readonly IFlakinessAnalyzer _claude;
     private readonly AppSettings _settings;
     private readonly NotificationService _notifications;
     private readonly DiagnosticsLogger _logger;
 
     public FlakinessService(
         GitHubService github,
-        CopilotService copilot,
+        IFlakinessAnalyzer gitHubModels,
+        IFlakinessAnalyzer claude,
         AppSettings settings,
         NotificationService notifications,
         DiagnosticsLogger logger)
     {
         _github = github;
-        _copilot = copilot;
+        _gitHubModels = gitHubModels;
+        _claude = claude;
         _settings = settings;
         _notifications = notifications;
         _logger = logger;
@@ -140,17 +143,19 @@ public sealed class FlakinessService
             return;
         }
 
-        // ── Call Copilot ─────────────────────────────────────────────
-        _logger.Info($"FlakinessService: no local rule matched {prKey}, calling Copilot for analysis.");
-        var result = await _copilot.AnalyzeFlakiness(context, _settings.FlakinessCustomHints);
+        // ── Call the AI provider ─────────────────────────────────────
+        var analyzer = _settings.FlakinessAiProvider == AppSettings.FlakinessAiProviderClaude ? _claude : _gitHubModels;
+        _logger.Info($"FlakinessService: no local rule matched {prKey}, calling {analyzer.Name} for analysis.");
+        var result = await analyzer.AnalyzeFlakiness(context, _settings.FlakinessCustomHints);
 
-        // If the full log triggered the content filter, retry once with error-lines-only excerpt.
-        if (result.IsIndeterminate)
+        // If the full log triggered the GitHub Models content filter, retry once with error-lines-only excerpt.
+        // Claude has no such filter, and a failed claude run would only fail again more slowly.
+        if (result.IsIndeterminate && analyzer == _gitHubModels)
         {
             var errorLinesExcerpt = GitHubService.ExtractErrorLines(log);
             if (errorLinesExcerpt != log) // ExtractErrorLines returns the original when too few lines found
             {
-                _logger.Info($"FlakinessService: retrying Copilot for {prKey} with error-lines-only excerpt.");
+                _logger.Info($"FlakinessService: retrying {analyzer.Name} for {prKey} with error-lines-only excerpt.");
                 var retryContext = new FailureContext
                 {
                     Repository = context.Repository,
@@ -161,7 +166,7 @@ public sealed class FlakinessService
                     FailedCheckNames = context.FailedCheckNames,
                     LogExcerpt = errorLinesExcerpt,
                 };
-                result = await _copilot.AnalyzeFlakiness(retryContext, _settings.FlakinessCustomHints);
+                result = await analyzer.AnalyzeFlakiness(retryContext, _settings.FlakinessCustomHints);
             }
         }
 
@@ -189,18 +194,18 @@ public sealed class FlakinessService
 
         if (result.IsIndeterminate)
         {
-            _logger.Info($"FlakinessService: Copilot analysis indeterminate for {prKey}: {result.Rationale}. No action taken.");
+            _logger.Info($"FlakinessService: {analyzer.Name} analysis indeterminate for {prKey}: {result.Rationale}. No action taken.");
             return;
         }
 
         if (result.IsFlaky)
         {
-            _logger.Info($"FlakinessService: Copilot says FLAKY for {prKey}: {result.Rationale}");
+            _logger.Info($"FlakinessService: {analyzer.Name} says FLAKY for {prKey}: {result.Rationale}");
             await RerunAndNotify(pr, owner, repo, primaryRunId, prKey, maxAttempts, result.Rationale);
         }
         else
         {
-            _logger.Info($"FlakinessService: Copilot says REAL FAILURE for {prKey}: {result.Rationale}");
+            _logger.Info($"FlakinessService: {analyzer.Name} says REAL FAILURE for {prKey}: {result.Rationale}");
             RealFailureClassified?.Invoke(prKey);
             if (_settings.NotifyFlakinessRealFailure)
                 _notifications.Notify(

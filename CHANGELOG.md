@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Set a PR's priority from its context menu.** When at least one label rule on the **Labels** settings tab has a High or Low priority, right-clicking a PR shows a **Set priority** submenu. It lists those labels, High first, with a checkmark on the ones the PR has, plus **No priority**. Picking a label adds it to the PR on GitHub and removes the PR's other priority labels; **No priority** removes them all. Labels that are not priority rules are left alone. The label must already exist in the repository; PR Monitor does not create it.
+- **Claude as AI provider for flakiness analysis.** **Settings → Flakiness** has a new **AI provider** dropdown: **GitHub Models** (default, free, uses your `gh` login) or **Claude** (`haiku` through the Claude Code CLI, using your own Claude Code login). PR Monitor checks the selected provider with a tiny request when Settings opens, when you change the dropdown, and on **Check again**, and shows ✓ with the provider or ✗ with the reason (for example CLI not found or an expired login). The AI verdict is now also read when the model puts a sentence around its JSON answer.
 
 ### Fixed
 

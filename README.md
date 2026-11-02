@@ -282,7 +282,12 @@ If the app still grows unexpectedly, use **About… → Copy diagnostics** to pu
 
 Shutdown reliability note: app exit now guards single-instance mutex release, so a tray-menu exit/right-click shutdown path will not crash if the current thread does not own the mutex.
 
-For flakiness analysis, PR Monitor uses `gpt-4o-mini` through GitHub Models.
+For flakiness analysis, pick the AI provider under **Settings → Flakiness**:
+
+- **GitHub Models** (default): `gpt-4o-mini`, called with your `gh` login. Free for any GitHub account, with rate limits; no Copilot subscription needed.
+- **Claude**: `haiku` through the Claude Code CLI, using your own Claude Code login, so it counts toward your Claude plan's usage. Needs `claude.exe` on your PATH (the native or WinGet install; an npm install's `claude.cmd` is not found) and a signed-in CLI — run `claude` once and use `/login` if the check reports an expired session. Restart PR Monitor after installing the CLI so it sees the new PATH.
+
+After you pick a provider, and whenever the Settings window opens, PR Monitor checks it with a tiny request and shows ✓ or ✗ with the reason. **Check again** repeats the check.
 
 If Windows SmartScreen shows "Windows protected your PC" for `PrMonitor.exe`:
 

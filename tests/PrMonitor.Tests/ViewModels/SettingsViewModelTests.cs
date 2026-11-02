@@ -1,5 +1,6 @@
 using System.IO;
 using PrMonitor.Models;
+using PrMonitor.Services;
 using PrMonitor.Settings;
 using PrMonitor.ViewModels;
 using Xunit;
@@ -94,6 +95,28 @@ public class SettingsViewModelTests
         vm.FlakinessCustomHints = null!;
 
         Assert.Equal("", vm.FlakinessCustomHints);
+    }
+
+    // ── Flakiness AI provider check ───────────────────────────────────
+
+    [Fact]
+    public async Task CheckFlakinessAiProvider_ProviderChangedDuringCheck_ShowsOnlyTheNewestResult()
+    {
+        var pending = new Dictionary<string, TaskCompletionSource<AnalyzerCheckResult>>
+        {
+            [AppSettings.FlakinessAiProviderGitHubModels] = new(),
+            [AppSettings.FlakinessAiProviderClaude] = new(),
+        };
+        var vm = new SettingsViewModel(MakeSettings(), provider => pending[provider].Task);
+
+        var gitHubModelsCheck = vm.CheckFlakinessAiProviderAsync();
+        vm.FlakinessAiProvider = AppSettings.FlakinessAiProviderClaude;
+        pending[AppSettings.FlakinessAiProviderClaude].SetResult(new(true, "Claude ready"));
+        pending[AppSettings.FlakinessAiProviderGitHubModels].SetResult(new(false, "GitHub Models failed"));
+        await gitHubModelsCheck;
+
+        Assert.Equal(SettingsViewModel.ProviderCheckState.Ready, vm.FlakinessAiProviderState);
+        Assert.Equal("Claude ready", vm.FlakinessAiProviderMessage);
     }
 
     // ── Notification mode radio logic ─────────────────────────────────

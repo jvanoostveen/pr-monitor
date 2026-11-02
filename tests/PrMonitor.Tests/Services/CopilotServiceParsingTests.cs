@@ -35,12 +35,13 @@ public class CopilotServiceParsingTests
         Assert.Equal("Network timeout",    result.SuggestedRules[0].Description);
     }
 
-    [Fact]
-    public void ParseResponse_ContentInMarkdownFences_ParsesCorrectly()
+    [Theory]
+    [InlineData("```json\n{0}\n```")]
+    [InlineData("Here is the analysis:\n{0}")]
+    public void ParseResponse_ContentAroundJson_ParsesCorrectly(string wrapper)
     {
         var inner = """{"isFlaky":true,"rationale":"flaky","suggestedRules":[]}""";
-        var fenced = $"```json\n{inner}\n```";
-        var response = BuildChatResponse(fenced);
+        var response = BuildChatResponse(string.Format(wrapper, inner));
 
         var result = _svc.ParseResponse(response);
 

@@ -184,6 +184,15 @@ public sealed class AppSettings
     /// <summary>Maximum automatic reruns for flaky failures per PR.</summary>
     public int FlakinessMaxReruns { get; set; } = 3;
 
+    public const string FlakinessAiProviderGitHubModels = "GitHubModels";
+    public const string FlakinessAiProviderClaude = "Claude";
+
+    /// <summary>
+    /// AI provider for flakiness analysis: <see cref="FlakinessAiProviderGitHubModels"/> (default) or
+    /// <see cref="FlakinessAiProviderClaude"/> (Claude Code CLI). Any other value means GitHub Models.
+    /// </summary>
+    public string FlakinessAiProvider { get; set; } = FlakinessAiProviderGitHubModels;
+
     // ── Auto-merge ───────────────────────────────────────────────────────
 
     /// <summary>Merge method to use when enabling auto-merge. One of "merge", "squash", "rebase".</summary>

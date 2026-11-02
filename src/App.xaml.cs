@@ -90,7 +90,8 @@ public partial class App : System.Windows.Application
             _notifications.NotifyWithUrl("You were mentioned", $"In {repo}: {title}", prUrl);
 
         var copilot = new CopilotService(_logger);
-        _flakinessService = new FlakinessService(_github, copilot, settings, _notifications, _logger);
+        var claude = new ClaudeCliService(_logger);
+        _flakinessService = new FlakinessService(_github, copilot, claude, settings, _notifications, _logger);
         _flakinessService.Subscribe(_polling);
 
         // Statistics collection (event-based, only while the app runs).
@@ -139,7 +140,8 @@ public partial class App : System.Windows.Application
                 return;
             }
 
-            var settingsVm = new SettingsViewModel(settings);
+            var settingsVm = new SettingsViewModel(settings, provider =>
+                (provider == AppSettings.FlakinessAiProviderClaude ? (IFlakinessAnalyzer)claude : copilot).CheckAsync());
             var settingsWindow = new SettingsWindow(settingsVm, onSaved: () =>
             {
                 // Apply new polling interval live and refresh data immediately

@@ -27,6 +27,11 @@ public partial class SettingsWindow : Window
         _onResetStatistics = onResetStatistics;
         DataContext = viewModel;
         InitializeComponent();
+        Loaded += (_, _) =>
+        {
+            if (_viewModel.FlakinessAnalysisEnabled)
+                _ = _viewModel.CheckFlakinessAiProviderAsync();
+        };
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -55,6 +60,9 @@ public partial class SettingsWindow : Window
         var rulesWindow = new FlakinessRulesWindow(_viewModel) { Owner = this };
         rulesWindow.Show();
     }
+
+    private void CheckFlakinessAiProvider_Click(object sender, RoutedEventArgs e) =>
+        _ = _viewModel.CheckFlakinessAiProviderAsync();
 
     private void LabelRuleAdd_Click(object sender, RoutedEventArgs e) => _viewModel.AddLabelRule();
 
