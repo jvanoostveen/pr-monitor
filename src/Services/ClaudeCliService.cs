@@ -140,6 +140,8 @@ public sealed class ClaudeCliService : IFlakinessAnalyzer
             StandardOutputEncoding = Utf8NoBom,
             StandardErrorEncoding = Utf8NoBom,
         };
+        // --setting-sources does not stop the user's ~/.claude/CLAUDE.md from loading; this does.
+        psi.Environment["CLAUDE_CODE_DISABLE_CLAUDE_MDS"] = "1";
         // No tools, MCP servers, user settings (hooks) or saved session: a single text-only answer.
         foreach (var arg in new[] { "-p", "--model", "haiku", "--output-format", "json", "--tools", "",
                      "--no-session-persistence", "--strict-mcp-config", "--setting-sources", "project" })
