@@ -22,8 +22,8 @@ public sealed class CopilotService
         MaxResponseContentBufferSize = 1024 * 1024, // 1 MB cap
     };
 
-    private const string ModelsEndpoint = "https://models.inference.ai.azure.com/chat/completions";
-    private const string Model = "gpt-4o-mini";
+    private const string ModelsEndpoint = "https://models.github.ai/inference/chat/completions";
+    private const string Model = "openai/gpt-4o-mini";
 
     public CopilotService(DiagnosticsLogger logger)
     {

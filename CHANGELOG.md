@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Set a PR's priority from its context menu.** When at least one label rule on the **Labels** settings tab has a High or Low priority, right-clicking a PR shows a **Set priority** submenu. It lists those labels, High first, with a checkmark on the ones the PR has, plus **No priority**. Picking a label adds it to the PR on GitHub and removes the PR's other priority labels; **No priority** removes them all. Labels that are not priority rules are left alone. The label must already exist in the repository; PR Monitor does not create it.
 
+### Fixed
+
+- **AI flakiness analysis works again.** GitHub retired the old GitHub Models endpoint (`models.inference.ai.azure.com`), so since late August every AI analysis failed with a connection error and only the regex rules still triggered reruns. PR Monitor now calls the current endpoint (`models.github.ai`, model `openai/gpt-4o-mini`). It still uses your `gh` login and needs no Copilot subscription; GitHub Models is free with rate limits.
+
 ## [1.16.1] - 2026-09-28
 
 ### Changed
