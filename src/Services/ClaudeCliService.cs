@@ -16,6 +16,7 @@ public sealed class ClaudeCliService : IFlakinessAnalyzer
     private static readonly TimeSpan AnalyzeTimeout = TimeSpan.FromSeconds(90);
     private static readonly TimeSpan CheckTimeout = TimeSpan.FromSeconds(30);
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
+    private const int FileNotFound = 2; // Win32 ERROR_FILE_NOT_FOUND from Process.Start
 
     // One claude process at a time: each is a full Node runtime, and one poll can report
     // several CI failures at once.
@@ -45,7 +46,7 @@ public sealed class ClaudeCliService : IFlakinessAnalyzer
                 _logger.Warn($"ClaudeCliService: {result.Rationale} {FirstLine(stderr)}".TrimEnd());
             return result;
         }
-        catch (Win32Exception)
+        catch (Win32Exception ex) when (ex.NativeErrorCode == FileNotFound)
         {
             _logger.Warn("ClaudeCliService: 'claude' was not found on PATH.");
             return FlakinessPrompt.Indeterminate("Claude Code CLI not found on PATH.");
@@ -74,7 +75,7 @@ public sealed class ClaudeCliService : IFlakinessAnalyzer
             var reason = FirstLine(envelope?.Text) ?? FirstLine(stderr) ?? $"claude exited with code {exitCode}.";
             return new(false, reason);
         }
-        catch (Win32Exception)
+        catch (Win32Exception ex) when (ex.NativeErrorCode == FileNotFound)
         {
             return new(false, "Claude Code CLI not found on PATH (restart PR Monitor after installing it).");
         }
@@ -113,10 +114,10 @@ public sealed class ClaudeCliService : IFlakinessAnalyzer
         {
             using var doc = JsonDocument.Parse(stdout);
             var root = doc.RootElement;
-            if (!root.TryGetProperty("result", out var result))
+            if (!root.TryGetProperty("result", out var result) || result.ValueKind != JsonValueKind.String)
                 return null;
             var isError = root.TryGetProperty("is_error", out var e) && e.ValueKind == JsonValueKind.True;
-            return (isError, result.GetString() ?? "");
+            return (isError, result.GetString()!);
         }
         catch (JsonException)
         {
@@ -150,7 +151,8 @@ public sealed class ClaudeCliService : IFlakinessAnalyzer
         }
 
         Directory.CreateDirectory(WorkingDirectory);
-        await _gate.WaitAsync();
+        if (!await _gate.WaitAsync(timeout))
+            throw new TimeoutException("Another claude run is still busy.");
         try
         {
             using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Could not start claude.");

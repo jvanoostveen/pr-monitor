@@ -36,6 +36,7 @@ public class ClaudeCliServiceParsingTests
     [InlineData("")]
     [InlineData("not json")]
     [InlineData("""{"type":"result"}""")]
+    [InlineData("""{"is_error":false,"result":{}}""")]
     public void ParseCliOutput_UnusableOutput_ReturnsIndeterminate(string stdout)
     {
         var result = _svc.ParseCliOutput(stdout);

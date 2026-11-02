@@ -287,7 +287,7 @@ For flakiness analysis, pick the AI provider under **Settings → Flakiness**:
 - **GitHub Models** (default): `gpt-4o-mini`, called with your `gh` login. Free for any GitHub account, with rate limits; no Copilot subscription needed.
 - **Claude**: `haiku` through the Claude Code CLI, using your own Claude Code login, so it counts toward your Claude plan's usage. Needs `claude.exe` on your PATH (the native or WinGet install; an npm install's `claude.cmd` is not found) and a signed-in CLI — run `claude` once and use `/login` if the check reports an expired session. Restart PR Monitor after installing the CLI so it sees the new PATH.
 
-After you pick a provider, and whenever the Settings window opens, PR Monitor checks it with a tiny request and shows ✓ or ✗ with the reason. **Check again** repeats the check.
+After you pick a provider or turn analysis on, and whenever the Settings window opens, PR Monitor checks it with a tiny request and shows ✓ or ✗ with the reason. **Check again** repeats the check.
 
 If Windows SmartScreen shows "Windows protected your PC" for `PrMonitor.exe`:
 

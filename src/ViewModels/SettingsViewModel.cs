@@ -299,7 +299,12 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     public bool FlakinessAnalysisEnabled
     {
         get => _flakinessAnalysisEnabled;
-        set => SetField(ref _flakinessAnalysisEnabled, value);
+        set
+        {
+            if (value == _flakinessAnalysisEnabled) return;
+            SetField(ref _flakinessAnalysisEnabled, value);
+            if (value) _ = CheckFlakinessAiProviderAsync();
+        }
     }
 
     private bool _flakinessAutoMergeOnly;
