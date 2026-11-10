@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Interop;
 using PrMonitor.Services;
 using PrMonitor.ViewModels;
@@ -8,11 +7,6 @@ namespace PrMonitor.Views;
 
 public partial class SettingsWindow : Window
 {
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-    private const int DwmwaUseImmersiveDarkMode = 20;
-
     private readonly SettingsViewModel _viewModel;
     private readonly Action? _onSaved;
     private readonly Action? _onResetStatistics;
@@ -37,10 +31,7 @@ public partial class SettingsWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        // Request dark title bar from DWM (Windows 10 1903+ / Windows 11)
-        var hwnd = new WindowInteropHelper(this).Handle;
-        int value = 1;
-        DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref value, Marshal.SizeOf(value));
+        DarkTitleBar.Apply(this);
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)

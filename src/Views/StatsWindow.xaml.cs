@@ -10,16 +10,12 @@ namespace PrMonitor.Views;
 
 public partial class StatsWindow : Window
 {
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
     [DllImport("user32.dll")] private static extern IntPtr CreatePopupMenu();
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool AppendMenuW(IntPtr hMenu, uint uFlags, UIntPtr uIDNewItem, string? lpNewItem);
     [DllImport("user32.dll")] private static extern uint TrackPopupMenuEx(IntPtr hmenu, uint fuFlags, int x, int y, IntPtr hwnd, IntPtr lptpm);
     [DllImport("user32.dll")] private static extern bool DestroyMenu(IntPtr hMenu);
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
 
-    private const int DwmwaUseImmersiveDarkMode = 20;
     private const uint MF_STRING       = 0x0000;
     private const uint TPM_BOTTOMALIGN = 0x0020;
     private const uint TPM_RETURNCMD   = 0x0100;
@@ -52,9 +48,7 @@ public partial class StatsWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        var hwnd = new WindowInteropHelper(this).Handle;
-        int value = 1;
-        DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref value, Marshal.SizeOf(value));
+        DarkTitleBar.Apply(this);
 
         RestoreSavedPosition();
     }

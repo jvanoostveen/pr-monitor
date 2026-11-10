@@ -1,8 +1,6 @@
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Interop;
 using System.Windows.Threading;
 using PrMonitor.Services;
 using PrMonitor.Settings;
@@ -11,10 +9,6 @@ namespace PrMonitor.Views;
 
 public partial class AssignReviewerSearchWindow : Window
 {
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-    private const int DwmwaUseImmersiveDarkMode = 20;
-
     // Small VM for recents: allows DataTemplate binding to Login and Label
     private sealed class RecentItemVM
     {
@@ -57,9 +51,7 @@ public partial class AssignReviewerSearchWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        var hwnd = new WindowInteropHelper(this).Handle;
-        int value = 1;
-        DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref value, Marshal.SizeOf(value));
+        DarkTitleBar.Apply(this);
     }
 
     protected override void OnContentRendered(EventArgs e)

@@ -1,7 +1,5 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Interop;
 using System.Windows.Navigation;
 using PrMonitor.Services;
 
@@ -9,11 +7,6 @@ namespace PrMonitor.Views;
 
 public partial class AboutWindow : Window
 {
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-    private const int DwmwaUseImmersiveDarkMode = 20;
-
     private readonly Action? _checkForUpdatesAction;
 
     public string VersionText { get; }
@@ -30,9 +23,7 @@ public partial class AboutWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        var hwnd = new WindowInteropHelper(this).Handle;
-        int value = 1;
-        DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref value, Marshal.SizeOf(value));
+        DarkTitleBar.Apply(this);
     }
 
     private void RepoLink_RequestNavigate(object sender, RequestNavigateEventArgs e)

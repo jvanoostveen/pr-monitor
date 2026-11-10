@@ -458,6 +458,7 @@ Every GraphQL query in `GitHubService` — the three search queries used by poll
 - ViewModels: `*ViewModel.cs` in `ViewModels/`
 - Services: `*Service.cs` in `Services/`
 - Converters: `*Converter.cs` registered in `App.xaml` resources as `CamelCase` keys
+- Styles used by more than one window (dialog buttons `FlatButtonTemplate`/`SettingsButtonBase`/`PrimaryButton`/`SecondaryButton`, `DarkScrollBar`, `MinimalScrollBar`/`OverlayScrollViewer`) live once in `App.xaml`; a window that needs a different look defines a resource with the same key locally, which wins there. Dialogs get their dark title bar from `DarkTitleBar.Apply(this)` in `OnSourceInitialized`.
 - XAML event handlers: `ElementName_EventName` (e.g. `RefreshButton_Click`, `AutoMergeHeader_Click`)
 
 ---

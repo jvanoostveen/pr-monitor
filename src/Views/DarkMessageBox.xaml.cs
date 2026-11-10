@@ -1,17 +1,10 @@
-using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Interop;
 using System.Windows.Media;
 
 namespace PrMonitor.Views;
 
 public partial class DarkMessageBox : Window
 {
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-    private const int DwmwaUseImmersiveDarkMode = 20;
-
     public MessageBoxResult Result { get; private set; } = MessageBoxResult.Cancel;
 
     public DarkMessageBox(string message, string title, MessageBoxButton button, MessageBoxImage icon)
@@ -47,9 +40,7 @@ public partial class DarkMessageBox : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        var hwnd = new WindowInteropHelper(this).Handle;
-        int value = 1;
-        DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref value, Marshal.SizeOf(value));
+        DarkTitleBar.Apply(this);
     }
 
     private void ConfigureIcon(MessageBoxImage icon)

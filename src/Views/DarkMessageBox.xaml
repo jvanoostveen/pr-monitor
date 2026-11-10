@@ -10,19 +10,6 @@
         Background="#0D1117">
 
     <Window.Resources>
-
-        <ControlTemplate x:Key="FlatButtonTemplate" TargetType="Button">
-            <Border x:Name="Bd"
-                    Background="{TemplateBinding Background}"
-                    BorderBrush="{TemplateBinding BorderBrush}"
-                    BorderThickness="{TemplateBinding BorderThickness}"
-                    CornerRadius="6"
-                    Padding="{TemplateBinding Padding}">
-                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                                  TextBlock.FontWeight="{TemplateBinding FontWeight}"/>
-            </Border>
-        </ControlTemplate>
-
         <Style x:Key="DialogButtonBase" TargetType="Button">
             <Setter Property="OverridesDefaultStyle" Value="True"/>
             <Setter Property="Template" Value="{StaticResource FlatButtonTemplate}"/>
