@@ -189,16 +189,61 @@ public class SettingsViewModelTests
         Assert.True(vm.AlwaysOnTop);
     }
 
+    /// <summary>The window-level toggles: flip it in the view model, read it back from the settings.</summary>
+    public static TheoryData<Action<SettingsViewModel>, Func<AppSettings, bool>> WindowToggles => new()
+    {
+        { vm => vm.CompactMode = !vm.CompactMode, s => s.CompactMode },
+        { vm => vm.ShowChangelogAfterUpdate = !vm.ShowChangelogAfterUpdate, s => s.ShowChangelogAfterUpdate },
+        { vm => vm.VerboseLogging = !vm.VerboseLogging, s => s.VerboseLogging },
+        { vm => vm.AlwaysOnTop = !vm.AlwaysOnTop, s => s.AlwaysOnTop },
+    };
+
+    [Theory]
+    [MemberData(nameof(WindowToggles))]
+    public void WindowToggle_ChangedButNotSaved_LeavesSettingsUnchanged(
+        Action<SettingsViewModel> toggle, Func<AppSettings, bool> read)
+    {
+        // Cancel just closes the window: nothing may have reached the shared settings yet.
+        var settings = MakeSettings();
+        var original = read(settings);
+        var vm = new SettingsViewModel(settings);
+
+        toggle(vm);
+
+        Assert.Equal(original, read(settings));
+    }
+
+    [Theory]
+    [MemberData(nameof(WindowToggles))]
+    public void WindowToggle_Saved_PersistsToSettings(
+        Action<SettingsViewModel> toggle, Func<AppSettings, bool> read)
+    {
+        var path = TempPath();
+        using var _ = AppSettings.UseSettingsPathOverride(path);
+        var settings = MakeSettings();
+        var original = read(settings);
+        var vm = new SettingsViewModel(settings);
+
+        toggle(vm);
+        vm.Save();
+
+        Assert.NotEqual(original, read(settings));
+        Assert.NotEqual(original, read(AppSettings.LoadFrom(path)));
+
+        File.Delete(path);
+        File.Delete(path + ".bak");
+    }
+
     [Fact]
-    public void AlwaysOnTop_SetFalse_PersistsToSettings()
+    public void NotifyAlwaysOnTopChanged_TakesOverChangeMadeElsewhere()
     {
         var settings = MakeSettings();
         var vm = new SettingsViewModel(settings);
 
-        vm.AlwaysOnTop = false;
+        settings.AlwaysOnTop = false; // the pin icon in the main window header
+        vm.NotifyAlwaysOnTopChanged();
 
         Assert.False(vm.AlwaysOnTop);
-        Assert.False(settings.AlwaysOnTop);
     }
 
     [Fact]

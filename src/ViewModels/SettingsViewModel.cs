@@ -29,6 +29,10 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _organizationsText = string.Join(Environment.NewLine, settings.Organizations);
         _pollingIntervalSeconds = settings.PollingIntervalSeconds;
         _autoStartWithWindows = settings.AutoStartWithWindows;
+        _compactMode = settings.CompactMode;
+        _showChangelogAfterUpdate = settings.ShowChangelogAfterUpdate;
+        _verboseLogging = settings.VerboseLogging;
+        _alwaysOnTop = settings.AlwaysOnTop;
         _notifyCiFailed = settings.NotifyCiFailed;
         _notifyCiPassed = settings.NotifyCiPassed;
         _notifyCiError = settings.NotifyCiError;
@@ -106,36 +110,47 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetField(ref _autoStartWithWindows, value);
     }
 
+    // Like every other setting here, these are buffered and only written to AppSettings by
+    // Save(), so Cancel discards them. (They used to write through, which left a cancelled
+    // value live in memory, e.g. AlwaysOnTop for the tray click, and on disk at the next save.)
+
+    private bool _compactMode;
     public bool CompactMode
     {
-        get => _settings.CompactMode;
-        set { _settings.CompactMode = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompactMode))); }
+        get => _compactMode;
+        set => SetField(ref _compactMode, value);
     }
 
+    private bool _showChangelogAfterUpdate;
     public bool ShowChangelogAfterUpdate
     {
-        get => _settings.ShowChangelogAfterUpdate;
-        set { _settings.ShowChangelogAfterUpdate = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowChangelogAfterUpdate))); }
+        get => _showChangelogAfterUpdate;
+        set => SetField(ref _showChangelogAfterUpdate, value);
     }
 
+    private bool _verboseLogging;
     public bool VerboseLogging
     {
-        get => _settings.VerboseLogging;
-        set { _settings.VerboseLogging = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VerboseLogging))); }
+        get => _verboseLogging;
+        set => SetField(ref _verboseLogging, value);
     }
 
+    private bool _alwaysOnTop;
     public bool AlwaysOnTop
     {
-        get => _settings.AlwaysOnTop;
-        set { _settings.AlwaysOnTop = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AlwaysOnTop))); }
+        get => _alwaysOnTop;
+        set => SetField(ref _alwaysOnTop, value);
     }
 
     /// <summary>
-    /// Re-raises PropertyChanged for <see cref="AlwaysOnTop"/> so an open Settings window
-    /// reflects a change made elsewhere (e.g. the pin icon in the main window header).
+    /// Takes over <see cref="AlwaysOnTop"/> from the settings, so an open Settings window
+    /// reflects a change made elsewhere (the pin icon in the main window header saves directly).
     /// </summary>
-    public void NotifyAlwaysOnTopChanged() =>
+    public void NotifyAlwaysOnTopChanged()
+    {
+        _alwaysOnTop = _settings.AlwaysOnTop;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AlwaysOnTop)));
+    }
 
     // ── Notification toggles ─────────────────────────────────────────
 
@@ -455,6 +470,10 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
         _settings.PollingIntervalSeconds = _pollingIntervalSeconds;
         _settings.AutoStartWithWindows = _autoStartWithWindows;
+        _settings.CompactMode = _compactMode;
+        _settings.ShowChangelogAfterUpdate = _showChangelogAfterUpdate;
+        _settings.VerboseLogging = _verboseLogging;
+        _settings.AlwaysOnTop = _alwaysOnTop;
         _settings.NotifyCiFailed = _notifyCiFailed;
         _settings.NotifyCiPassed = _notifyCiPassed;
         _settings.NotifyCiError = _notifyCiError;
