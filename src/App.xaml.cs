@@ -5,7 +5,6 @@ using PrMonitor.Services;
 using PrMonitor.Settings;
 using PrMonitor.ViewModels;
 using PrMonitor.Views;
-using System.Diagnostics;
 
 namespace PrMonitor;
 

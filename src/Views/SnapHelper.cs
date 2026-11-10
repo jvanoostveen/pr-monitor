@@ -80,10 +80,17 @@ internal static class SnapHelper
     public static (double left, double top) ClampToWorkArea(
         Rect workArea, double left, double top, double width, double height)
     {
-        var clampedLeft = width  >= workArea.Width  ? workArea.Left : Math.Clamp(left, workArea.Left, workArea.Right  - width);
-        var clampedTop  = height >= workArea.Height ? workArea.Top  : Math.Clamp(top,  workArea.Top,  workArea.Bottom - height);
+        var clampedLeft = width  >= workArea.Width  ? workArea.Left : Clamp(left, workArea.Left, workArea.Right  - width);
+        var clampedTop  = height >= workArea.Height ? workArea.Top  : Clamp(top,  workArea.Top,  workArea.Bottom - height);
         return (clampedLeft, clampedTop);
     }
+
+    /// <summary>
+    /// Like <see cref="Math.Clamp(double, double, double)"/>, but returns <paramref name="min"/>
+    /// instead of throwing when rounding leaves <paramref name="max"/> just below it.
+    /// </summary>
+    private static double Clamp(double value, double min, double max) =>
+        max < min ? min : Math.Max(min, Math.Min(value, max));
 
     /// <summary>
     /// Position for a window rect that keeps it on screen: unchanged when it is fully inside one

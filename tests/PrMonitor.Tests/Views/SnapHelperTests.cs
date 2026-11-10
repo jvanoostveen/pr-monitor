@@ -249,6 +249,16 @@ public class SnapHelperTests
         Assert.Equal(SnapCorner.TopLeft, result);
     }
 
+    // ── ClampToWorkArea ─────────────────────────────────────────────────────
+
+    [Fact]
+    public void ClampToWorkArea_WindowLargerThanWorkArea_AlignsToTopLeft()
+    {
+        var result = SnapHelper.ClampToWorkArea(Secondary, 3000, 500, Secondary.Width + 10, Secondary.Height + 10);
+
+        Assert.Equal((Secondary.Left, Secondary.Top), result);
+    }
+
     // ── ClampToBestWorkArea ─────────────────────────────────────────────────
 
     [Fact]
