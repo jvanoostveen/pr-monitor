@@ -32,11 +32,11 @@ internal static class SnapHelper
     }
 
     /// <summary>
-    /// From a list of work-area rects, return the one that best matches a window rect:
-    /// first by highest overlap area, then by closest center distance.
-    /// Returns <see cref="Rect.Empty"/> when the list is empty.
+    /// From a list of work-area rects, return the index of the one that best matches a window
+    /// rect: first by highest overlap area, then by closest center distance.
+    /// Returns -1 when the list is empty.
     /// </summary>
-    public static Rect FindBestWorkArea(
+    public static int FindBestWorkAreaIndex(
         IReadOnlyList<Rect> workAreas,
         double left, double top, double width, double height)
     {
@@ -44,18 +44,19 @@ internal static class SnapHelper
         var windowCenterX = left + width  / 2;
         var windowCenterY = top  + height / 2;
 
-        Rect  bestOverlap = Rect.Empty;
+        var bestOverlap = -1;
         double maxOverlap = 0;
-        Rect  closest     = Rect.Empty;
-        double minDist    = double.MaxValue;
+        var closest = -1;
+        double minDist = double.MaxValue;
 
-        foreach (var wa in workAreas)
+        for (var i = 0; i < workAreas.Count; i++)
         {
+            var wa = workAreas[i];
             var overlap = ComputeOverlapArea(windowRect, wa);
             if (overlap > maxOverlap)
             {
                 maxOverlap  = overlap;
-                bestOverlap = wa;
+                bestOverlap = i;
             }
 
             var cx   = (wa.Left + wa.Right)  / 2;
@@ -65,13 +66,66 @@ internal static class SnapHelper
             if (dist < minDist)
             {
                 minDist = dist;
-                closest = wa;
+                closest = i;
             }
         }
 
-        if (maxOverlap > 0)     return bestOverlap;
-        if (!closest.IsEmpty)   return closest;
-        return workAreas.Count > 0 ? workAreas[0] : Rect.Empty;
+        return bestOverlap >= 0 ? bestOverlap : closest;
+    }
+
+    /// <summary>
+    /// Moves a window rect the least distance needed to fit inside <paramref name="workArea"/>;
+    /// a window larger than the work area is aligned to its left/top edge.
+    /// </summary>
+    public static (double left, double top) ClampToWorkArea(
+        Rect workArea, double left, double top, double width, double height)
+    {
+        var clampedLeft = width  >= workArea.Width  ? workArea.Left : Math.Clamp(left, workArea.Left, workArea.Right  - width);
+        var clampedTop  = height >= workArea.Height ? workArea.Top  : Math.Clamp(top,  workArea.Top,  workArea.Bottom - height);
+        return (clampedLeft, clampedTop);
+    }
+
+    /// <summary>
+    /// Position for a window rect that keeps it on screen: unchanged when it is fully inside one
+    /// of <paramref name="workAreas"/>, otherwise clamped into the work area that needs the
+    /// smallest move (largest overlap on a tie). With no work areas, clamped into
+    /// <paramref name="fallbackWorkArea"/> (the primary screen) — e.g. after its monitor was
+    /// disconnected.
+    /// </summary>
+    public static (double left, double top) ClampToBestWorkArea(
+        IReadOnlyList<Rect> workAreas, Rect fallbackWorkArea,
+        double left, double top, double width, double height)
+    {
+        var targetRect = new Rect(left, top, width, height);
+        foreach (var wa in workAreas)
+        {
+            if (wa.Contains(targetRect.TopLeft) && wa.Contains(targetRect.BottomRight))
+                return (left, top);
+        }
+
+        var bestDistance = double.PositiveInfinity;
+        var bestOverlap = double.NegativeInfinity;
+        var bestPosition = (left, top);
+
+        foreach (var wa in workAreas)
+        {
+            var candidate = ClampToWorkArea(wa, left, top, width, height);
+            var dx = candidate.left - left;
+            var dy = candidate.top - top;
+            var distance = (dx * dx) + (dy * dy);
+            var overlap = ComputeOverlapArea(new Rect(candidate.left, candidate.top, width, height), wa);
+
+            if (distance < bestDistance - 0.01 || (Math.Abs(distance - bestDistance) <= 0.01 && overlap > bestOverlap))
+            {
+                bestDistance = distance;
+                bestOverlap = overlap;
+                bestPosition = candidate;
+            }
+        }
+
+        return double.IsPositiveInfinity(bestDistance)
+            ? ClampToWorkArea(fallbackWorkArea, left, top, width, height)
+            : bestPosition;
     }
 
     /// <summary>

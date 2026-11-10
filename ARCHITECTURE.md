@@ -245,7 +245,8 @@ The app runs for days in the tray, so allocation *retention* matters more than t
 - Startup/resize positioning ignores pre-restore `SizeChanged` auto-alignment; snapped windows keep an anchor monitor derived from restored coordinates so early layout passes cannot drift a restored secondary-monitor position to another screen.
 - Deferred `SizeChanged` auto-positioning is also skipped while the user is actively dragging the window, preventing the previous snapped corner from being re-applied mid-drag and corrupting the eventually persisted restart position.
 - When a drag finishes, `MainWindow` immediately persists the final position and snapped corner to settings, rather than waiting for tray hide or app shutdown.
-- All screen coordinates go through `ScreenRectToWpf()` (device → WPF units via `PresentationSource.TransformFromDevice`) to handle mixed-DPI setups.
+- All screen coordinates go through `ScreenPlacement.ToWpf()` (device → WPF units via `PresentationSource.TransformFromDevice`) to handle mixed-DPI setups.
+- `MainWindow` and `StatsWindow` share the placement code: `ScreenPlacement` ([src/Views/ScreenPlacement.cs](src/Views/ScreenPlacement.cs)) looks up monitors and work areas, and the geometry itself — `ClampToWorkArea`, `ClampToBestWorkArea` (keep a fully visible window as is, otherwise the smallest move, largest overlap on a tie, primary screen when none), `FindBestWorkAreaIndex`, corner detection and positions — is in the pure, unit-tested `SnapHelper`.
 
 ### Loading / empty states
 - `MainViewModel.HasLoadedOnce` flips to `true` at the end of the first `UpdateFromSnapshot` call and never resets; `IsInitialLoading` is `!HasLoadedOnce`.

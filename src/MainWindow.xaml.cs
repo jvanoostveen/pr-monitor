@@ -46,8 +46,6 @@ public partial class MainWindow : Window
     private SnapCorner _snappedCorner  = SnapCorner.None;
     private SnapCorner _pendingSnapCorner = SnapCorner.None;
 
-    private const double SnapThreshold = 80;
-    private const double SnapInset     = 6;
 
     // Track display configuration changes so window-moves caused by Windows
     // (not the user) don't corrupt the saved position or _userMoved state.
@@ -295,11 +293,11 @@ public partial class MainWindow : Window
     {
         // Always use primary screen for the default placement
         var primary = WinForms.Screen.PrimaryScreen!.WorkingArea;
-        var wa = ScreenRectToWpf(primary);
+        var wa = ScreenPlacement.ToWpf(this, primary);
         double w = width  ?? (ActualWidth  > 0 ? ActualWidth  : Width);
         double h = height ?? (ActualHeight > 0 ? ActualHeight : 0);
-        var left = wa.Right - w - SnapInset;
-        var top = wa.Bottom - h - SnapInset;
+        var left = wa.Right - w - SnapHelper.DefaultInset;
+        var top = wa.Bottom - h - SnapHelper.DefaultInset;
         SetWindowPosition(left, top, reason);
         _snapAnchorScreen = WinForms.Screen.PrimaryScreen;
     }
@@ -317,9 +315,9 @@ public partial class MainWindow : Window
 
         var width = ActualWidth > 0 ? ActualWidth : Width;
         var height = ActualHeight > 0 ? ActualHeight : Height;
-        var (left, top) = ClampToBestWorkArea(savedLeft, savedTop, width, height);
+        var (left, top) = ScreenPlacement.ClampToBestWorkArea(this, savedLeft, savedTop, width, height);
         SetWindowPosition(left, top, "startup-restore-clamped");
-        _snapAnchorScreen = FindBestScreenForRect(left, top, width, height);
+        _snapAnchorScreen = ScreenPlacement.FindBestScreen(this, left, top, width, height);
         _userMoved = true;
         if (_settings.MainWindowSnappedCorner is { } cornerStr
             && Enum.TryParse<SnapCorner>(cornerStr, out var restoredCorner))
@@ -327,7 +325,7 @@ public partial class MainWindow : Window
 
         if (_snappedCorner != SnapCorner.None && _snapAnchorScreen is not null)
         {
-            var wa = ScreenRectToWpf(_snapAnchorScreen.WorkingArea);
+            var wa = ScreenPlacement.ToWpf(this, _snapAnchorScreen.WorkingArea);
             var (snapLeft, snapTop) = GetCornerPositionInArea(wa, _snappedCorner, width, height);
             SetWindowPosition(snapLeft, snapTop, "startup-restore-snap");
         }
@@ -335,95 +333,6 @@ public partial class MainWindow : Window
         PersistWindowPosition();
         _startupPlacementRestored = true;
         LogPlacement("RestoreStartupPlacement:end", $"final=({FormatDouble(Left)},{FormatDouble(Top)}); anchor={DescribeScreen(_snapAnchorScreen)}");
-    }
-
-    // ── Multi-monitor helpers ────────────────────────────────────────────────
-
-    /// <summary>
-    /// Convert a physical-pixel screen rect to WPF device-independent units.
-    /// </summary>
-    private Rect ScreenRectToWpf(System.Drawing.Rectangle r)
-    {
-        var source = PresentationSource.FromVisual(this);
-        if (source?.CompositionTarget == null)
-            return new Rect(r.X, r.Y, r.Width, r.Height);
-        var m = source.CompositionTarget.TransformFromDevice;
-        var tl = m.Transform(new System.Windows.Point(r.Left, r.Top));
-        var br = m.Transform(new System.Windows.Point(r.Right, r.Bottom));
-        return new Rect(tl, br);
-    }
-
-    /// <summary>
-    /// Work area of whichever monitor the window is currently displayed on.
-    /// Falls back to the primary screen when the handle isn't ready yet.
-    /// </summary>
-    private Rect GetCurrentWorkArea()
-    {
-        var handle = new WindowInteropHelper(this).Handle;
-        var screen = handle != IntPtr.Zero
-            ? WinForms.Screen.FromHandle(handle)
-            : WinForms.Screen.PrimaryScreen!;
-        return ScreenRectToWpf(screen!.WorkingArea);
-    }
-
-    private static double Clamp(double value, double min, double max)
-    {
-        if (max < min)
-            return min;
-        return Math.Max(min, Math.Min(value, max));
-    }
-
-    private static double ComputeOverlapArea(Rect a, Rect b) =>
-        SnapHelper.ComputeOverlapArea(a, b);
-
-    private (double left, double top) ClampToWorkArea(Rect wa, double left, double top, double width, double height)
-    {
-        var clampedLeft = width >= wa.Width ? wa.Left : Clamp(left, wa.Left, wa.Right - width);
-        var clampedTop = height >= wa.Height ? wa.Top : Clamp(top, wa.Top, wa.Bottom - height);
-        return (clampedLeft, clampedTop);
-    }
-
-    private (double left, double top) ClampToBestWorkArea(double left, double top, double width, double height)
-    {
-        var targetRect = new Rect(left, top, width, height);
-        var bestDistance = double.PositiveInfinity;
-        var bestOverlap = double.NegativeInfinity;
-        var bestPosition = (left, top);
-
-        foreach (var screen in WinForms.Screen.AllScreens)
-        {
-            var wa = ScreenRectToWpf(screen.WorkingArea);
-            var candidate = ClampToWorkArea(wa, left, top, width, height);
-            var dx = candidate.left - left;
-            var dy = candidate.top - top;
-            var distance = (dx * dx) + (dy * dy);
-
-            var candidateRect = new Rect(candidate.left, candidate.top, width, height);
-            var overlap = ComputeOverlapArea(candidateRect, wa);
-
-            if (distance < bestDistance - 0.01 || (Math.Abs(distance - bestDistance) <= 0.01 && overlap > bestOverlap))
-            {
-                bestDistance = distance;
-                bestOverlap = overlap;
-                bestPosition = candidate;
-            }
-        }
-
-        if (double.IsPositiveInfinity(bestDistance))
-        {
-            var primary = ScreenRectToWpf(WinForms.Screen.PrimaryScreen!.WorkingArea);
-            return ClampToWorkArea(primary, left, top, width, height);
-        }
-
-        // If already fully visible on at least one work area, preserve exact position.
-        foreach (var screen in WinForms.Screen.AllScreens)
-        {
-            var wa = ScreenRectToWpf(screen.WorkingArea);
-            if (wa.Contains(targetRect.TopLeft) && wa.Contains(targetRect.BottomRight))
-                return (left, top);
-        }
-
-        return bestPosition;
     }
 
     private void PersistWindowPosition(bool saveToDisk = true)
@@ -477,16 +386,16 @@ public partial class MainWindow : Window
     {
         var w  = ActualWidth  > 0 ? ActualWidth  : Width;
         var h  = ActualHeight > 0 ? ActualHeight : Height;
-        var screen = FindBestScreenForRect(Left, Top, w, h);
-        var wa = ScreenRectToWpf(screen.WorkingArea);
-        return SnapHelper.DetectNearCorner(Left, Top, w, h, wa, SnapThreshold);
+        var screen = ScreenPlacement.FindBestScreen(this, Left, Top, w, h);
+        var wa = ScreenPlacement.ToWpf(this, screen.WorkingArea);
+        return SnapHelper.DetectNearCorner(Left, Top, w, h, wa, SnapHelper.DefaultThreshold);
     }
 
     private (double left, double top) GetCornerPositionInArea(Rect wa, SnapCorner corner, double? width = null, double? height = null)
     {
         double w = width  ?? ActualWidth;
         double h = height ?? ActualHeight;
-        return SnapHelper.GetCornerPosition(wa, corner, w, h, SnapInset);
+        return SnapHelper.GetCornerPosition(wa, corner, w, h, SnapHelper.DefaultInset);
     }
 
     private void ApplyCornerSnap(SnapCorner corner, double? width = null, double? height = null)
@@ -503,8 +412,8 @@ public partial class MainWindow : Window
 
         // Prefer an anchored monitor for snapped windows so post-startup layout changes
         // do not drift to a different monitor.
-        var screen = _snapAnchorScreen ?? FindBestScreenForRect(Left, Top, w, h);
-        var wa = ScreenRectToWpf(screen.WorkingArea);
+        var screen = _snapAnchorScreen ?? ScreenPlacement.FindBestScreen(this, Left, Top, w, h);
+        var wa = ScreenPlacement.ToWpf(this, screen.WorkingArea);
         var (l, t) = GetCornerPositionInArea(wa, corner, w, h);
         LogPlacement("ApplyCornerSnap", $"corner={corner}; size=({FormatDouble(w)},{FormatDouble(h)}); screen={DescribeScreen(screen)}; target=({FormatDouble(l)},{FormatDouble(t)})");
         SetWindowPosition(l, t, "apply-corner-snap");
@@ -535,7 +444,7 @@ public partial class MainWindow : Window
     /// </summary>
     private void EnsureFullyVisible()
     {
-        var wa = GetCurrentWorkArea();
+        var wa = ScreenPlacement.CurrentWorkArea(this);
         double left = Left, top = Top;
         if (left + ActualWidth  > wa.Right)  left = wa.Right  - ActualWidth;
         if (top  + ActualHeight > wa.Bottom) top  = wa.Bottom - ActualHeight;
@@ -557,13 +466,13 @@ public partial class MainWindow : Window
     {
         var width = ActualWidth > 0 ? ActualWidth : Width;
         var height = ActualHeight > 0 ? ActualHeight : Height;
-        var (left, top) = ClampToBestWorkArea(Left, Top, width, height);
+        var (left, top) = ScreenPlacement.ClampToBestWorkArea(this, Left, Top, width, height);
         LogPlacement("EnsureOnScreen", $"current=({FormatDouble(Left)},{FormatDouble(Top)}); clamped=({FormatDouble(left)},{FormatDouble(top)}); size=({FormatDouble(width)},{FormatDouble(height)})");
         if (Math.Abs(left - Left) > 0.5 || Math.Abs(top - Top) > 0.5)
             SetWindowPosition(left, top, "ensure-on-screen");
 
         if (_snappedCorner != SnapCorner.None)
-            _snapAnchorScreen = FindBestScreenForRect(left, top, width, height);
+            _snapAnchorScreen = ScreenPlacement.FindBestScreen(this, left, top, width, height);
 
         PersistWindowPosition();
     }
@@ -617,8 +526,8 @@ public partial class MainWindow : Window
             // Find the screen that best matches the pre-change position, then re-snap
             // to the same corner on that screen (which may now be a different screen
             // if the original monitor was disconnected).
-            var screen = FindBestScreenForRect(_preChangeLeft, _preChangeTop, width, height);
-            var wa = ScreenRectToWpf(screen.WorkingArea);
+            var screen = ScreenPlacement.FindBestScreen(this, _preChangeLeft, _preChangeTop, width, height);
+            var wa = ScreenPlacement.ToWpf(this, screen.WorkingArea);
             var (l, t) = GetCornerPositionInArea(wa, _preChangeSnappedCorner, width, height);
             _snappedCorner = _preChangeSnappedCorner;
             _snapAnchorScreen = screen;
@@ -627,48 +536,10 @@ public partial class MainWindow : Window
         else
         {
             // No snap: clamp the pre-change position to the best available work area.
-            var (l, t) = ClampToBestWorkArea(_preChangeLeft, _preChangeTop, width, height);
+            var (l, t) = ScreenPlacement.ClampToBestWorkArea(this, _preChangeLeft, _preChangeTop, width, height);
             _snapAnchorScreen = null;
             SetWindowPosition(l, t, "display-change-clamp");
         }
-    }
-
-    /// <summary>
-    /// Returns the screen whose work area overlaps most with the given rect.
-    /// Falls back to the closest screen (by center distance) when there is no overlap,
-    /// then to the primary screen.
-    /// </summary>
-    private WinForms.Screen FindBestScreenForRect(double left, double top, double width, double height)
-    {
-        var windowRect   = new Rect(left, top, width, height);
-        var windowCenter = new System.Windows.Point(left + width / 2, top + height / 2);
-
-        WinForms.Screen? bestOverlap  = null;
-        double maxOverlap = 0;
-        WinForms.Screen? closest      = null;
-        double minDist    = double.MaxValue;
-
-        foreach (var screen in WinForms.Screen.AllScreens)
-        {
-            var wa      = ScreenRectToWpf(screen.WorkingArea);
-            var overlap = ComputeOverlapArea(windowRect, wa);
-            if (overlap > maxOverlap)
-            {
-                maxOverlap = overlap;
-                bestOverlap = screen;
-            }
-            var cx   = (wa.Left + wa.Right)  / 2;
-            var cy   = (wa.Top  + wa.Bottom) / 2;
-            var dist = (windowCenter.X - cx) * (windowCenter.X - cx)
-                     + (windowCenter.Y - cy) * (windowCenter.Y - cy);
-            if (dist < minDist)
-            {
-                minDist = dist;
-                closest = screen;
-            }
-        }
-
-        return bestOverlap ?? closest ?? WinForms.Screen.PrimaryScreen!;
     }
 
     protected override void OnLocationChanged(EventArgs e)
@@ -800,7 +671,7 @@ public partial class MainWindow : Window
         if (screen is null)
             return "none";
 
-        var wa = ScreenRectToWpf(screen.WorkingArea);
+        var wa = ScreenPlacement.ToWpf(this, screen.WorkingArea);
         return $"{screen.DeviceName}[primary={screen.Primary}; workArea={DescribeRect(wa)}]";
     }
 

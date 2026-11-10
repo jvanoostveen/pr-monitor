@@ -97,54 +97,54 @@ public class SnapHelperTests
         Assert.Equal(SnapCorner.None, result);
     }
 
-    // ── FindBestWorkArea ────────────────────────────────────────────────────
+    // ── FindBestWorkAreaIndex ────────────────────────────────────────────────────
 
     private static readonly IReadOnlyList<Rect> TwoScreens = new[] { Primary, Secondary };
 
     [Fact]
-    public void FindBestWorkArea_WindowFullyOnPrimary_ReturnsPrimary()
+    public void FindBestWorkAreaIndex_WindowFullyOnPrimary_ReturnsPrimary()
     {
-        var result = SnapHelper.FindBestWorkArea(TwoScreens, 100, 100, W, H);
-        Assert.Equal(Primary, result);
+        var result = SnapHelper.FindBestWorkAreaIndex(TwoScreens, 100, 100, W, H);
+        Assert.Equal(0, result);
     }
 
     [Fact]
-    public void FindBestWorkArea_WindowFullyOnSecondary_ReturnsSecondary()
+    public void FindBestWorkAreaIndex_WindowFullyOnSecondary_ReturnsSecondary()
     {
-        var result = SnapHelper.FindBestWorkArea(TwoScreens, 2700, 100, W, H);
-        Assert.Equal(Secondary, result);
+        var result = SnapHelper.FindBestWorkAreaIndex(TwoScreens, 2700, 100, W, H);
+        Assert.Equal(1, result);
     }
 
     [Fact]
-    public void FindBestWorkArea_StradlingMajorityOnSecondary_ReturnsSecondary()
+    public void FindBestWorkAreaIndex_StradlingMajorityOnSecondary_ReturnsSecondary()
     {
         // Window starts at 2510: 50 px on primary, 330 px on secondary
-        var result = SnapHelper.FindBestWorkArea(TwoScreens, 2510, 100, W, H);
-        Assert.Equal(Secondary, result);
+        var result = SnapHelper.FindBestWorkAreaIndex(TwoScreens, 2510, 100, W, H);
+        Assert.Equal(1, result);
     }
 
     [Fact]
-    public void FindBestWorkArea_StradlingMajorityOnPrimary_ReturnsPrimary()
+    public void FindBestWorkAreaIndex_StradlingMajorityOnPrimary_ReturnsPrimary()
     {
         // Window starts at 2230: 330 px on primary, 50 px on secondary
-        var result = SnapHelper.FindBestWorkArea(TwoScreens, 2230, 100, W, H);
-        Assert.Equal(Primary, result);
+        var result = SnapHelper.FindBestWorkAreaIndex(TwoScreens, 2230, 100, W, H);
+        Assert.Equal(0, result);
     }
 
     [Fact]
-    public void FindBestWorkArea_NoOverlapClosestToSecondary_ReturnsSecondary()
+    public void FindBestWorkAreaIndex_NoOverlapClosestToSecondary_ReturnsSecondary()
     {
         // Window is fully to the right of secondary
         var left = Secondary.Right + 100;
-        var result = SnapHelper.FindBestWorkArea(TwoScreens, left, 100, W, H);
-        Assert.Equal(Secondary, result);
+        var result = SnapHelper.FindBestWorkAreaIndex(TwoScreens, left, 100, W, H);
+        Assert.Equal(1, result);
     }
 
     [Fact]
-    public void FindBestWorkArea_EmptyList_ReturnsRectEmpty()
+    public void FindBestWorkAreaIndex_EmptyList_ReturnsMinusOne()
     {
-        var result = SnapHelper.FindBestWorkArea(Array.Empty<Rect>(), 100, 100, W, H);
-        Assert.Equal(Rect.Empty, result);
+        var result = SnapHelper.FindBestWorkAreaIndex(Array.Empty<Rect>(), 100, 100, W, H);
+        Assert.Equal(-1, result);
     }
 
     // ── GetCornerPosition ───────────────────────────────────────────────────
@@ -234,11 +234,11 @@ public class SnapHelperTests
     // ── Cross-screen scenario ────────────────────────────────────────────────
 
     [Fact]
-    public void CrossScreen_FindBestWorkArea_ReturnsSecondary()
+    public void CrossScreen_FindBestWorkAreaIndex_ReturnsSecondary()
     {
         // Window at (2570, 10, 380, 590) — mostly on secondary
-        var result = SnapHelper.FindBestWorkArea(TwoScreens, 2570, 10, W, H);
-        Assert.Equal(Secondary, result);
+        var result = SnapHelper.FindBestWorkAreaIndex(TwoScreens, 2570, 10, W, H);
+        Assert.Equal(1, result);
     }
 
     [Fact]
@@ -247,5 +247,32 @@ public class SnapHelperTests
         // Window near top-left of secondary
         var result = SnapHelper.DetectNearCorner(2570, 10, W, H, Secondary);
         Assert.Equal(SnapCorner.TopLeft, result);
+    }
+
+    // ── ClampToBestWorkArea ─────────────────────────────────────────────────
+
+    [Fact]
+    public void ClampToBestWorkArea_FullyVisibleOnAScreen_KeepsExactPosition()
+    {
+        var result = SnapHelper.ClampToBestWorkArea(TwoScreens, Primary, 2700, 100, W, H);
+
+        Assert.Equal((2700, 100), result);
+    }
+
+    [Fact]
+    public void ClampToBestWorkArea_PartlyOffScreen_MovesTheLeastIntoTheNearestScreen()
+    {
+        // Sticks out below the secondary screen (1080 high): pulled up just enough.
+        var result = SnapHelper.ClampToBestWorkArea(TwoScreens, Primary, 2700, 700, W, H);
+
+        Assert.Equal((2700, 1080 - H), result);
+    }
+
+    [Fact]
+    public void ClampToBestWorkArea_NoScreens_ClampsIntoFallback()
+    {
+        var result = SnapHelper.ClampToBestWorkArea([], Primary, 5000, 5000, W, H);
+
+        Assert.Equal((Primary.Right - W, Primary.Bottom - H), result);
     }
 }
