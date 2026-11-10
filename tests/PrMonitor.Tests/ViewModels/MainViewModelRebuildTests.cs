@@ -25,6 +25,46 @@ public class MainViewModelRebuildTests
     }
 
     [Fact]
+    public void UpdateFromSnapshot_OnlyTimeAgoChanged_UpdatesSameRowInPlace()
+    {
+        var vm = CreateViewModel();
+        vm.UpdateFromSnapshot(new PollSnapshot { AutoMergePrs = [MakePr(updatedAt: DateTimeOffset.UtcNow.AddMinutes(-5))] });
+        var first = vm.AutoMergePrs[0];
+        var raised = new List<string?>();
+        first.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        vm.UpdateFromSnapshot(new PollSnapshot { AutoMergePrs = [MakePr(updatedAt: DateTimeOffset.UtcNow.AddMinutes(-20))] });
+
+        Assert.Same(first, vm.AutoMergePrs[0]);
+        Assert.Equal("20m ago", first.TimeAgo);
+        Assert.Equal([nameof(PrItemViewModel.TimeAgo)], raised);
+    }
+
+    [Fact]
+    public void UpdateFromSnapshot_OnlyHeadCommitChanged_RebuildsRows()
+    {
+        // Not rendered, but "Rerun failed jobs" acts on it: a kept row would rerun the old commit.
+        var vm = CreateViewModel();
+        vm.UpdateFromSnapshot(new PollSnapshot { AutoMergePrs = [MakePr(ci: CIState.Failure, headSha: "old")] });
+
+        vm.UpdateFromSnapshot(new PollSnapshot { AutoMergePrs = [MakePr(ci: CIState.Failure, headSha: "new")] });
+
+        Assert.Equal("new", vm.AutoMergePrs[0].HeadCommitSha);
+    }
+
+    [Fact]
+    public void UpdateFromSnapshot_ChangeInOneSection_KeepsOtherSectionsRows()
+    {
+        var vm = CreateViewModel();
+        vm.UpdateFromSnapshot(new PollSnapshot { AutoMergePrs = [MakePr()], MyPrs = [MakePr(number: 2)] });
+        var untouched = vm.MyPrs[0];
+
+        vm.UpdateFromSnapshot(new PollSnapshot { AutoMergePrs = [MakePr(ci: CIState.Failure)], MyPrs = [MakePr(number: 2)] });
+
+        Assert.Same(untouched, vm.MyPrs[0]);
+    }
+
+    [Fact]
     public void UpdateFromSnapshot_ChangedCiState_RebuildsRows()
     {
         var vm = CreateViewModel();
@@ -185,7 +225,7 @@ public class MainViewModelRebuildTests
     }
 
     private static PullRequestInfo MakePr(int number = 1, string title = "PR", CIState ci = CIState.Success,
-        IReadOnlyList<string>? labels = null) =>
+        IReadOnlyList<string>? labels = null, DateTimeOffset? updatedAt = null, string headSha = "abc123") =>
         new()
         {
             Labels = labels ?? [],
@@ -196,5 +236,7 @@ public class MainViewModelRebuildTests
             Author = "alice",
             CIState = ci,
             CreatedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+            UpdatedAt = updatedAt ?? DateTimeOffset.MinValue,
+            HeadCommitSha = headSha,
         };
 }

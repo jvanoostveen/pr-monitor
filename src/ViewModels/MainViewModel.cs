@@ -56,13 +56,20 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// <summary>PRs that belong to a stack, pulled out of their regular section and grouped per stack.</summary>
     public ObservableCollection<PrItemViewModel> StackedPrs { get; } = [];
 
-    /// <summary>Every PR row currently shown in the window, across all sections.</summary>
-    internal IEnumerable<PrItemViewModel> AllPrs =>
-        HotfixPrs.Concat(AutoMergePrs).Concat(ReviewRequestedPrs).Concat(StackedPrs).Concat(MyPrs)
-                 .Concat(DependabotPrs).Concat(TeamReviewRequestedPrs).Concat(DraftPrs).Concat(HiddenPrs);
+    /// <summary>Every section a visible (not Later) row can be in. The one list of sections; keep it complete.</summary>
+    private ObservableCollection<PrItemViewModel>[] VisibleSections =>
+        _visibleSections ??= [HotfixPrs, AutoMergePrs, ReviewRequestedPrs, StackedPrs, MyPrs, DependabotPrs, TeamReviewRequestedPrs, DraftPrs];
 
-    /// <summary>Rendered content of the last applied snapshot; see <see cref="BuildDisplaySignature"/>.</summary>
-    private string? _lastDisplaySignature;
+    private ObservableCollection<PrItemViewModel>[]? _visibleSections;
+
+    /// <summary>Every PR row currently shown in the window, across all sections.</summary>
+    internal IEnumerable<PrItemViewModel> AllPrs => VisibleSections.SelectMany(s => s).Concat(HiddenPrs);
+
+    /// <summary>
+    /// Per section, the signature of the rows last applied to it; see <see cref="BuildDisplaySignature"/>.
+    /// Cleared when a row was moved by hand, so the next snapshot rebuilds every section.
+    /// </summary>
+    private readonly Dictionary<ObservableCollection<PrItemViewModel>, string> _sectionSignatures = [];
 
     private int _autoMergeCount;
     public int AutoMergeCount
@@ -464,21 +471,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _settings.Save();
 
         // Remove from any visible section without adding it to Later.
-        _ = FindAndRemove(HotfixPrs, key)
-            ?? FindAndRemove(AutoMergePrs, key)
-            ?? FindAndRemove(MyPrs, key)
-            ?? FindAndRemove(DraftPrs, key)
-            ?? FindAndRemove(ReviewRequestedPrs, key)
-            ?? FindAndRemove(TeamReviewRequestedPrs, key)
-            ?? FindAndRemove(DependabotPrs, key);
+        _ = FindAndRemoveVisible(key);
 
-        AutoMergeCount = AutoMergePrs.Count;
-        MyPrsCount = MyPrs.Count;
-        DraftPrsCount = DraftPrs.Count;
-        ReviewCount = ReviewRequestedPrs.Count;
-        TeamReviewCount = TeamReviewRequestedPrs.Count;
-        HotfixCount = HotfixPrs.Count;
-        HiddenCount = HiddenPrs.Count;
+        RecountSections();
         OnHiddenPrsChanged?.Invoke();
     }
 
@@ -488,28 +483,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _settings.SnoozedPrs[key] = until ?? DateTimeOffset.MaxValue;
         _settings.ManuallyHiddenPrKeys.Remove(key);
         _settings.Save();
-        _lastDisplaySignature = null;
+        _sectionSignatures.Clear();
 
         // Find item in active lists, move it to HiddenPrs immediately
-        var item = FindAndRemove(HotfixPrs, key)
-                ?? FindAndRemove(AutoMergePrs, key)
-                ?? FindAndRemove(MyPrs, key)
-                ?? FindAndRemove(DraftPrs, key)
-                ?? FindAndRemove(ReviewRequestedPrs, key)
-                ?? FindAndRemove(TeamReviewRequestedPrs, key)
-                ?? FindAndRemove(DependabotPrs, key);
-        if (item is not null)
-        {
+        if (FindAndRemoveVisible(key) is { } item)
             HiddenPrs.Add(item);
-        }
 
-        AutoMergeCount = AutoMergePrs.Count;
-        MyPrsCount = MyPrs.Count;
-        DraftPrsCount = DraftPrs.Count;
-        ReviewCount = ReviewRequestedPrs.Count;
-        TeamReviewCount = TeamReviewRequestedPrs.Count;
-        HotfixCount = HotfixPrs.Count;
-        HiddenCount = HiddenPrs.Count;
+        RecountSections();
         OnHiddenPrsChanged?.Invoke();
     }
 
@@ -519,48 +499,22 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _settings.SnoozedPrs.Remove(key);
         _settings.ManuallyHiddenPrKeys.Remove(key);
         _settings.Save();
-        _lastDisplaySignature = null;
+        _sectionSignatures.Clear();
         var item = FindAndRemove(HiddenPrs, key);
         if (item is not null)
         {
-            // Put back into the correct section immediately
-            if (item.IsHotfixPr)
-            {
-                HotfixPrs.Add(item);
-                HotfixCount = HotfixPrs.Count;
-            }
-            else if (item.IsAutoMergePr)
-            {
-                AutoMergePrs.Add(item);
-                AutoMergeCount = AutoMergePrs.Count;
-            }
-            else if (item.IsDraftSectionPr)
-            {
-                DraftPrs.Add(item);
-                DraftPrsCount = DraftPrs.Count;
-            }
-            else if (item.IsMyPr)
-            {
-                MyPrs.Add(item);
-                MyPrsCount = MyPrs.Count;
-            }
-            else if (item.IsTeamReviewPr)
-            {
-                TeamReviewRequestedPrs.Add(item);
-                TeamReviewCount = TeamReviewRequestedPrs.Count;
-            }
-            else if (item.IsDependabotPr)
-            {
-                DependabotPrs.Add(item);
-                DependabotCount = DependabotPrs.Count;
-            }
-            else
-            {
-                ReviewRequestedPrs.Add(item);
-                ReviewCount = ReviewRequestedPrs.Count;
-            }
+            // Put back into the correct section immediately. A stacked PR lands in its regular
+            // section; the next snapshot (every section is rebuilt) moves it to Stacks.
+            var section = item.IsHotfixPr ? HotfixPrs
+                : item.IsAutoMergePr ? AutoMergePrs
+                : item.IsDraftSectionPr ? DraftPrs
+                : item.IsMyPr ? MyPrs
+                : item.IsTeamReviewPr ? TeamReviewRequestedPrs
+                : item.IsDependabotPr ? DependabotPrs
+                : ReviewRequestedPrs;
+            section.Add(item);
         }
-        HiddenCount = HiddenPrs.Count;
+        RecountSections();
         OnHiddenPrsChanged?.Invoke();
     }
 
@@ -569,6 +523,32 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var item = list.FirstOrDefault(p => p.Key == key);
         if (item is not null) list.Remove(item);
         return item;
+    }
+
+    private PrItemViewModel? FindAndRemoveVisible(string key)
+    {
+        foreach (var section in VisibleSections)
+        {
+            if (FindAndRemove(section, key) is { } item)
+                return item;
+        }
+        return null;
+    }
+
+    /// <summary>Brings every section count, and what is derived from them, in line with the collections.</summary>
+    private void RecountSections()
+    {
+        AutoMergeCount = AutoMergePrs.Count;
+        MyPrsCount = MyPrs.Count;
+        DraftPrsCount = DraftPrs.Count;
+        ReviewCount = ReviewRequestedPrs.Count;
+        TeamReviewCount = TeamReviewRequestedPrs.Count;
+        HotfixCount = HotfixPrs.Count;
+        DependabotCount = DependabotPrs.Count;
+        StackedCount = StackedPrs.Count;
+        HiddenCount = HiddenPrs.Count;
+        OnPropertyChanged(nameof(TotalPrCount));
+        OnPropertyChanged(nameof(IsEmptyState));
     }
 
     // ── Subscribe ───────────────────────────────────────────────────
@@ -603,7 +583,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         // Triggered by a settings change, which can alter rendering in ways the row signature
         // does not capture — force a full rebuild.
-        _lastDisplaySignature = null;
+        _sectionSignatures.Clear();
         UpdateFromSnapshot(snapshot);
         OnHiddenPrsChanged?.Invoke();
     }
@@ -864,36 +844,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         hiddenItems = OrderByPriority(hiddenItems);
 
-        var signature = BuildDisplaySignature(
-            autoMerge, myPrs, review, teamReview, dependabot, hotfix, drafts, orderedStacked, hiddenItems);
+        ApplySection(AutoMergePrs, autoMerge);
+        ApplySection(MyPrs, myPrs);
+        ApplySection(ReviewRequestedPrs, review);
+        ApplySection(TeamReviewRequestedPrs, teamReview);
+        ApplySection(DependabotPrs, dependabot);
+        ApplySection(HotfixPrs, hotfix);
+        ApplySection(DraftPrs, drafts);
+        ApplySection(StackedPrs, orderedStacked);
+        ApplySection(HiddenPrs, hiddenItems);
 
-        if (signature != _lastDisplaySignature)
-        {
-            _lastDisplaySignature = signature;
-            Replace(AutoMergePrs, autoMerge);
-            Replace(MyPrs, myPrs);
-            Replace(ReviewRequestedPrs, review);
-            Replace(TeamReviewRequestedPrs, teamReview);
-            Replace(DependabotPrs, dependabot);
-            Replace(HotfixPrs, hotfix);
-            Replace(DraftPrs, drafts);
-            Replace(StackedPrs, orderedStacked);
-            Replace(HiddenPrs, hiddenItems);
-        }
-
-        AutoMergeCount = AutoMergePrs.Count;
-        MyPrsCount = MyPrs.Count;
-        DraftPrsCount = DraftPrs.Count;
-        ReviewCount = ReviewRequestedPrs.Count;
-        TeamReviewCount = TeamReviewRequestedPrs.Count;
-        HotfixCount = HotfixPrs.Count;
-        DependabotCount = DependabotPrs.Count;
-        StackedCount = StackedPrs.Count;
-        HiddenCount = HiddenPrs.Count;
+        RecountSections();
         LastUpdated = DateTime.Now.ToString("HH:mm:ss");
-
-        OnPropertyChanged(nameof(TotalPrCount));
-        OnPropertyChanged(nameof(IsEmptyState));
 
         var isEmptyNow = TotalPrCount == 0;
         if (isEmptyNow && !_wasEmpty)
@@ -904,20 +866,36 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Concatenation of everything rendered in the PR list. Identical signatures mean a rebuild
-    /// of the bound collections would produce visually identical rows, so it can be skipped.
+    /// Applies freshly built rows to one bound section. Replacing a section regenerates the visual
+    /// tree of every row in it, so a section whose rows are unchanged keeps its row instances and
+    /// only has their relative time ("5m ago") moved on in place.
     /// </summary>
-    private static string BuildDisplaySignature(params IReadOnlyList<PrItemViewModel>[] sections)
+    private void ApplySection(ObservableCollection<PrItemViewModel> target, List<PrItemViewModel> items)
+    {
+        var signature = BuildDisplaySignature(items);
+        if (_sectionSignatures.TryGetValue(target, out var last) && last == signature && target.Count == items.Count)
+        {
+            // Key is part of the signature: same rows, same order.
+            for (var i = 0; i < items.Count; i++)
+                target[i].UpdateTimeAgo(items[i].TimeAgo);
+            return;
+        }
+
+        _sectionSignatures[target] = signature;
+        Replace(target, items);
+    }
+
+    /// <summary>
+    /// Concatenation of the signatures of a section's rows. Identical signatures mean a rebuild
+    /// of the bound collection would produce identical rows, so it can be skipped.
+    /// </summary>
+    private static string BuildDisplaySignature(IReadOnlyList<PrItemViewModel> section)
     {
         var builder = new System.Text.StringBuilder();
-        foreach (var section in sections)
+        foreach (var item in section)
         {
-            foreach (var item in section)
-            {
-                builder.Append(item.DisplaySignature);
-                builder.Append('\u001E');
-            }
-            builder.Append('\u001D');
+            builder.Append(item.DisplaySignature);
+            builder.Append('\u001E');
         }
         return builder.ToString();
     }
@@ -1132,14 +1110,30 @@ public sealed class MainViewModel : INotifyPropertyChanged
 /// <summary>
 /// View model for a single PR row in the list.
 /// </summary>
-public sealed class PrItemViewModel
+public sealed class PrItemViewModel : INotifyPropertyChanged
 {
     public required string Key { get; init; }
     public required string Repository { get; init; }
     public required string Title { get; init; }
     public required string Url { get; init; }
     public required string Author { get; init; }
-    public required string TimeAgo { get; init; }
+
+    private string _timeAgo = "";
+
+    /// <summary>
+    /// Relative age ("5m ago"). The only property that changes on a live row: it moves on every
+    /// poll, and rebuilding the row for that alone would regenerate its visual tree.
+    /// </summary>
+    public required string TimeAgo { get => _timeAgo; init => _timeAgo = value; }
+
+    internal void UpdateTimeAgo(string timeAgo)
+    {
+        if (_timeAgo == timeAgo) return;
+        _timeAgo = timeAgo;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TimeAgo)));
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
     public string SnoozedUntilText { get; init; } = "";
     public string CreatedAtFormatted { get; init; } = "";
     public required string CIIcon { get; init; }
@@ -1356,15 +1350,21 @@ public sealed class PrItemViewModel
     }
 
     /// <summary>
-    /// Every value this row renders, joined into one string. Two rows with equal signatures are
-    /// visually identical, so the bound collections can be left untouched.
+    /// Every value this row renders or its context menu acts on, joined into one string, except
+    /// <see cref="TimeAgo"/> (updated in place). Two rows with equal signatures are interchangeable,
+    /// so the bound collection can keep the old row. A value missing here goes stale on screen or,
+    /// worse, makes a menu action use old data (e.g. rerunning jobs of a superseded commit).
     /// </summary>
     internal string DisplaySignature => string.Join('\u001F',
-        Key, Repository, Title, Author, TimeAgo, SnoozedUntilText, CIIcon, EffectiveCIState,
+        Key, Repository, Title, Author, SnoozedUntilText, CIIcon, EffectiveCIState,
         StackBadgeText, IsStackGroupStart, ShowStackGroupSeparator,
         HasUnresolvedReviewComments, ShowChangesRequestedIcon, ShowNoReviewerWarning,
         ShowReviewPendingIcon, ShowCommentedIcon, ShowApprovedIcon, PrTooltip,
-        Priority, string.Join(',', LabelChips.Select(c => $"{c.Text}:{c.Foreground.Color}")));
+        Priority, string.Join(',', LabelChips.Select(c => $"{c.Text}:{c.Foreground.Color}")),
+        // Context-menu inputs that are not rendered:
+        Url, HeadRefName, HeadCommitSha, IsDraft, HasAutoMerge, StackRootKey, StackParentUrl, StackSize,
+        string.Join(',', Labels), string.Join(',', ReviewerLogins),
+        string.Join(',', ReviewerStates.Select(kv => $"{kv.Key}:{kv.Value}")));
 
     public static PrItemViewModel From(PullRequestInfo pr, bool isAutoMerge = false, bool isMyPr = false, bool isHotfix = false, bool isTeamReview = false, bool isDependabot = false, bool isDraftSection = false, string snoozedUntilText = "", bool showStackRelations = true, string stackChainTooltip = "", bool stackParentIsMine = false, bool teamReviewCountsAsReviewer = false, IReadOnlyList<LabelRule>? labelRules = null)
     {
