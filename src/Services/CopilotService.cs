@@ -161,27 +161,15 @@ public sealed class CopilotService : IFlakinessAnalyzer
 
     private async Task<string?> GetBearerTokenAsync()
     {
-        try
+        // The token itself is never logged; only gh's stderr on failure.
+        var (output, stderr, exitCode) = await GhCli.RunAsync(_logger, "CopilotService", CancellationToken.None, "auth", "token");
+        if (exitCode != 0)
         {
-            var psi = new System.Diagnostics.ProcessStartInfo("gh", "auth token")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-
-            using var proc = System.Diagnostics.Process.Start(psi);
-            if (proc is null) return null;
-            var output = await proc.StandardOutput.ReadToEndAsync();
-            await proc.WaitForExitAsync();
-            return string.IsNullOrWhiteSpace(output) ? null : output.Trim();
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("CopilotService.GetBearerTokenAsync failed.", ex);
+            if (output is not null)
+                _logger.Warn($"CopilotService: 'gh auth token' failed (exit={exitCode}): {stderr?.Trim()}");
             return null;
         }
+        return string.IsNullOrWhiteSpace(output) ? null : output.Trim();
     }
 
     /// <summary>

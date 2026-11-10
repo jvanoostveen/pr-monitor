@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Internal clean-up without visible change: removed the WPF context menus on PR rows that could never open (right-click always shows the native menu) together with their handlers and styles, and other unused code. Every link is opened through one helper that only accepts https web addresses. The CI dot and status icons of a PR row are now defined once for all sections; as a result a draft PR no longer shows the green "approved" check in the Stacks and Later sections either (the Drafts section already left it out).
+- Internal clean-up without visible change: removed the WPF context menus on PR rows that could never open (right-click always shows the native menu) together with their handlers and styles, and other unused code. Every link is opened through one helper that only accepts https web addresses, and every `gh` call (including the token lookup for GitHub Models flakiness analysis, which could hang without a timeout) goes through one launcher. The CI dot and status icons of a PR row are now defined once for all sections; as a result a draft PR no longer shows the green "approved" check in the Stacks and Later sections either (the Drafts section already left it out).
 
 ### Fixed
 
