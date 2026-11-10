@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Diagnostics;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -51,8 +52,10 @@ public sealed class UpdateService
             _logger.Warn($"UpdateService could not extract changelog range. Current='{currentVersion}', Latest='{latestVersion}'.");
             return null;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            // Only a real cancellation propagates; an HttpClient timeout is also a
+            // TaskCanceledException and falls through to the failure branch below.
             _logger.Warn("UpdateService changelog fetch canceled.");
             throw;
         }
@@ -98,8 +101,10 @@ public sealed class UpdateService
             var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
             return ParseReleaseResult(responseJson, currentVersion, source: "http");
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            // Only a real cancellation propagates; an HttpClient timeout is also a
+            // TaskCanceledException and falls through to the failure branch below.
             _logger.Warn("UpdateService check canceled.");
             throw;
         }
@@ -146,7 +151,8 @@ public sealed class UpdateService
 
     private async Task<string?> TryGetLatestReleaseViaGhAsync(CancellationToken cancellationToken)
     {
-        var (output, stderr, exitCode) = await RunGhAsync(cancellationToken, "api", "repos/jvanoostveen/pr-monitor/releases/latest");
+        var (output, stderr, exitCode) = await GhCli.RunAsync(
+            _logger, "UpdateService", cancellationToken, "api", "repos/jvanoostveen/pr-monitor/releases/latest");
 
         if (exitCode != 0)
         {
@@ -217,7 +223,8 @@ public sealed class UpdateService
                 ReleaseUrl: releaseUrl,
                 ReleaseNotesUrl: htmlUrl,
                 ReleaseNotes: releaseNotes,
-                ErrorMessage: null);
+                ErrorMessage: null,
+                ZipSha256: FindAssetSha256(root, ZipAssetName(latestVersionText)));
         }
         catch (JsonException ex)
         {
@@ -230,41 +237,6 @@ public sealed class UpdateService
                 ReleaseNotesUrl: null,
                 ReleaseNotes: null,
                 ErrorMessage: "Unable to parse release information.");
-        }
-    }
-
-    private async Task<(string? Output, string? Stderr, int ExitCode)> RunGhAsync(CancellationToken cancellationToken, params string[] arguments)
-    {
-        try
-        {
-            using var process = new Process();
-            process.StartInfo = new ProcessStartInfo
-            {
-                FileName = "gh",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-            foreach (var arg in arguments)
-                process.StartInfo.ArgumentList.Add(arg);
-
-            process.Start();
-
-            var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-
-            await process.WaitForExitAsync(cancellationToken);
-
-            var output = await outputTask;
-            var stderr = await stderrTask;
-
-            return (output, stderr, process.ExitCode);
-        }
-        catch (Exception ex)
-        {
-            _logger.Warn($"UpdateService failed to execute gh command. {DiagnosticsLogger.SummarizeException(ex)}");
-            return (null, null, -1);
         }
     }
 
@@ -479,14 +451,52 @@ public sealed class UpdateService
         sections.Add(new ParsedChangelogSection(versionText, version, buffer.ToString().Trim()));
     }
 
+    internal static string ZipAssetName(string version) => $"PrMonitor-{version}-win-x64.zip";
+
     /// <summary>
-    /// Downloads the release zip for <paramref name="version"/> to a temp folder,
+    /// The hex SHA-256 GitHub publishes for the release asset named exactly
+    /// <paramref name="assetName"/> (<c>assets[].digest</c>, <c>"sha256:&lt;hex&gt;"</c>), or null
+    /// when the asset or its digest is missing.
+    /// </summary>
+    internal static string? FindAssetSha256(JsonElement release, string assetName)
+    {
+        if (!release.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Array)
+            return null;
+
+        foreach (var asset in assets.EnumerateArray())
+        {
+            if (asset.TryGetProperty("name", out var name)
+                && name.ValueKind == JsonValueKind.String
+                && string.Equals(name.GetString(), assetName, StringComparison.Ordinal)
+                && asset.TryGetProperty("digest", out var digest)
+                && digest.ValueKind == JsonValueKind.String
+                && digest.GetString() is { } value
+                && value.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
+            {
+                var hex = value["sha256:".Length..];
+                return hex.Length == 64 && hex.All(Uri.IsHexDigit) ? hex.ToLowerInvariant() : null;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The update extracted by the last successful download: its path and SHA-256.</summary>
+    private (string Path, string Sha256)? _preparedUpdate;
+
+    /// <summary>
+    /// Downloads the release zip for <paramref name="version"/> to a temp folder, checks it
+    /// against <paramref name="expectedZipSha256"/> (the digest GitHub publishes for the asset),
     /// extracts PrMonitor.exe, and returns the path to the extracted exe.
     /// Reports download progress (0–100) via <paramref name="progress"/>.
+    /// Throws <see cref="InvalidDataException"/> when no digest is known or it does not match.
     /// </summary>
-    public async Task<string> DownloadUpdateAsync(string version, IProgress<int> progress, CancellationToken ct = default)
+    public async Task<string> DownloadUpdateAsync(string version, string? expectedZipSha256, IProgress<int> progress, CancellationToken ct = default)
     {
-        var zipFileName = $"PrMonitor-{version}-win-x64.zip";
+        if (string.IsNullOrWhiteSpace(expectedZipSha256))
+            throw new InvalidDataException("The release does not publish a SHA-256 digest for its download, so it cannot be verified.");
+
+        var zipFileName = ZipAssetName(version);
         var zipUrl = $"{ReleaseDownloadBaseUrl}/v{version}/{zipFileName}";
         var tempDir = Path.Combine(Path.GetTempPath(), "PrMonitor_update");
         Directory.CreateDirectory(tempDir);
@@ -507,6 +517,7 @@ public sealed class UpdateService
         var totalBytes = response.Content.Headers.ContentLength ?? -1L;
         await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
         long bytesRead = 0;
+        using var zipHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         await using (var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 81920, useAsync: true))
         {
             var buffer = new byte[81920];
@@ -514,13 +525,22 @@ public sealed class UpdateService
             while ((read = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), ct)) > 0)
             {
                 await fileStream.WriteAsync(buffer.AsMemory(0, read), ct);
+                zipHash.AppendData(buffer, 0, read);
                 bytesRead += read;
                 if (totalBytes > 0)
                     progress.Report((int)(bytesRead * 100 / totalBytes));
             }
         }
 
-        _logger.Info($"UpdateService download complete ({bytesRead} bytes). Extracting…");
+        var actualZipSha256 = Convert.ToHexStringLower(zipHash.GetHashAndReset());
+        if (!string.Equals(actualZipSha256, expectedZipSha256, StringComparison.OrdinalIgnoreCase))
+        {
+            try { File.Delete(zipPath); } catch { /* non-critical */ }
+            _logger.Warn($"UpdateService download of {zipFileName} failed verification: expected SHA-256 {expectedZipSha256}, got {actualZipSha256}.");
+            throw new InvalidDataException("The downloaded update does not match the checksum GitHub publishes for it.");
+        }
+
+        _logger.Info($"UpdateService download complete and verified ({bytesRead} bytes). Extracting…");
 
         // A freshly-downloaded file can briefly be locked by antivirus/SmartScreen for scanning
         // right after the write stream closes, and a leftover extracted exe from a previous
@@ -539,8 +559,21 @@ public sealed class UpdateService
 
         try { File.Delete(zipPath); } catch { /* non-critical */ }
 
+        RecordPreparedUpdate(extractedExePath);
         _logger.Info($"UpdateService extraction complete → {extractedExePath}");
         return extractedExePath;
+    }
+
+    /// <summary>
+    /// Remembers the extracted exe and its hash, so <see cref="StartUpdateProcess"/> can refuse
+    /// a file that changed or vanished while it waited (possibly days) for the restart click.
+    /// </summary>
+    internal void RecordPreparedUpdate(string exePath) => _preparedUpdate = (exePath, HashFile(exePath));
+
+    private static string HashFile(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexStringLower(SHA256.HashData(stream));
     }
 
     /// <summary>
@@ -589,8 +622,19 @@ public sealed class UpdateService
         ex.Message.Contains("being used by another process", StringComparison.OrdinalIgnoreCase)
         || ex.Message.Contains("cannot access the file", StringComparison.OrdinalIgnoreCase);
 
-    internal static string BuildUpdateBatScript(int pid, string newExePath, string currentExePath)
+    private const string NewExeVariable = "PRMONITOR_NEW_EXE";
+    private const string CurrentExeVariable = "PRMONITOR_CURRENT_EXE";
+
+    /// <summary>
+    /// The update script. It contains no paths: they arrive as the environment variables
+    /// <see cref="NewExeVariable"/> and <see cref="CurrentExeVariable"/>, which reach cmd.exe as
+    /// UTF-16 and are expanded once. Embedding them would break on any character the batch
+    /// file's code page cannot hold, and expand a <c>%</c> in a path.
+    /// </summary>
+    internal static string BuildUpdateBatScript(int pid)
     {
+        const string newExe = "%" + NewExeVariable + "%";
+        const string currentExe = "%" + CurrentExeVariable + "%";
         var sb = new StringBuilder();
         sb.AppendLine("@echo off");
         sb.AppendLine("setlocal");
@@ -604,33 +648,43 @@ public sealed class UpdateService
         sb.AppendLine("        goto WAIT");
         sb.AppendLine("    )");
         sb.AppendLine(")");
-        // Back up old exe then replace
-        sb.AppendLine($"if exist \"{currentExePath}.old\" del /f \"{currentExePath}.old\" >nul 2>&1");
-        sb.AppendLine($"move /y \"{currentExePath}\" \"{currentExePath}.old\" >nul");
-        sb.AppendLine($"copy /y \"{newExePath}\" \"{currentExePath}\" >nul");
-        sb.AppendLine($"start \"\" \"{currentExePath}\"");
+        // Back up old exe then replace; if the copy fails, put the old exe back so the user is
+        // never left without one.
+        sb.AppendLine($"if exist \"{currentExe}.old\" del /f \"{currentExe}.old\" >nul 2>&1");
+        sb.AppendLine($"move /y \"{currentExe}\" \"{currentExe}.old\" >nul");
+        sb.AppendLine($"copy /y \"{newExe}\" \"{currentExe}\" >nul");
+        sb.AppendLine($"if errorlevel 1 move /y \"{currentExe}.old\" \"{currentExe}\" >nul");
+        sb.AppendLine($"start \"\" \"{currentExe}\"");
         sb.AppendLine("timeout /t 2 /nobreak >nul");
-        sb.AppendLine($"del /f \"{newExePath}\" >nul 2>&1");
+        sb.AppendLine($"del /f \"{newExe}\" >nul 2>&1");
         sb.AppendLine("(goto) 2>nul & del \"%~f0\"");
         return sb.ToString();
     }
 
     /// <summary>
     /// Writes a bat launcher script that waits for the current process to exit,
-    /// replaces the exe, and restarts the app. Returns without shutting down —
-    /// the caller is responsible for calling Application.Current.Shutdown().
+    /// replaces the exe, and restarts the app. Returns false, launching nothing, when
+    /// <paramref name="newExePath"/> is not the update the last download prepared, or the file
+    /// changed or vanished since. Returns without shutting down — the caller is responsible
+    /// for calling Application.Current.Shutdown() after a true result.
     /// </summary>
-    public void StartUpdateProcess(string newExePath)
+    public bool StartUpdateProcess(string newExePath)
     {
+        if (_preparedUpdate is not { } prepared
+            || !string.Equals(prepared.Path, newExePath, StringComparison.OrdinalIgnoreCase)
+            || !File.Exists(newExePath)
+            || !string.Equals(HashFile(newExePath), prepared.Sha256, StringComparison.Ordinal))
+        {
+            _logger.Warn($"UpdateService refused to install '{newExePath}': it is missing or changed since it was downloaded and verified.");
+            return false;
+        }
+
         var currentExePath = Environment.ProcessPath
             ?? Process.GetCurrentProcess().MainModule?.FileName
             ?? throw new InvalidOperationException("Cannot determine current executable path.");
 
-        var pid = Environment.ProcessId;
         var batPath = Path.Combine(Path.GetTempPath(), "PrMonitor_update.bat");
-        var script = BuildUpdateBatScript(pid, newExePath, currentExePath);
-
-        File.WriteAllText(batPath, script, Encoding.ASCII);
+        File.WriteAllText(batPath, BuildUpdateBatScript(Environment.ProcessId), Encoding.ASCII);
         _logger.Info($"UpdateService launching update script: {batPath}");
 
         Process.Start(new ProcessStartInfo("cmd.exe")
@@ -638,7 +692,13 @@ public sealed class UpdateService
             ArgumentList = { "/c", batPath },
             CreateNoWindow = true,
             UseShellExecute = false,
+            Environment =
+            {
+                [NewExeVariable] = newExePath,
+                [CurrentExeVariable] = currentExePath,
+            },
         });
+        return true;
     }
 }
 
@@ -653,4 +713,5 @@ public sealed record UpdateCheckResult(
     string? ReleaseUrl,
     string? ReleaseNotesUrl,
     string? ReleaseNotes,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    string? ZipSha256 = null);

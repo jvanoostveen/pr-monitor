@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.RegularExpressions;
 using PrMonitor.Models;
 
@@ -1857,59 +1856,12 @@ public sealed class GitHubService
     /// <summary>Hard cap on characters read from a streamed subprocess before it is killed.</summary>
     private const int StreamingReadCapChars = 32 * 1024 * 1024;
 
-    private static readonly TimeSpan GhTimeout = TimeSpan.FromMinutes(2);
-
     private async Task<(string? Output, string? Stderr, int ExitCode)> RunGhAsync(params string[] arguments)
     {
-        try
-        {
-            using var process = new Process();
-            process.StartInfo = new ProcessStartInfo
-            {
-                FileName = "gh",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = System.Text.Encoding.UTF8,
-                StandardErrorEncoding = System.Text.Encoding.UTF8,
-            };
-            foreach (var arg in arguments)
-                process.StartInfo.ArgumentList.Add(arg);
-
-            process.Start();
-            using var timeout = new CancellationTokenSource(GhTimeout);
-            var outputTask = process.StandardOutput.ReadToEndAsync(timeout.Token);
-            var stderrTask = process.StandardError.ReadToEndAsync(timeout.Token);
-
-            string output, stderr;
-            try
-            {
-                await process.WaitForExitAsync(timeout.Token);
-                output = await outputTask;
-                stderr = await stderrTask;
-            }
-            catch (OperationCanceledException)
-            {
-                KillProcessTree(process, arguments);
-                return (null, null, -1);
-            }
-
-            if (process.ExitCode != 0)
-            {
-                _logger.Error($"GitHubService gh command failed (exit={process.ExitCode}). args: {string.Join(" ", arguments)}. stderr: {stderr?.Trim()}");
-            }
-
-            // stdout is returned on failure too: `gh api graphql` exits 1 whenever the body has
-            // an `errors` array, even when it also carries usable partial `data`.
-            return (output, stderr, process.ExitCode);
-        }
-        catch (Exception ex)
-        {
-            // gh CLI not installed or not on PATH
-            _logger.Error("GitHubService failed to start gh process.", ex);
-            return (null, null, -1);
-        }
+        var (output, stderr, exitCode) = await GhCli.RunAsync(_logger, "GitHubService", CancellationToken.None, arguments);
+        if (exitCode > 0)
+            _logger.Error($"GitHubService gh command failed (exit={exitCode}). args: {string.Join(" ", arguments)}. stderr: {stderr?.Trim()}");
+        return (output, stderr, exitCode);
     }
 
     /// <summary>
@@ -1922,22 +1874,8 @@ public sealed class GitHubService
     {
         try
         {
-            using var process = new Process();
-            process.StartInfo = new ProcessStartInfo
-            {
-                FileName = "gh",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = System.Text.Encoding.UTF8,
-                StandardErrorEncoding = System.Text.Encoding.UTF8,
-            };
-            foreach (var arg in arguments)
-                process.StartInfo.ArgumentList.Add(arg);
-
-            process.Start();
-            using var timeout = new CancellationTokenSource(GhTimeout);
+            using var process = GhCli.Start(arguments);
+            using var timeout = new CancellationTokenSource(GhCli.Timeout);
 
             // Drained but discarded: an unread stderr pipe would block the child process.
             var stderrTask = process.StandardError.ReadToEndAsync(timeout.Token);
@@ -1970,7 +1908,7 @@ public sealed class GitHubService
                 if (capped)
                 {
                     _logger.Warn($"GitHubService: output cap reached for 'gh {string.Join(" ", arguments)}' — killing process.");
-                    KillProcessTree(process, arguments);
+                    GhCli.KillProcessTree(process, _logger, "GitHubService", arguments);
                 }
                 else
                 {
@@ -1979,7 +1917,7 @@ public sealed class GitHubService
             }
             catch (OperationCanceledException)
             {
-                KillProcessTree(process, arguments);
+                GhCli.KillProcessTree(process, _logger, "GitHubService", arguments);
                 return ("", redacted, -1);
             }
 
@@ -1994,22 +1932,6 @@ public sealed class GitHubService
         {
             _logger.Error("GitHubService failed to stream gh process output.", ex);
             return ("", 0, -1);
-        }
-    }
-
-    private void KillProcessTree(Process process, string[] arguments)
-    {
-        try
-        {
-            if (!process.HasExited)
-            {
-                _logger.Warn($"GitHubService: killing unresponsive 'gh {string.Join(" ", arguments)}'.");
-                process.Kill(entireProcessTree: true);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.Warn($"GitHubService: failed to kill gh process: {DiagnosticsLogger.SummarizeException(ex)}");
         }
     }
 

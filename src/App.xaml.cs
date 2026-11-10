@@ -326,7 +326,7 @@ public partial class App : System.Windows.Application
         {
             Dispatcher.Invoke(() => _mainVm.SetUpdateAvailable(
                 result.LatestVersionText!, result.ReleaseUrl!,
-                result.ReleaseNotesUrl, result.ReleaseNotes));
+                result.ReleaseNotesUrl, result.ReleaseNotes, result.ZipSha256));
         }
     }
 
@@ -354,7 +354,7 @@ public partial class App : System.Windows.Application
             && !string.IsNullOrWhiteSpace(result.LatestVersionText))
         {
             _mainVm?.SetUpdateAvailable(result.LatestVersionText!, result.ReleaseUrl!,
-                result.ReleaseNotesUrl, result.ReleaseNotes);
+                result.ReleaseNotesUrl, result.ReleaseNotes, result.ZipSha256);
 
             var message =
                 $"A new version of PR Monitor is available.\n\n" +

@@ -1,3 +1,4 @@
+using System.IO;
 using PrMonitor.Services;
 using Xunit;
 
@@ -213,17 +214,79 @@ public class UpdateServiceVersionTests
     }
 
     [Theory]
-    [InlineData(12345, "C:\\temp\\PrMonitor_new.exe", "C:\\Program Files\\PrMonitor.exe")]
-    [InlineData(99, "D:\\update\\new.exe", "C:\\tools\\PrMonitor.exe")]
-    public void BuildUpdateBatScript_ContainsExpectedPathsAndPid(int pid, string newExe, string currentExe)
+    [InlineData(12345)]
+    [InlineData(99)]
+    public void BuildUpdateBatScript_WaitsForPidAndTakesPathsFromEnvironment(int pid)
     {
-        var script = UpdateService.BuildUpdateBatScript(pid, newExe, currentExe);
+        var script = UpdateService.BuildUpdateBatScript(pid);
 
         Assert.Contains($"PID eq {pid}", script);
-        Assert.Contains(newExe, script);
-        Assert.Contains(currentExe, script);
-        Assert.Contains("copy /y", script);
-        Assert.Contains("del", script);
+        Assert.Contains("copy /y \"%PRMONITOR_NEW_EXE%\" \"%PRMONITOR_CURRENT_EXE%\"", script);
+        // Pure ASCII: paths never pass through the batch file's code page.
+        Assert.True(script.All(char.IsAscii));
+    }
+
+    [Fact]
+    public void BuildUpdateBatScript_RestoresOldExeWhenCopyFails()
+    {
+        var script = UpdateService.BuildUpdateBatScript(1);
+
+        var copy = script.IndexOf("copy /y", StringComparison.Ordinal);
+        var restore = script.IndexOf("if errorlevel 1 move /y \"%PRMONITOR_CURRENT_EXE%.old\" \"%PRMONITOR_CURRENT_EXE%\"", StringComparison.Ordinal);
+        Assert.True(copy >= 0 && restore > copy);
+    }
+
+    [Fact]
+    public void FindAssetSha256_ReturnsDigestOfTheExactlyNamedAsset()
+    {
+        var hex = new string('a', 64);
+        var other = new string('b', 64);
+        using var release = System.Text.Json.JsonDocument.Parse($$"""
+            { "assets": [
+                { "name": "PrMonitor-2.0.0-win-x64.zip.sig", "digest": "sha256:{{other}}" },
+                { "name": "PrMonitor-2.0.0-win-x64.zip", "digest": "sha256:{{hex.ToUpperInvariant()}}" }
+            ] }
+            """);
+
+        Assert.Equal(hex, UpdateService.FindAssetSha256(release.RootElement, "PrMonitor-2.0.0-win-x64.zip"));
+    }
+
+    [Theory]
+    [InlineData("""{ "tag_name": "v2.0.0" }""")]
+    [InlineData("""{ "assets": [ { "name": "PrMonitor-2.0.0-win-x64.zip" } ] }""")]
+    [InlineData("""{ "assets": [ { "name": "PrMonitor-2.0.0-win-x64.zip", "digest": null } ] }""")]
+    [InlineData("""{ "assets": [ { "name": "PrMonitor-2.0.0-win-x64.zip", "digest": "md5:0123456789abcdef0123456789abcdef" } ] }""")]
+    [InlineData("""{ "assets": [ { "name": "PrMonitor-2.0.0-win-x64.zip", "digest": "sha256:not-hex" } ] }""")]
+    [InlineData("""{ "assets": [ { "name": "PrMonitor-2.0.0-win-x64.zip.sig", "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } ] }""")]
+    public void FindAssetSha256_MissingOrUnusableDigest_ReturnsNull(string json)
+    {
+        using var release = System.Text.Json.JsonDocument.Parse(json);
+
+        Assert.Null(UpdateService.FindAssetSha256(release.RootElement, "PrMonitor-2.0.0-win-x64.zip"));
+    }
+
+    [Fact]
+    public void StartUpdateProcess_FileChangedSinceDownload_RefusesToInstall()
+    {
+        var exe = Path.Combine(Path.GetTempPath(), $"prupdate_{Guid.NewGuid():N}.exe");
+        try
+        {
+            File.WriteAllText(exe, "verified");
+            var svc = new UpdateService(DiagnosticsLogger.Null);
+            svc.RecordPreparedUpdate(exe);
+            File.WriteAllText(exe, "tampered");
+
+            Assert.False(svc.StartUpdateProcess(exe));
+        }
+        finally { File.Delete(exe); }
+    }
+
+    [Fact]
+    public void StartUpdateProcess_NothingDownloaded_RefusesToInstall()
+    {
+        var svc = new UpdateService(DiagnosticsLogger.Null);
+
+        Assert.False(svc.StartUpdateProcess(Path.Combine(Path.GetTempPath(), "PrMonitor_new.exe")));
     }
 
     [Theory]
@@ -244,27 +307,25 @@ public class UpdateServiceVersionTests
     [Fact]
     public void BuildUpdateBatScript_BacksUpOldExeBeforeCopy()
     {
-        var script = UpdateService.BuildUpdateBatScript(1, "C:\\new.exe", "C:\\PrMonitor.exe");
+        var script = UpdateService.BuildUpdateBatScript(1);
 
         // Should move old exe to .old before copying
-        Assert.Contains("move /y", script);
-        Assert.Contains(".old", script);
+        Assert.Contains("move /y \"%PRMONITOR_CURRENT_EXE%\" \"%PRMONITOR_CURRENT_EXE%.old\"", script);
     }
 
     [Fact]
     public void BuildUpdateBatScript_StartsNewExeAfterCopy()
     {
-        var script = UpdateService.BuildUpdateBatScript(1, "C:\\new.exe", "C:\\PrMonitor.exe");
+        var script = UpdateService.BuildUpdateBatScript(1);
 
         // start "" launches the new exe
-        Assert.Contains("start \"\"", script);
-        Assert.Contains("C:\\PrMonitor.exe", script);
+        Assert.Contains("start \"\" \"%PRMONITOR_CURRENT_EXE%\"", script);
     }
 
     [Fact]
     public void BuildUpdateBatScript_SelfDeletes()
     {
-        var script = UpdateService.BuildUpdateBatScript(1, "C:\\new.exe", "C:\\PrMonitor.exe");
+        var script = UpdateService.BuildUpdateBatScript(1);
 
         // The (goto) 2>nul & del "%~f0" idiom self-deletes the bat
         Assert.Contains("%~f0", script);

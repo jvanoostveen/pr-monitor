@@ -21,6 +21,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private PollingService? _polling;
     private bool _startupSummaryShown;
     private string? _tempExePath;
+    private string? _updateZipSha256;
 
     public MainViewModel(
         AppSettings settings,
@@ -630,8 +631,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void OpenReviewsInBrowser() =>
         OpenUrl("https://github.com/pulls?q=is%3Aopen+is%3Apr+review-requested%3A%40me");
 
-    public void SetUpdateAvailable(string version, string releaseUrl, string? releaseNotesUrl, string? releaseNotes)
+    public void SetUpdateAvailable(string version, string releaseUrl, string? releaseNotesUrl, string? releaseNotes, string? zipSha256)
     {
+        _updateZipSha256 = zipSha256;
         LatestVersion = version;
         UpdateReleaseUrl = releaseUrl;
         UpdateReleaseNotesUrl = releaseNotesUrl ?? releaseUrl;
@@ -683,7 +685,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 System.Windows.Application.Current.Dispatcher.Invoke(() => DownloadProgress = p);
             });
 
-            _tempExePath = await _updateService.DownloadUpdateAsync(LatestVersion, progress);
+            _tempExePath = await _updateService.DownloadUpdateAsync(LatestVersion, _updateZipSha256, progress);
 
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
@@ -691,12 +693,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 UpdateReadyToInstall = true;
             });
         }
-        catch (OperationCanceledException)
-        {
-            System.Windows.Application.Current.Dispatcher.Invoke(() => IsDownloadingUpdate = false);
-        }
         catch (Exception ex)
         {
+            // No token is passed, so an OperationCanceledException here is an HttpClient
+            // timeout: a failure like any other, not a user cancel.
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 IsDownloadingUpdate = false;
@@ -720,7 +720,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(_tempExePath) || !_updateReadyToInstall)
             return;
 
-        _updateService.StartUpdateProcess(_tempExePath);
+        if (!_updateService.StartUpdateProcess(_tempExePath))
+        {
+            // Leave the "ready" state, or the banner would keep offering a restart that keeps
+            // failing; the failed state offers the release page for a manual download.
+            _tempExePath = null;
+            UpdateReadyToInstall = false;
+            UpdateDownloadFailed = true;
+            _notificationService.Notify("Update failed", $"The downloaded update for PR Monitor v{LatestVersion} is missing or changed since it was verified, so it was not installed.\nClick the banner to open the release page and download manually.");
+            return;
+        }
+
         System.Windows.Application.Current.Shutdown();
     }
 
