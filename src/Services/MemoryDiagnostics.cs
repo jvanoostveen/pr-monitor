@@ -188,6 +188,12 @@ public static class MemoryDiagnostics
         try
         {
             var snapshot = Capture();
+
+            // The native breakdown walks the whole address space; an INFO line without verbose
+            // logging is dropped anyway, so only build it when it will be written.
+            if (!snapshot.ExceedsWarnThreshold && !logger.VerboseLogging)
+                return;
+
             var line = $"MemoryDiagnostics [{context}] {snapshot} | {CaptureNativeBreakdown()}";
             if (snapshot.ExceedsWarnThreshold)
                 logger.Warn(line);

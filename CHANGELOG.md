@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A slow network during an update check or download now shows an error instead of failing silently, and a `gh` call made by the update check can no longer hang forever. Release notes fetched through `gh` keep their special characters (such as —).
 - **Hiding a PR in the Stacks section takes effect at once.** **Move to later** and **Hide** left a row in the Stacks section on screen until the next poll, and hiding a Dependabot or stacked PR left its section header with the old count. Hiding your last visible PR now also shows the empty state straight away.
 - **The PR list no longer rebuilds every row on almost every poll.** The "5m ago" time changes nearly every poll, and that alone made PR Monitor throw away and redraw all rows in every section. Now only a section whose PRs actually changed is redrawn; elsewhere just the time text is updated.
+- **Fewer GitHub calls per poll, and no more missing assigned PRs.** Hotfixes are now taken from your own and assigned PRs instead of a separate, heavy search on every poll, and assigned PRs are no longer cut off at 50. An own hotfix PR that is a draft now shows as one. Memory diagnostics no longer scan the whole process memory on every poll when nothing gets logged, and a failed `gh` call no longer writes the full GraphQL query text to the log.
 - A CI log line with a very long base64 run (for example a data URI in a snapshot diff) no longer keeps a CPU core busy while the log is cleaned up for AI analysis.
 
 ## [1.17.0] - 2026-11-02

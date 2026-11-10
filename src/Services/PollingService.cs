@@ -157,14 +157,13 @@ public sealed class PollingService : IDisposable
             // excluded from Awaiting My Review regardless of whether the section is shown.
             var reviewPrs   = await _github.FetchPRsAwaitingMyReviewAsync(_settings.Organizations, classifyTeams: true, currentUsername: _settings.GitHubUsername);
             var assignedPrs = await _github.FetchMyAssignedPRsAsync(_settings.Organizations);
-            var hotfixPrs   = await _github.FetchHotfixPRsAsync(_settings.Organizations);
 
             var myPrKeys = allMyPrs.Select(p => p.Key).ToHashSet();
-            var assignedPrKeys = assignedPrs.Select(p => p.Key).ToHashSet();
 
-            // Only keep hotfix PRs that are owned by me or explicitly assigned to me.
-            // This avoids showing release PRs where I was merely involved (e.g. reviewed/commented).
-            hotfixPrs = FilterOwnedOrAssignedHotfixPrs(hotfixPrs, myPrKeys, assignedPrKeys);
+            // Hotfix PRs: owned by me or explicitly assigned to me, targeting release/*. Both lists
+            // are already fetched, so no separate search is needed; release PRs where I was merely
+            // involved (reviewed/commented) are deliberately not shown.
+            var hotfixPrs = SelectHotfixPrs(allMyPrs, assignedPrs);
 
             // Exclude hotfix PRs (release/* targets) from every other section to avoid duplication.
             // Hotfix PRs can be cherry-picked by a tool (so the "author" isn't really me) and still
@@ -354,13 +353,17 @@ public sealed class PollingService : IDisposable
         return _withheldPollStreak < ConfirmationPollThreshold;
     }
 
-    internal static List<PullRequestInfo> FilterOwnedOrAssignedHotfixPrs(
-        IEnumerable<PullRequestInfo> hotfixPrs,
-        IReadOnlySet<string> myPrKeys,
-        IReadOnlySet<string> assignedPrKeys)
+    /// <summary>
+    /// The PRs of mine or assigned to me that target a <c>release/*</c> branch. An own PR comes
+    /// first, so its richer own-PR data (draft and auto-merge state) wins over the assigned copy.
+    /// </summary>
+    internal static List<PullRequestInfo> SelectHotfixPrs(
+        IEnumerable<PullRequestInfo> myPrs,
+        IEnumerable<PullRequestInfo> assignedPrs)
     {
-        return hotfixPrs
-            .Where(p => myPrKeys.Contains(p.Key) || assignedPrKeys.Contains(p.Key))
+        return myPrs.Concat(assignedPrs)
+            .Where(p => p.BaseRefName.StartsWith("release/", StringComparison.OrdinalIgnoreCase))
+            .DistinctBy(p => p.Key)
             .ToList();
     }
 

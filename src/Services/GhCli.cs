@@ -81,13 +81,21 @@ internal static class GhCli
         }
     }
 
+    /// <summary>
+    /// The arguments for a log line, with a GraphQL query text (2-3 KB, identical on every call)
+    /// shortened to its length so a failure doesn't flood the log.
+    /// </summary>
+    internal static string DescribeArguments(string[] arguments) =>
+        string.Join(" ", arguments.Select(a =>
+            a.StartsWith("query=", StringComparison.Ordinal) ? $"query=<{a.Length - "query=".Length} chars>" : a));
+
     internal static void KillProcessTree(Process process, DiagnosticsLogger logger, string logPrefix, string[] arguments, string reason)
     {
         try
         {
             if (!process.HasExited)
             {
-                logger.Warn($"{logPrefix}: killing 'gh {string.Join(" ", arguments)}' ({reason}).");
+                logger.Warn($"{logPrefix}: killing 'gh {DescribeArguments(arguments)}' ({reason}).");
                 process.Kill(entireProcessTree: true);
             }
         }

@@ -275,28 +275,46 @@ public sealed class GitHubService
     /// </summary>
     public async Task<List<PullRequestInfo>> FetchAllMyPRsAsync(IReadOnlyList<string> organizations)
     {
-        var allPrs = new List<PullRequestInfo>();
-        var queries = BuildSearchQueries("is:pr is:open author:@me", organizations);
+        var allPrs = await SearchAllPagesAsync(MyPrsQuery, "is:pr is:open author:@me", organizations, ParseMyPrs);
+        return allPrs.DistinctBy(p => p.Key).ToList();
+    }
 
-        const int MaxPages = 5;
-        foreach (var q in queries)
+    /// <summary>Most result pages fetched per search and organization (50 PRs per page).</summary>
+    private const int MaxSearchPages = 5;
+
+    /// <summary>
+    /// Runs a GraphQL PR search for every organization and follows its pages, up to
+    /// <see cref="MaxSearchPages"/> each. Throws <see cref="GitHubApiException"/> like
+    /// <see cref="RunGraphQlAsync"/>.
+    /// </summary>
+    private async Task<List<PullRequestInfo>> SearchAllPagesAsync(
+        string query, string baseSearch, IReadOnlyList<string> organizations, Func<JsonElement, List<PullRequestInfo>> parse)
+    {
+        var allPrs = new List<PullRequestInfo>();
+        foreach (var q in BuildSearchQueries(baseSearch, organizations))
         {
             string? cursor = null;
-            for (int page = 0; page < MaxPages; page++)
+            for (int page = 0; page < MaxSearchPages; page++)
             {
-                var json = await RunGraphQlAsync(MyPrsQuery, q, cursor);
-                allPrs.AddRange(ParseMyPrs(json));
-                if (!json.TryGetProperty("data", out var d) ||
-                    !d.TryGetProperty("search", out var s) ||
-                    !s.TryGetProperty("pageInfo", out var pi) ||
-                    !pi.GetProperty("hasNextPage").GetBoolean()) break;
-                cursor = pi.GetProperty("endCursor").GetString();
+                var json = await RunGraphQlAsync(query, q, cursor);
+                allPrs.AddRange(parse(json));
+                cursor = NextPageCursor(json);
                 if (cursor is null) break;
             }
         }
-
-        return allPrs.DistinctBy(p => p.Key).ToList();
+        return allPrs;
     }
+
+    /// <summary>The cursor of the next search page, or null on the last page.</summary>
+    internal static string? NextPageCursor(JsonElement json) =>
+        json.TryGetProperty("data", out var d)
+        && d.TryGetProperty("search", out var s)
+        && s.TryGetProperty("pageInfo", out var pi)
+        && pi.TryGetProperty("hasNextPage", out var hasNext)
+        && hasNext.ValueKind == JsonValueKind.True
+        && pi.TryGetProperty("endCursor", out var end)
+            ? end.GetString()
+            : null;
 
     /// <summary>
     /// Fetch the current user's open PRs (optionally filtered by orgs),
@@ -309,81 +327,24 @@ public sealed class GitHubService
     }
 
     /// <summary>
-    /// Fetch open PRs that target a <c>release/*</c> branch (hotfixes).
-    /// Uses <c>involves:@me</c> to catch PRs authored by bots where the user
-    /// is assignee, reviewer, mentioned, or has commented.
-    /// </summary>
-    public async Task<List<PullRequestInfo>> FetchHotfixPRsAsync(IReadOnlyList<string> organizations)
-    {
-        var allPrs = new List<PullRequestInfo>();
-
-        const int MaxPages = 5;
-        foreach (var q in BuildSearchQueries("is:pr is:open involves:@me", organizations))
-        {
-            string? cursor = null;
-            for (int page = 0; page < MaxPages; page++)
-            {
-                var json = await RunGraphQlAsync(ReviewRequestedQuery, q, cursor);
-                allPrs.AddRange(
-                    ParseReviewPrs(json)
-                        .Where(p => p.BaseRefName.StartsWith("release/", StringComparison.OrdinalIgnoreCase)));
-                if (!json.TryGetProperty("data", out var d) ||
-                    !d.TryGetProperty("search", out var s) ||
-                    !s.TryGetProperty("pageInfo", out var pi) ||
-                    !pi.GetProperty("hasNextPage").GetBoolean()) break;
-                cursor = pi.GetProperty("endCursor").GetString();
-                if (cursor is null) break;
-            }
-        }
-
-        return allPrs.DistinctBy(p => p.Key).ToList();
-    }
-
-    /// <summary>
     /// Fetch open PRs where the current user is a requested reviewer
     /// (i.e. hasn't reviewed yet), optionally filtered by orgs.
     /// </summary>
     public async Task<List<PullRequestInfo>> FetchPRsAwaitingMyReviewAsync(IReadOnlyList<string> organizations, bool classifyTeams = false, string? currentUsername = null)
     {
-        var allPrs = new List<PullRequestInfo>();
-        var queries = BuildSearchQueries("is:pr is:open review-requested:@me", organizations);
         var queryToUse = classifyTeams ? ReviewRequestedFullQuery : ReviewRequestedQuery;
-
-        const int MaxPages = 5;
-        foreach (var q in queries)
-        {
-            string? cursor = null;
-            for (int page = 0; page < MaxPages; page++)
-            {
-                var json = await RunGraphQlAsync(queryToUse, q, cursor);
-                allPrs.AddRange(ParseReviewPrs(json, currentUsername));
-                if (!json.TryGetProperty("data", out var d) ||
-                    !d.TryGetProperty("search", out var s) ||
-                    !s.TryGetProperty("pageInfo", out var pi) ||
-                    !pi.GetProperty("hasNextPage").GetBoolean()) break;
-                cursor = pi.GetProperty("endCursor").GetString();
-                if (cursor is null) break;
-            }
-        }
-
-        return allPrs;
+        return await SearchAllPagesAsync(queryToUse, "is:pr is:open review-requested:@me", organizations,
+            json => ParseReviewPrs(json, currentUsername));
     }
 
     /// <summary>
     /// Fetch open PRs that have the current user as assignee.
-    /// Used to surface Copilot-created PRs assigned to the user.
+    /// Used to surface Copilot-created PRs and hotfixes assigned to the user.
     /// </summary>
     public async Task<List<PullRequestInfo>> FetchMyAssignedPRsAsync(IReadOnlyList<string> organizations)
     {
-        var allPrs = new List<PullRequestInfo>();
-        var queries = BuildSearchQueries("is:pr is:open assignee:@me", organizations);
-
-        foreach (var q in queries)
-        {
-            var json = await RunGraphQlAsync(ReviewRequestedQuery, q);
-            allPrs.AddRange(ParseReviewPrs(json));
-        }
-
+        var allPrs = await SearchAllPagesAsync(ReviewRequestedQuery, "is:pr is:open assignee:@me", organizations,
+            json => ParseReviewPrs(json));
         return allPrs.DistinctBy(p => p.Key).ToList();
     }
 
@@ -1861,7 +1822,7 @@ public sealed class GitHubService
         var (output, stderr, exitCode) = await GhCli.RunAsync(_logger, "GitHubService", CancellationToken.None, arguments);
         // A null output means GhCli could not start gh or killed it, and has logged that itself.
         if (exitCode != 0 && output is not null)
-            _logger.Error($"GitHubService gh command failed (exit={exitCode}). args: {string.Join(" ", arguments)}. stderr: {stderr?.Trim()}");
+            _logger.Error($"GitHubService gh command failed (exit={exitCode}). args: {GhCli.DescribeArguments(arguments)}. stderr: {stderr?.Trim()}");
         return (output, stderr, exitCode);
     }
 
@@ -1908,7 +1869,7 @@ public sealed class GitHubService
 
                 if (capped)
                 {
-                    _logger.Warn($"GitHubService: output cap reached for 'gh {string.Join(" ", arguments)}' — killing process.");
+                    _logger.Warn($"GitHubService: output cap reached for 'gh {GhCli.DescribeArguments(arguments)}' — killing process.");
                     GhCli.KillProcessTree(process, _logger, "GitHubService", arguments, "output cap reached");
                 }
                 else
@@ -1925,7 +1886,7 @@ public sealed class GitHubService
             var stderr = capped ? "" : await stderrTask;
             var exitCode = capped ? 0 : process.ExitCode;
             if (exitCode != 0)
-                _logger.Error($"GitHubService gh command failed (exit={exitCode}). args: {string.Join(" ", arguments)}. stderr: {stderr?.Trim()}");
+                _logger.Error($"GitHubService gh command failed (exit={exitCode}). args: {GhCli.DescribeArguments(arguments)}. stderr: {stderr?.Trim()}");
 
             return (string.Join(Environment.NewLine, tail), redacted, exitCode);
         }

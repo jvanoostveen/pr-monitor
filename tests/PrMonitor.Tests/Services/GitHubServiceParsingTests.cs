@@ -821,6 +821,18 @@ public class ExtractErrorLinesTests
         Assert.Equal(1, root.GetProperty("data").GetProperty("search").GetProperty("nodes").GetArrayLength());
     }
 
+    [Theory]
+    [InlineData("""{ "data": { "search": { "pageInfo": { "hasNextPage": true, "endCursor": "Y3Vyc29y" } } } }""", "Y3Vyc29y")]
+    [InlineData("""{ "data": { "search": { "pageInfo": { "hasNextPage": false, "endCursor": "Y3Vyc29y" } } } }""", null)]
+    [InlineData("""{ "data": { "search": { "pageInfo": { "hasNextPage": true, "endCursor": null } } } }""", null)]
+    [InlineData("""{ "data": { "search": { } } }""", null)]
+    public void NextPageCursor_ReturnsCursorOnlyWhenAnotherPageExists(string json, string? expected)
+    {
+        using var doc = JsonDocument.Parse(json);
+
+        Assert.Equal(expected, GitHubService.NextPageCursor(doc.RootElement));
+    }
+
     [Fact]
     public void ParseGraphQlSearchResponse_ErrorsWithoutData_Throws()
     {

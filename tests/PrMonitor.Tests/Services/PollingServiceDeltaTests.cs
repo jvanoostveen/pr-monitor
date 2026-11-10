@@ -178,44 +178,38 @@ public class PollingServiceDeltaTests
     }
 
     [Fact]
-    public void FilterOwnedOrAssignedHotfixPrs_ReviewedOnlyPr_IsExcluded()
+    public void SelectHotfixPrs_OwnAndAssignedReleasePrs_AreIncluded_OthersAreNot()
     {
-        var reviewedOnly = PR("org/repo#10");
+        var result = PollingService.SelectHotfixPrs(
+            myPrs: [Targeting("org/repo#11", "release/9.0"), Targeting("org/repo#13", "main")],
+            assignedPrs: [Targeting("org/repo#12", "Release/9.1"), Targeting("org/repo#14", "feature/release/x")]);
 
-        var result = PollingService.FilterOwnedOrAssignedHotfixPrs(
-            [reviewedOnly],
-            myPrKeys: new HashSet<string>(),
-            assignedPrKeys: new HashSet<string>());
-
-        Assert.Empty(result);
+        Assert.Equal(["org/repo#11", "org/repo#12"], result.Select(p => p.Key));
     }
 
     [Fact]
-    public void FilterOwnedOrAssignedHotfixPrs_OwnPr_IsIncluded()
+    public void SelectHotfixPrs_OwnAndAssigned_KeepsTheOwnPrData()
     {
-        var ownHotfix = PR("org/repo#11");
+        var own = Targeting("org/repo#11", "release/9.0");
+        var assignedCopy = Targeting("org/repo#11", "release/9.0");
 
-        var result = PollingService.FilterOwnedOrAssignedHotfixPrs(
-            [ownHotfix],
-            myPrKeys: new HashSet<string> { "org/repo#11" },
-            assignedPrKeys: new HashSet<string>());
+        var result = PollingService.SelectHotfixPrs(myPrs: [own], assignedPrs: [assignedCopy]);
 
-        Assert.Single(result);
-        Assert.Equal("org/repo#11", result[0].Key);
+        Assert.Same(own, Assert.Single(result));
     }
 
-    [Fact]
-    public void FilterOwnedOrAssignedHotfixPrs_AssignedPr_IsIncluded()
+    private static PullRequestInfo Targeting(string repoAndNumber, string baseRef)
     {
-        var assignedHotfix = PR("org/repo#12");
-
-        var result = PollingService.FilterOwnedOrAssignedHotfixPrs(
-            [assignedHotfix],
-            myPrKeys: new HashSet<string>(),
-            assignedPrKeys: new HashSet<string> { "org/repo#12" });
-
-        Assert.Single(result);
-        Assert.Equal("org/repo#12", result[0].Key);
+        var pr = PR(repoAndNumber);
+        return new PullRequestInfo
+        {
+            Number = pr.Number,
+            Title = pr.Title,
+            Url = pr.Url,
+            Repository = pr.Repository,
+            Author = pr.Author,
+            BaseRefName = baseRef,
+        };
     }
 
     private static PullRequestInfo AssignedPr(int number, bool stacked, params string[] reviewedBy) => new()
