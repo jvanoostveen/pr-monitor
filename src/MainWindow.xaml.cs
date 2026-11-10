@@ -1048,13 +1048,8 @@ public partial class MainWindow : Window
         ShowNativePrContextMenu(vm);
     }
 
-    private static void OpenPrUrl(string url)
-    {
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
-    }
 
-    private static void OpenStackParent(PrItemViewModel vm) => OpenPrUrl(vm.StackParentUrl);
+    private static void OpenStackParent(PrItemViewModel vm) => Browser.OpenHttps(vm.StackParentUrl);
 
     private void OpenWholeStack(PrItemViewModel vm)
     {
@@ -1065,7 +1060,7 @@ public partial class MainWindow : Window
             .ToList();
 
         foreach (var member in members)
-            OpenPrUrl(member.Url);
+            Browser.OpenHttps(member.Url);
     }
 
     private void ShowNativePrContextMenu(PrItemViewModel vm)

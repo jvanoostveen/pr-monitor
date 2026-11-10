@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.IO;
+﻿using System.IO;
 using Microsoft.Toolkit.Uwp.Notifications;
 using PrMonitor.Models;
 using PrMonitor.Settings;
@@ -43,16 +42,7 @@ public sealed class NotificationService : IDisposable
             try { File.Delete(stale); } catch { }
 
         // Handle notification clicks → open URL in browser
-        ToastNotificationManagerCompat.OnActivated += args =>
-        {
-            var url = args.Argument;
-            if (!string.IsNullOrEmpty(url)
-                && Uri.TryCreate(url, UriKind.Absolute, out var toastUri)
-                && toastUri.Scheme == Uri.UriSchemeHttps)
-            {
-                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-            }
-        };
+        ToastNotificationManagerCompat.OnActivated += args => Browser.OpenHttps(args.Argument);
     }
 
     /// <summary>

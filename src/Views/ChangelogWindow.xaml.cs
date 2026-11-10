@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -61,15 +60,7 @@ public partial class ChangelogWindow : Window
         DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref value, Marshal.SizeOf(value));
     }
 
-    private void OpenReleasePage_Click(object sender, RoutedEventArgs e)
-    {
-        if (!string.IsNullOrWhiteSpace(_linkUrl)
-            && Uri.TryCreate(_linkUrl, UriKind.Absolute, out var uri)
-            && uri.Scheme == Uri.UriSchemeHttps)
-        {
-            Process.Start(new ProcessStartInfo(_linkUrl) { UseShellExecute = true });
-        }
-    }
+    private void OpenReleasePage_Click(object sender, RoutedEventArgs e) => Browser.OpenHttps(_linkUrl);
 
     private void Close_Click(object sender, RoutedEventArgs e)
     {

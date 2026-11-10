@@ -26,6 +26,7 @@ Views/            TrayIconManager, IconGenerator, AboutWindow, SettingsWindow, F
 | Service | Responsibility |
 |---|---|
 | `DiagnosticsLogger` | Thread-safe log to `%APPDATA%\pr-monitor\logs\pr-monitor.log`; size rotation |
+| `Browser` | The one way to open a URL: `OpenHttps` ignores anything that is not an absolute https URL |
 | `GhCli` | The one way to start `gh`: UTF-8 output, 2-minute timeout, process-tree kill |
 | `GitHubService` | All `gh api graphql` calls; PR queries; per-PR check runs; workflow run helpers; mention notifications |
 | `PollingService` | Timer (120 s default); emits `PrChanged`, `Polled`, `PollFailed`, `MentionDetected` |

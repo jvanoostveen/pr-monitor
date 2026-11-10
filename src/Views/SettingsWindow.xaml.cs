@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Interop;
+using PrMonitor.Services;
 using PrMonitor.ViewModels;
 
 namespace PrMonitor.Views;
@@ -133,11 +133,8 @@ public partial class SettingsWindow : Window
 
     private void HiddenPrOpen_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not System.Windows.Controls.Button { Tag: string url } || string.IsNullOrWhiteSpace(url))
-            return;
-
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        if (sender is System.Windows.Controls.Button { Tag: string url })
+            Browser.OpenHttps(url);
     }
 
     private void HiddenReviewerRemove_Click(object sender, RoutedEventArgs e)

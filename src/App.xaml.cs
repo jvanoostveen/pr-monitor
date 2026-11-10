@@ -388,18 +388,13 @@ public partial class App : System.Windows.Application
             _mainWindow);
     }
 
-    private static void OpenInBrowser(string url)
-    {
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-    }
 
     private async Task ShowRelevantChangelogAsync(string currentVersion, string latestVersion, string? fallbackUrl)
     {
         if (_updates is null)
         {
             if (!string.IsNullOrWhiteSpace(fallbackUrl))
-                OpenInBrowser(fallbackUrl);
+                Browser.OpenHttps(fallbackUrl);
             return;
         }
 
@@ -419,7 +414,7 @@ public partial class App : System.Windows.Application
         }
 
         if (!string.IsNullOrWhiteSpace(fallbackUrl))
-            OpenInBrowser(fallbackUrl);
+            Browser.OpenHttps(fallbackUrl);
     }
 
     // Tells Windows to render native Win32 menus (and other controls) in

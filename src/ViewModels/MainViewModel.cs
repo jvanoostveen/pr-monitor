@@ -1,6 +1,5 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using PrMonitor.Models;
@@ -606,10 +605,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     public void OpenMyPrsInBrowser() =>
-        OpenUrl("https://github.com/pulls?q=is%3Aopen+is%3Apr+author%3A%40me");
+        Browser.OpenHttps("https://github.com/pulls?q=is%3Aopen+is%3Apr+author%3A%40me");
 
     public void OpenReviewsInBrowser() =>
-        OpenUrl("https://github.com/pulls?q=is%3Aopen+is%3Apr+review-requested%3A%40me");
+        Browser.OpenHttps("https://github.com/pulls?q=is%3Aopen+is%3Apr+review-requested%3A%40me");
 
     public void SetUpdateAvailable(string version, string releaseUrl, string? releaseNotesUrl, string? releaseNotes, string? zipSha256)
     {
@@ -622,10 +621,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public void OpenUpdateRelease()
     {
-        if (!string.IsNullOrWhiteSpace(UpdateReleaseUrl)
-            && Uri.TryCreate(UpdateReleaseUrl, UriKind.Absolute, out var uri)
-            && uri.Scheme == Uri.UriSchemeHttps)
-            Process.Start(new ProcessStartInfo(UpdateReleaseUrl) { UseShellExecute = true });
+        Browser.OpenHttps(UpdateReleaseUrl);
     }
 
     public void ViewChangelog()
@@ -633,9 +629,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         // Used only when the in-app changelog dialog couldn't be built; link straight to
         // CHANGELOG.md instead of the GitHub release page (whose "Full changelog" link is a
         // raw commit compare view).
-        var url = UpdateService.ChangelogFileUrl;
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        Browser.OpenHttps(UpdateService.ChangelogFileUrl);
     }
 
     public Task<UpdateChangelogResult?> GetUpdateChangelogAsync(CancellationToken cancellationToken = default)
@@ -688,11 +682,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public void OpenReleasePageForManualDownload()
     {
-        var url = string.IsNullOrWhiteSpace(UpdateReleaseNotesUrl) ? UpdateReleaseUrl : UpdateReleaseNotesUrl;
-        if (!string.IsNullOrWhiteSpace(url)
-            && Uri.TryCreate(url, UriKind.Absolute, out var uri)
-            && uri.Scheme == Uri.UriSchemeHttps)
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        Browser.OpenHttps(string.IsNullOrWhiteSpace(UpdateReleaseNotesUrl) ? UpdateReleaseUrl : UpdateReleaseNotesUrl);
     }
 
     public void RestartToInstallUpdate()
@@ -907,11 +897,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
             target.Add(item);
     }
 
-    private static void OpenUrl(string url)
-    {
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-    }
 
     /// <summary>Per-PR stack chain tooltips and the set of PRs whose stack parent is authored by me.</summary>
     private (Dictionary<string, string> Chains, HashSet<string> ParentIsMine) BuildStackContext(PollSnapshot snapshot)
@@ -1343,11 +1328,7 @@ public sealed class PrItemViewModel : INotifyPropertyChanged
         : isDraft ? CIState.Unknown
         : ciState;
 
-    public void OpenInBrowser()
-    {
-        if (Uri.TryCreate(Url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
-            Process.Start(new ProcessStartInfo(Url) { UseShellExecute = true });
-    }
+    public void OpenInBrowser() => Browser.OpenHttps(Url);
 
     /// <summary>
     /// Every value this row renders or its context menu acts on, joined into one string, except

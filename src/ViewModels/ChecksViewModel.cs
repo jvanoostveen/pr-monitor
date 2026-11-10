@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using PrMonitor.Models;
 using PrMonitor.Services;
@@ -818,11 +817,7 @@ public sealed class CheckItemViewModel
     }
 
     /// <summary>Opens the job's log page on GitHub.</summary>
-    public void OpenInBrowser()
-    {
-        if (Uri.TryCreate(Url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
-            Process.Start(new ProcessStartInfo(Url) { UseShellExecute = true });
-    }
+    public void OpenInBrowser() => Browser.OpenHttps(Url);
 
     /// <summary>Compact duration: "22s", "1m 24s", "1h 05m".</summary>
     internal static string FormatDuration(TimeSpan span)

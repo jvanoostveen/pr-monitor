@@ -37,8 +37,7 @@ public partial class AboutWindow : Window
 
     private void RepoLink_RequestNavigate(object sender, RequestNavigateEventArgs e)
     {
-        if (e.Uri.Scheme == Uri.UriSchemeHttps)
-            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        Browser.OpenHttps(e.Uri.AbsoluteUri);
         e.Handled = true;
     }
 

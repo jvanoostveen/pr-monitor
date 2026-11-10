@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Drawing;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -136,9 +135,9 @@ public sealed class TrayIconManager : IDisposable
                 case ID_ABOUT:    _openAboutAction?.Invoke();   break;
                 case ID_SETTINGS: _openSettingsAction?.Invoke(); break;
                 case ID_STATISTICS: _openStatisticsAction?.Invoke(); break;
-                case ID_HOTFIXES: OpenInBrowser("https://github.com/pulls?q=is%3Aopen+is%3Apr+involves%3A%40me+base%3Arelease"); break;
-                case ID_MY_PRS:   OpenInBrowser("https://github.com/pulls?q=is%3Aopen+is%3Apr+author%3A%40me"); break;
-                case ID_REVIEWS:  OpenInBrowser("https://github.com/pulls?q=is%3Aopen+is%3Apr+review-requested%3A%40me"); break;
+                case ID_HOTFIXES: Browser.OpenHttps("https://github.com/pulls?q=is%3Aopen+is%3Apr+involves%3A%40me+base%3Arelease"); break;
+                case ID_MY_PRS:   Browser.OpenHttps("https://github.com/pulls?q=is%3Aopen+is%3Apr+author%3A%40me"); break;
+                case ID_REVIEWS:  Browser.OpenHttps("https://github.com/pulls?q=is%3Aopen+is%3Apr+review-requested%3A%40me"); break;
                 case ID_EXIT:     _exitAction?.Invoke(); break;
             }
         }
@@ -248,11 +247,6 @@ public sealed class TrayIconManager : IDisposable
 
     // ── Helpers ─────────────────────────────────────────────────────
 
-    private static void OpenInBrowser(string url)
-    {
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-    }
 
     public static string GetAppVersion()
     {
