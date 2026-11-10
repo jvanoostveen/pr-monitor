@@ -1377,12 +1377,6 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void PrRow_Hide_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
-            ViewModel.HideItem(vm.Key);
-    }
-
     internal static DateTimeOffset GetNextWeekMondayMorning(DateTimeOffset now)
     {
         // Monday-based index where Monday = 0 and Sunday = 6.
@@ -1391,32 +1385,6 @@ public partial class MainWindow : Window
         var mondayMorningLocal = DateTime.SpecifyKind(nextMondayDate.AddHours(9), DateTimeKind.Unspecified);
         var offset = TimeZoneInfo.Local.GetUtcOffset(mondayMorningLocal);
         return new DateTimeOffset(mondayMorningLocal, offset);
-    }
-
-    private void PrRow_Restore_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
-            ViewModel.RestoreItem(vm.Key);
-    }
-
-    private void PrRow_CopyBranch_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
-            System.Windows.Clipboard.SetText(vm.HeadRefName);
-    }
-
-    private void PrRow_CopyUrl_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
-            System.Windows.Clipboard.SetText(vm.Url);
-    }
-
-    private async void PrRow_RerunFailedJobs_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
-            return;
-
-        await RerunFailedJobsAsync(vm);
     }
 
     private async Task RerunFailedJobsAsync(PrItemViewModel vm)
@@ -1480,14 +1448,6 @@ public partial class MainWindow : Window
                 MessageBoxImage.Error,
                 this);
         }
-    }
-
-    private async void PrRow_RequestCopilotReview_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not System.Windows.Controls.MenuItem { Tag: PrItemViewModel vm })
-            return;
-
-        await RequestCopilotReviewAsync(vm);
     }
 
     private async Task RequestCopilotReviewAsync(PrItemViewModel vm)

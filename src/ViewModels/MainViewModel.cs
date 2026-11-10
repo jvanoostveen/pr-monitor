@@ -1136,7 +1136,6 @@ public sealed class PrItemViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     public string SnoozedUntilText { get; init; } = "";
     public string CreatedAtFormatted { get; init; } = "";
-    public required string CIIcon { get; init; }
     public required CIState CIState { get; init; }
     public bool HasConflicts { get; init; }
     public int UnresolvedReviewCommentCount { get; init; }
@@ -1356,7 +1355,7 @@ public sealed class PrItemViewModel : INotifyPropertyChanged
     /// worse, makes a menu action use old data (e.g. rerunning jobs of a superseded commit).
     /// </summary>
     internal string DisplaySignature => string.Join('\u001F',
-        Key, Repository, Title, Author, SnoozedUntilText, CIIcon, EffectiveCIState,
+        Key, Repository, Title, Author, SnoozedUntilText, CIState, EffectiveCIState,
         StackBadgeText, IsStackGroupStart, ShowStackGroupSeparator,
         HasUnresolvedReviewComments, ShowChangesRequestedIcon, ShowNoReviewerWarning,
         ShowReviewPendingIcon, ShowCommentedIcon, ShowApprovedIcon, PrTooltip,
@@ -1475,14 +1474,6 @@ public sealed class PrItemViewModel : INotifyPropertyChanged
         TeamReviewerSlugs = pr.TeamReviewerSlugs,
         TeamReviewCountsAsReviewer = teamReviewCountsAsReviewer,
         ReviewerStates = pr.ReviewerStates,
-        CIIcon = pr.CIState switch
-        {
-            CIState.Success => "✅",
-            CIState.Failure => "❌",
-            CIState.Pending => "⏳",
-            CIState.Error => "⚠️",
-            _ => "❔",
-        },
         TimeAgo = FormatTimeAgo(pr.UpdatedAt != DateTimeOffset.MinValue ? pr.UpdatedAt : pr.CreatedAt),
         CreatedAtFormatted = pr.CreatedAt.ToLocalTime().ToString("MMM d, yyyy"),
         SnoozedUntilText = snoozedUntilText,

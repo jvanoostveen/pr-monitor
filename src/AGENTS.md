@@ -60,7 +60,7 @@ Show CI checks · Copy PR URL · Copy branch name · Rerun failed jobs · Reques
 Set priority ▶ (priority label rules / No priority; only when a rule has a priority) ·  
 Move to later ▶ (1 h / 4 h / Tomorrow / Next week (Monday 09:00) / Indefinitely) · Hide · Restore · Mark as ready · Convert to draft
 
-Note: the WPF `ContextMenu` blocks in XAML are dead code — the `PreviewMouseRightButtonUp` handler always shows the native Win32 menu instead.
+The `PrRow` style's `PreviewMouseRightButtonUp` handler shows this native menu; there is no WPF `ContextMenu` on PR rows.
 
 ## Tray context menu (native Win32)
 

@@ -240,7 +240,7 @@ public partial class AssignReviewerSearchWindow : Window
             // A fetch may have filled the cache during the debounce; don't start another one then.
             found = _orgs.Count > 0
                 ? (_cachedMembers ?? await FetchMembersOnceAsync()) is { } all ? GitHubService.FilterOrgMembers(all, query) : null
-                : await _github.SearchUsersAsync(query, _orgs);
+                : await _github.SearchUsersAsync(query);
         }
         catch
         {

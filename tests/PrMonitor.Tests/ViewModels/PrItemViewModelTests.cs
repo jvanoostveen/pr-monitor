@@ -553,7 +553,6 @@ public class PrItemViewModelTests
             Url = "https://github.com/org/repo/pull/1",
             Author = "alice",
             TimeAgo = "1d ago",
-            CIIcon = "❔",
             Number = 1,
             CIState = ciState,
             HasConflicts = hasConflicts,

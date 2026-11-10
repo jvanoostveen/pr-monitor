@@ -317,16 +317,6 @@ public sealed class GitHubService
             : null;
 
     /// <summary>
-    /// Fetch the current user's open PRs (optionally filtered by orgs),
-    /// keeping only those that have auto-merge enabled.
-    /// </summary>
-    public async Task<List<PullRequestInfo>> FetchMyAutoMergePRsAsync(IReadOnlyList<string> organizations)
-    {
-        var all = await FetchAllMyPRsAsync(organizations);
-        return all.Where(p => p.HasAutoMerge).ToList();
-    }
-
-    /// <summary>
     /// Fetch open PRs where the current user is a requested reviewer
     /// (i.e. hasn't reviewed yet), optionally filtered by orgs.
     /// </summary>
@@ -715,24 +705,16 @@ public sealed class GitHubService
     }
 
     /// <summary>
-    /// Searches GitHub users matching <paramref name="query"/> within the given organizations.
-    /// For org-scoped searches, prefer <see cref="FetchOrgMembersAsync"/> + <see cref="FilterOrgMembers"/>
-    /// to avoid re-fetching on every keystroke.
-    /// When no orgs are configured, falls back to the GitHub global user search API.
+    /// Searches all GitHub users matching <paramref name="query"/> (GitHub's global user search),
+    /// for when no organizations are configured. Org-scoped searches use
+    /// <see cref="FetchOrgMembersAsync"/> + <see cref="FilterOrgMembers"/> instead.
     /// Returns up to 10 deduplicated (Login, Name) pairs.
     /// </summary>
-    public async Task<List<(string Login, string? Name)>> SearchUsersAsync(string query, IReadOnlyList<string> orgs)
+    public async Task<List<(string Login, string? Name)>> SearchUsersAsync(string query)
     {
         if (string.IsNullOrWhiteSpace(query))
             return [];
 
-        if (orgs.Count > 0)
-        {
-            var all = await FetchOrgMembersAsync(orgs);
-            return FilterOrgMembers(all, query);
-        }
-
-        // No org configured: use GitHub's global user search
         var safeQuery = _unsafeQueryChars.Replace(query.Trim(), "");
         if (string.IsNullOrEmpty(safeQuery))
             return [];

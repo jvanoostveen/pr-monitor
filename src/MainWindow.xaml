@@ -174,79 +174,6 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <Style x:Key="PrRowMenuSeparatorStyle" TargetType="Separator">
-            <Setter Property="Margin" Value="0,2"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Separator">
-                        <Border Height="0" Background="Transparent" SnapsToDevicePixels="True"/>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="PrRowMenuItemStyle" TargetType="MenuItem">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#C9D1D9"/>
-            <Setter Property="Padding" Value="10,6"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="MenuItem">
-                        <Border x:Name="ItemBorder"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="4"
-                                Margin="2"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter ContentSource="Header"
-                                              Margin="4,0"
-                                              VerticalAlignment="Center"
-                                              RecognizesAccessKey="True"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="ItemBorder" Property="Background" Value="#30363D"/>
-                                <Setter Property="Foreground" Value="#F0F6FC"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#6E7681"/>
-                                <Setter TargetName="ItemBorder" Property="Background" Value="Transparent"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="PrRowContextMenuStyle" TargetType="ContextMenu">
-            <Setter Property="Background" Value="#161B22"/>
-            <Setter Property="Foreground" Value="#C9D1D9"/>
-            <Setter Property="BorderBrush" Value="#30363D"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="4"/>
-            <Setter Property="HasDropShadow" Value="True"/>
-            <Setter Property="OverridesDefaultStyle" Value="True"/>
-            <Setter Property="SnapsToDevicePixels" Value="True"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ContextMenu">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6"
-                                Padding="{TemplateBinding Padding}"
-                                SnapsToDevicePixels="True">
-                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Resources>
-                <Style TargetType="MenuItem" BasedOn="{StaticResource PrRowMenuItemStyle}"/>
-                <Style TargetType="Separator" BasedOn="{StaticResource PrRowMenuSeparatorStyle}"/>
-            </Style.Resources>
-        </Style>
     </Window.Resources>
 
     <!-- Outer border with rounded corners and shadow -->
@@ -429,23 +356,6 @@
                                                 MouseLeftButtonUp="PrItem_Click"
                                                 ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
-                                            <Border.ContextMenu>
-                                                <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
-                                                    <MenuItem Header="Copy PR URL" Tag="{Binding}"
-                                                              Click="PrRow_CopyUrl_Click"/>
-                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
-                                                              Click="PrRow_CopyBranch_Click"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
-                                                              Click="PrRow_RerunFailedJobs_Click"
-                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
-                                                    <MenuItem Header="Request Copilot review" Tag="{Binding}"
-                                                              Click="PrRow_RequestCopilotReview_Click"
-                                                              IsEnabled="{Binding CanRequestCopilotReview}"/>
-                                                    <MenuItem Header="Move to later" Tag="{Binding}"
-                                                              Click="PrRow_Hide_Click"/>
-                                                </ContextMenu>
-                                            </Border.ContextMenu>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
@@ -558,23 +468,6 @@
                                                 MouseLeftButtonUp="PrItem_Click"
                                                 ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
-                                            <Border.ContextMenu>
-                                                <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
-                                                    <MenuItem Header="Copy PR URL" Tag="{Binding}"
-                                                              Click="PrRow_CopyUrl_Click"/>
-                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
-                                                              Click="PrRow_CopyBranch_Click"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
-                                                              Click="PrRow_RerunFailedJobs_Click"
-                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
-                                                    <MenuItem Header="Request Copilot review" Tag="{Binding}"
-                                                              Click="PrRow_RequestCopilotReview_Click"
-                                                              IsEnabled="{Binding CanRequestCopilotReview}"/>
-                                                    <MenuItem Header="Move to later" Tag="{Binding}"
-                                                              Click="PrRow_Hide_Click"/>
-                                                </ContextMenu>
-                                            </Border.ContextMenu>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
@@ -682,23 +575,6 @@
                                                 MouseLeftButtonUp="PrItem_Click"
                                                 ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
-                                            <Border.ContextMenu>
-                                                <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
-                                                    <MenuItem Header="Copy PR URL" Tag="{Binding}"
-                                                              Click="PrRow_CopyUrl_Click"/>
-                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
-                                                              Click="PrRow_CopyBranch_Click"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
-                                                              Click="PrRow_RerunFailedJobs_Click"
-                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
-                                                    <MenuItem Header="Request Copilot review" Tag="{Binding}"
-                                                              Click="PrRow_RequestCopilotReview_Click"
-                                                              IsEnabled="{Binding CanRequestCopilotReview}"/>
-                                                    <MenuItem Header="Move to later" Tag="{Binding}"
-                                                              Click="PrRow_Hide_Click"/>
-                                                </ContextMenu>
-                                            </Border.ContextMenu>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
@@ -896,23 +772,6 @@
                                                 MouseLeftButtonUp="PrItem_Click"
                                                 ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
-                                            <Border.ContextMenu>
-                                                <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
-                                                    <MenuItem Header="Copy PR URL" Tag="{Binding}"
-                                                              Click="PrRow_CopyUrl_Click"/>
-                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
-                                                              Click="PrRow_CopyBranch_Click"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
-                                                              Click="PrRow_RerunFailedJobs_Click"
-                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
-                                                    <MenuItem Header="Request Copilot review" Tag="{Binding}"
-                                                              Click="PrRow_RequestCopilotReview_Click"
-                                                              IsEnabled="{Binding CanRequestCopilotReview}"/>
-                                                    <MenuItem Header="Move to later" Tag="{Binding}"
-                                                              Click="PrRow_Hide_Click"/>
-                                                </ContextMenu>
-                                            </Border.ContextMenu>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
@@ -1020,23 +879,6 @@
                                                 MouseLeftButtonUp="PrItem_Click"
                                                 ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
-                                            <Border.ContextMenu>
-                                                <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
-                                                    <MenuItem Header="Copy PR URL" Tag="{Binding}"
-                                                              Click="PrRow_CopyUrl_Click"/>
-                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
-                                                              Click="PrRow_CopyBranch_Click"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
-                                                              Click="PrRow_RerunFailedJobs_Click"
-                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
-                                                    <MenuItem Header="Request Copilot review" Tag="{Binding}"
-                                                              Click="PrRow_RequestCopilotReview_Click"
-                                                              IsEnabled="{Binding CanRequestCopilotReview}"/>
-                                                    <MenuItem Header="Move to later" Tag="{Binding}"
-                                                              Click="PrRow_Hide_Click"/>
-                                                </ContextMenu>
-                                            </Border.ContextMenu>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
@@ -1122,23 +964,6 @@
                                                 MouseLeftButtonUp="PrItem_Click"
                                                 ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
-                                            <Border.ContextMenu>
-                                                <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
-                                                    <MenuItem Header="Copy PR URL" Tag="{Binding}"
-                                                              Click="PrRow_CopyUrl_Click"/>
-                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
-                                                              Click="PrRow_CopyBranch_Click"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
-                                                              Click="PrRow_RerunFailedJobs_Click"
-                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
-                                                    <MenuItem Header="Request Copilot review" Tag="{Binding}"
-                                                              Click="PrRow_RequestCopilotReview_Click"
-                                                              IsEnabled="{Binding CanRequestCopilotReview}"/>
-                                                    <MenuItem Header="Move to later" Tag="{Binding}"
-                                                              Click="PrRow_Hide_Click"/>
-                                                </ContextMenu>
-                                            </Border.ContextMenu>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
@@ -1223,20 +1048,6 @@
                                                 MouseLeftButtonUp="PrItem_Click"
                                                 ToolTip="{Binding PrTooltip}"
                                                 Tag="{Binding}">
-                                            <Border.ContextMenu>
-                                                <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
-                                                    <MenuItem Header="Copy PR URL" Tag="{Binding}"
-                                                              Click="PrRow_CopyUrl_Click"/>
-                                                    <MenuItem Header="Copy branch name" Tag="{Binding}"
-                                                              Click="PrRow_CopyBranch_Click"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
-                                                              Click="PrRow_RerunFailedJobs_Click"
-                                                              IsEnabled="{Binding CanRerunFailedJobs}"/>
-                                                    <MenuItem Header="Move to later" Tag="{Binding}"
-                                                              Click="PrRow_Hide_Click"/>
-                                                </ContextMenu>
-                                            </Border.ContextMenu>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
@@ -1342,23 +1153,6 @@
                                             MouseLeftButtonUp="PrItem_Click"
                                             ToolTip="{Binding PrTooltip}"
                                             Tag="{Binding}">
-                                        <Border.ContextMenu>
-                                            <ContextMenu Style="{StaticResource PrRowContextMenuStyle}">
-                                                <MenuItem Header="Copy PR URL" Tag="{Binding}"
-                                                          Click="PrRow_CopyUrl_Click"/>
-                                                <MenuItem Header="Copy branch name" Tag="{Binding}"
-                                                          Click="PrRow_CopyBranch_Click"/>
-                                                <Separator/>
-                                                <MenuItem Header="Rerun failed jobs" Tag="{Binding}"
-                                                          Click="PrRow_RerunFailedJobs_Click"
-                                                          IsEnabled="{Binding CanRerunFailedJobs}"/>
-                                                <MenuItem Header="Request Copilot review" Tag="{Binding}"
-                                                          Click="PrRow_RequestCopilotReview_Click"
-                                                          IsEnabled="{Binding CanRequestCopilotReview}"/>
-                                                <MenuItem Header="Restore" Tag="{Binding}"
-                                                          Click="PrRow_Restore_Click"/>
-                                            </ContextMenu>
-                                        </Border.ContextMenu>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
