@@ -291,26 +291,55 @@ public sealed class FlakinessService
         }
     }
 
+    /// <summary>Minimum letters/digits an AI-suggested pattern must contain outside escapes.</summary>
+    private const int MinLiteralChars = 10;
+
     /// <summary>
-    /// Validates an AI-suggested regex pattern before persisting it.
-    /// Rejects overly broad or invalid patterns.
+    /// Lines that appear in nearly every failing CI log. A suggested rule matching one of them
+    /// would rerun every failure in every repository without asking the AI again.
+    /// </summary>
+    private static readonly string[] GenericFailureLines =
+    [
+        "Error: Process completed with exit code 1.",
+        "##[error]Process completed with exit code 1.",
+        "npm ERR! code ELIFECYCLE",
+        "Build FAILED.",
+        "Test run failed. 1 test failed, 10 passed.",
+        "FAILED tests/test_example.py::test_example - AssertionError",
+    ];
+
+    /// <summary>
+    /// Validates an AI-suggested regex pattern before persisting it. Suggested rules are saved
+    /// and enabled without review, and their input (the CI log) is controlled by PR authors, so
+    /// overly broad, invalid, or generic patterns are rejected.
     /// </summary>
     internal static bool IsValidFlakinessPattern(string? pattern)
     {
-        if (string.IsNullOrWhiteSpace(pattern) || pattern.Length < 5)
+        if (string.IsNullOrWhiteSpace(pattern) || CountLiteralChars(pattern) < MinLiteralChars)
             return false;
         try
         {
+            var timeout = TimeSpan.FromMilliseconds(100);
+
             // Reject patterns that match an empty string (catches .*, ^, etc.)
-            if (Regex.IsMatch("", pattern, RegexOptions.None, TimeSpan.FromMilliseconds(100)))
+            if (Regex.IsMatch("", pattern, RegexOptions.None, timeout))
                 return false;
-            return true;
+
+            return !GenericFailureLines.Any(line =>
+                Regex.IsMatch(line, pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline, timeout));
         }
         catch
         {
             // Invalid regex
             return false;
         }
+    }
+
+    /// <summary>Letters and digits in <paramref name="pattern"/>, not counting escapes (\s, \b) or inline options ((?i)).</summary>
+    private static int CountLiteralChars(string pattern)
+    {
+        var stripped = Regex.Replace(pattern, @"\(\?[a-zA-Z-]+\)|\\.", "");
+        return stripped.Count(char.IsLetterOrDigit);
     }
 
     internal static IReadOnlyList<string> ExtractCheckNamesFromLog(string log)

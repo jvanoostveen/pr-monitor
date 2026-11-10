@@ -56,8 +56,10 @@ public sealed class GitHubService
         new(@"<script[^>]*>", RegexOptions.IgnoreCase | RegexOptions.Compiled),
         new(@"\bon(error|load|click|mouseover|focus)\s*=\s*[""'(]", RegexOptions.IgnoreCase | RegexOptions.Compiled),
         new(@"javascript\s*:\s*(void|alert|eval|document)\s*[\[(]", RegexOptions.IgnoreCase | RegexOptions.Compiled),
-        // Long base64 / hex data blobs (≥60 contiguous encoded chars) — pure data, no analysis value
-        new(@"[A-Za-z0-9+/=]{60,}={0,2}(?:\s|$)", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+        // Long base64 / hex data blobs (≥60 contiguous encoded chars) — pure data, no analysis value.
+        // NonBacktracking: with backtracking, a long run not followed by whitespace (e.g. a data
+        // URI in a snapshot diff) is quadratic, and log content is controlled by PR authors.
+        new(@"[A-Za-z0-9+/=]{60,}={0,2}(?:\s|$)", RegexOptions.IgnoreCase | RegexOptions.NonBacktracking),
     ];
 
     /// <summary>Diagnostically relevant log lines: errors, stack traces, assertions, timeouts.</summary>

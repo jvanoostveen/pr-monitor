@@ -98,9 +98,21 @@ public class FlakinessServiceTests
     }
 
     [Theory]
-    [InlineData("abc")]   // 3 chars
-    [InlineData("abcd")]  // 4 chars — exactly below threshold
-    public void IsValidFlakinessPattern_TooShort_ReturnsFalse(string pattern)
+    [InlineData("abc")]
+    [InlineData("Timeout")]           // 7 literal chars
+    [InlineData(@"\bflaky\b")]        // escapes don't count: 5 literal chars
+    [InlineData(@"(?i)\w+\s+errors")] // inline options don't count: 6 literal chars
+    public void IsValidFlakinessPattern_TooLittleLiteralText_ReturnsFalse(string pattern)
+    {
+        Assert.False(FlakinessService.IsValidFlakinessPattern(pattern));
+    }
+
+    [Theory]
+    [InlineData("(?i)process completed")]
+    [InlineData(@"exit\s+code\s+1")]
+    [InlineData("(?i)assertionerror")]
+    [InlineData("ERR! code ELIFECYCLE")]
+    public void IsValidFlakinessPattern_MatchesGenericFailureLine_ReturnsFalse(string pattern)
     {
         Assert.False(FlakinessService.IsValidFlakinessPattern(pattern));
     }
@@ -122,10 +134,10 @@ public class FlakinessServiceTests
     }
 
     [Theory]
-    [InlineData("Timeout")]                  // exactly 7 chars, valid
     [InlineData(@"connection\s+failed")]     // valid non-empty-matching pattern
     [InlineData("E2E test flaky")]           // plain substring, valid
-    [InlineData(@"\bflaky\b")]              // word boundary, won't match empty
+    [InlineData("ECONNRESET")]               // exactly 10 literal chars
+    [InlineData(@"(?i)cannot create a symbolic link")]
     public void IsValidFlakinessPattern_ValidPattern_ReturnsTrue(string pattern)
     {
         Assert.True(FlakinessService.IsValidFlakinessPattern(pattern));
