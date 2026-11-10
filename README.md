@@ -20,7 +20,7 @@ PR Monitor polls GitHub every two minutes and shows a floating window with:
 | **Stacks** | Stacked PRs with no review claim on you — your own PRs, auto-merge, drafts, Dependabot — grouped per stack (see below) |
 | **Later** | PRs you've snoozed with "Move to later" |
 
-Each PR row keeps its CI status circle and also shows a message icon when unresolved review comments exist; hovering the icon shows the unresolved comment count.
+Each PR row keeps its CI status circle and also shows a message icon when unresolved review comments exist; hovering the icon shows the unresolved comment count. A PR with merge conflicts shows a red circle plus a red merge icon next to it, so you can tell a conflict apart from a failing build.
 
 ### CI checks panel
 

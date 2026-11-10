@@ -267,7 +267,7 @@ Each PR row shows a colored 10×10 `Ellipse`:
 - `#F0883E` orange — Error
 - `#484F58` gray — Unknown
 
-For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CIState` — draft PRs always return `CIState.Unknown` so their indicator is grey regardless of actual build state. When `HasConflicts` is true, `EffectiveCIState` returns `CIState.Failure` regardless of the actual CI state. The tray icon also counts `HasConflicts` PRs as failed CI. The PR tooltip preserves the real CI state (e.g. `CI: Success`) and appends a separate `Merge conflicts` line when `HasConflicts` is true.
+For **My PRs** rows, `PrItemViewModel.EffectiveCIState` is used instead of `CIState` — draft PRs always return `CIState.Unknown` so their indicator is grey regardless of actual build state. When `HasConflicts` is true, `EffectiveCIState` returns `CIState.Failure` regardless of the actual CI state. The tray icon also counts `HasConflicts` PRs as failed CI. The PR tooltip preserves the real CI state (e.g. `CI: Success`) and appends a separate `Merge conflicts` line when `HasConflicts` is true. Every PR row template also shows a red merge icon (`EB98`, `merge`) directly after the CI dot while `HasConflicts` is true, independent of the reviewer-state icons.
 
 ### CI checks panel
 An overlay inside `MainWindow` (`ChecksOverlay` in [src/MainWindow.xaml](src/MainWindow.xaml), last child of the outer grid with `Grid.RowSpan="3"`) that lists every check on a PR's head commit. It is **not** a separate window: the dimmed backdrop has to cover the PR list, and a second `AllowsTransparency` window would need its own placement, DPI and topmost handling.
