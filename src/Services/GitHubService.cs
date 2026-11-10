@@ -1029,13 +1029,27 @@ public sealed class GitHubService
         && search.TryGetProperty("nodes", out var nodes)
         && nodes.ValueKind == JsonValueKind.Array;
 
-    internal static List<PullRequestInfo> ParseMyPrs(JsonElement root)
-    {
-        var result = new List<PullRequestInfo>();
+    internal static List<PullRequestInfo> ParseMyPrs(JsonElement root) =>
+        EnumeratePrNodes(root)
+            .Select(node => ParsePrNode(node,
+                hasAutoMerge: node.TryGetProperty("autoMergeRequest", out var amr) && amr.ValueKind != JsonValueKind.Null,
+                isDraft: node.TryGetProperty("isDraft", out var draft) && draft.ValueKind == JsonValueKind.True,
+                reviewerStates: ParseReviewerStates(node)))
+            .ToList();
 
-        if (!root.TryGetProperty("data", out var data)) return result;
-        if (!data.TryGetProperty("search", out var search)) return result;
-        if (!search.TryGetProperty("nodes", out var nodes)) return result;
+    internal static List<PullRequestInfo> ParseReviewPrs(JsonElement root, string? currentUsername = null) =>
+        EnumeratePrNodes(root)
+            .Select(node => ParsePrNode(node,
+                isTeamReviewRequested: IsTeamOnlyReviewRequest(node, currentUsername),
+                reviewedByLogins: ParseReviewedByLogins(node)))
+            .ToList();
+
+    /// <summary>The PR nodes of a search response: resolved PRs only, archived repositories skipped.</summary>
+    private static IEnumerable<JsonElement> EnumeratePrNodes(JsonElement root)
+    {
+        if (!root.TryGetProperty("data", out var data)) yield break;
+        if (!data.TryGetProperty("search", out var search)) yield break;
+        if (!search.TryGetProperty("nodes", out var nodes)) yield break;
 
         foreach (var node in nodes.EnumerateArray())
         {
@@ -1048,167 +1062,94 @@ public sealed class GitHubService
                 && isArchivedProp.GetBoolean())
                 continue;
 
-            var hasAutoMerge = node.TryGetProperty("autoMergeRequest", out var amr)
-                               && amr.ValueKind != JsonValueKind.Null;
-
-            var isDraft = node.TryGetProperty("isDraft", out var draftProp)
-                          && draftProp.ValueKind == JsonValueKind.True;
-
-            var ciState = CIState.Unknown;
-            if (node.TryGetProperty("commits", out var commits)
-                && commits.TryGetProperty("nodes", out var commitNodes))
-            {
-                foreach (var cn in commitNodes.EnumerateArray())
-                {
-                    if (cn.TryGetProperty("commit", out var commit)
-                        && commit.TryGetProperty("statusCheckRollup", out var rollup)
-                        && rollup.ValueKind != JsonValueKind.Null
-                        && rollup.TryGetProperty("state", out var state))
-                    {
-                        ciState = ParseCIState(state.GetString());
-                    }
-                }
-            }
-
-            string? mergeableValueMyPr = node.TryGetProperty("mergeable", out var mergeableMyPr)
-                ? mergeableMyPr.GetString()
-                : null;
-            bool hasConflictsMyPr = mergeableValueMyPr == "CONFLICTING";
-            bool isMergeabilityUnknownMyPr = mergeableValueMyPr == "UNKNOWN";
-
-            result.Add(new PullRequestInfo
-            {
-                Number = node.GetProperty("number").GetInt32(),
-                Title = node.GetProperty("title").GetString() ?? "",
-                Url = node.GetProperty("url").GetString() ?? "",
-                Repository = node.GetProperty("repository").GetProperty("nameWithOwner").GetString() ?? "",
-                Author = GetAuthorLogin(node),
-                CreatedAt = node.TryGetProperty("createdAt", out var ca)
-                    ? DateTimeOffset.Parse(ca.GetString()!)
-                    : DateTimeOffset.MinValue,
-                UpdatedAt = DateTimeOffset.TryParse(node.TryGetProperty("updatedAt", out var upd1) ? upd1.GetString() : null, out var updVal1) ? updVal1 : DateTimeOffset.MinValue,
-                HasAutoMerge = hasAutoMerge,
-                IsDraft = isDraft,
-                BaseRefName = node.TryGetProperty("baseRefName", out var brn1)
-                    ? brn1.GetString() ?? ""
-                    : "",
-                HeadRefName = node.TryGetProperty("headRefName", out var hrn1)
-                    ? hrn1.GetString() ?? ""
-                    : "",
-                HeadCommitSha = GetCommitOid(node),
-                CIState = ciState,
-                HasConflicts = hasConflictsMyPr,
-                IsMergeabilityUnknown = isMergeabilityUnknownMyPr,
-                IsApproved = node.TryGetProperty("reviewDecision", out var rd1)
-                    && rd1.GetString() == "APPROVED",
-                UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
-                ReviewerLogins = ParseReviewerLogins(node),
-                TeamReviewerSlugs = ParseTeamReviewerSlugs(node),
-                ReviewerStates = ParseReviewerStates(node),
-                Labels = ParseLabels(node),
-            });
+            yield return node;
         }
-
-        return result;
     }
 
-    internal static List<PullRequestInfo> ParseReviewPrs(JsonElement root, string? currentUsername = null)
+    /// <summary>
+    /// The fields both PR queries share; the query-specific ones are passed in (own PRs: auto-merge,
+    /// draft, reviewer states; review PRs: team classification, who reviewed).
+    /// </summary>
+    private static PullRequestInfo ParsePrNode(
+        JsonElement node,
+        bool hasAutoMerge = false,
+        bool isDraft = false,
+        IReadOnlyDictionary<string, ReviewState>? reviewerStates = null,
+        bool isTeamReviewRequested = false,
+        IReadOnlyList<string>? reviewedByLogins = null)
     {
-        var result = new List<PullRequestInfo>();
-
-        if (!root.TryGetProperty("data", out var data)) return result;
-        if (!data.TryGetProperty("search", out var search)) return result;
-        if (!search.TryGetProperty("nodes", out var nodes)) return result;
-
-        foreach (var node in nodes.EnumerateArray())
+        var mergeable = GetStringOrNull(node, "mergeable");
+        return new PullRequestInfo
         {
-            if (!node.TryGetProperty("number", out _)) continue;
-
-            // Skip PRs from archived repositories
-            if (node.TryGetProperty("repository", out var repoNode)
-                && repoNode.TryGetProperty("isArchived", out var isArchivedProp)
-                && isArchivedProp.GetBoolean())
-                continue;
-
-            var ciState = CIState.Unknown;
-            if (node.TryGetProperty("commits", out var commits)
-                && commits.TryGetProperty("nodes", out var commitNodes))
-            {
-                foreach (var cn in commitNodes.EnumerateArray())
-                {
-                    if (cn.TryGetProperty("commit", out var commit)
-                        && commit.TryGetProperty("statusCheckRollup", out var rollup)
-                        && rollup.ValueKind != JsonValueKind.Null
-                        && rollup.TryGetProperty("state", out var state))
-                    {
-                        ciState = ParseCIState(state.GetString());
-                    }
-                }
-            }
-
-            string? mergeableValueReview = node.TryGetProperty("mergeable", out var mergeableReview)
-                ? mergeableReview.GetString()
-                : null;
-            bool hasConflictsReview = mergeableValueReview == "CONFLICTING";
-            bool isMergeabilityUnknownReview = mergeableValueReview == "UNKNOWN";
-
-            // Classify as team-only when the current user has no direct User-type review request.
-            // Other User-type reviewers (different people) do NOT make this a direct request for us.
-            bool isTeamOnly = false;
-            if (node.TryGetProperty("reviewRequests", out var reviewRequests)
-                && reviewRequests.ValueKind == JsonValueKind.Object
-                && reviewRequests.TryGetProperty("nodes", out var rrNodes)
-                && rrNodes.ValueKind == JsonValueKind.Array)
-            {
-                var rrList = rrNodes.EnumerateArray().ToList();
-                if (rrList.Count > 0)
-                {
-                    // Direct request = a User reviewer whose login matches the current user
-                    bool directForMe = !string.IsNullOrEmpty(currentUsername) && rrList.Any(rr =>
-                        rr.TryGetProperty("requestedReviewer", out var reviewer)
-                        && reviewer.TryGetProperty("__typename", out var tn)
-                        && tn.GetString() == "User"
-                        && reviewer.TryGetProperty("login", out var login)
-                        && string.Equals(login.GetString(), currentUsername, StringComparison.OrdinalIgnoreCase));
-                    isTeamOnly = !directForMe;
-                }
-            }
-
-            result.Add(new PullRequestInfo
-            {
-                Number = node.GetProperty("number").GetInt32(),
-                Title = node.GetProperty("title").GetString() ?? "",
-                Url = node.GetProperty("url").GetString() ?? "",
-                Repository = node.GetProperty("repository").GetProperty("nameWithOwner").GetString() ?? "",
-                Author = GetAuthorLogin(node),
-                CreatedAt = node.TryGetProperty("createdAt", out var ca)
-                    ? DateTimeOffset.Parse(ca.GetString()!)
-                    : DateTimeOffset.MinValue,
-                UpdatedAt = DateTimeOffset.TryParse(node.TryGetProperty("updatedAt", out var upd2) ? upd2.GetString() : null, out var updVal2) ? updVal2 : DateTimeOffset.MinValue,
-                BaseRefName = node.TryGetProperty("baseRefName", out var brn)
-                    ? brn.GetString() ?? ""
-                    : "",
-                HeadRefName = node.TryGetProperty("headRefName", out var hrn2)
-                    ? hrn2.GetString() ?? ""
-                    : "",
-                HeadCommitSha = GetCommitOid(node),
-                CIState = ciState,
-                HasConflicts = hasConflictsReview,
-                IsMergeabilityUnknown = isMergeabilityUnknownReview,
-                IsApproved = node.TryGetProperty("reviewDecision", out var rd2)
-                    && rd2.GetString() == "APPROVED",
-                UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
-                ReviewerLogins = ParseReviewerLogins(node),
-                TeamReviewerSlugs = ParseTeamReviewerSlugs(node),
-                IsTeamReviewRequested = isTeamOnly,
-                ReviewedByLogins = ParseReviewedByLogins(node),
-                Labels = ParseLabels(node),
-            });
-        }
-
-        return result;
+            Number = node.GetProperty("number").GetInt32(),
+            Title = node.GetProperty("title").GetString() ?? "",
+            Url = node.GetProperty("url").GetString() ?? "",
+            Repository = node.GetProperty("repository").GetProperty("nameWithOwner").GetString() ?? "",
+            Author = GetAuthorLogin(node),
+            CreatedAt = GetDateOrNull(node, "createdAt") ?? DateTimeOffset.MinValue,
+            UpdatedAt = GetDateOrNull(node, "updatedAt") ?? DateTimeOffset.MinValue,
+            HasAutoMerge = hasAutoMerge,
+            IsDraft = isDraft,
+            BaseRefName = GetStringOrNull(node, "baseRefName") ?? "",
+            HeadRefName = GetStringOrNull(node, "headRefName") ?? "",
+            HeadCommitSha = GetCommitOid(node),
+            CIState = ParseRollupState(node),
+            HasConflicts = mergeable == "CONFLICTING",
+            IsMergeabilityUnknown = mergeable == "UNKNOWN",
+            IsApproved = GetStringOrNull(node, "reviewDecision") == "APPROVED",
+            UnresolvedReviewCommentCount = ParseUnresolvedReviewCommentCount(node),
+            ReviewerLogins = ParseReviewerLogins(node),
+            TeamReviewerSlugs = ParseTeamReviewerSlugs(node),
+            ReviewerStates = reviewerStates ?? new Dictionary<string, ReviewState>(),
+            IsTeamReviewRequested = isTeamReviewRequested,
+            ReviewedByLogins = reviewedByLogins ?? [],
+            Labels = ParseLabels(node),
+        };
     }
 
+    /// <summary>The CI rollup state of the PR's last commit.</summary>
+    private static CIState ParseRollupState(JsonElement node)
+    {
+        var ciState = CIState.Unknown;
+        if (node.TryGetProperty("commits", out var commits)
+            && commits.TryGetProperty("nodes", out var commitNodes))
+        {
+            foreach (var cn in commitNodes.EnumerateArray())
+            {
+                if (cn.TryGetProperty("commit", out var commit)
+                    && commit.TryGetProperty("statusCheckRollup", out var rollup)
+                    && rollup.ValueKind != JsonValueKind.Null
+                    && rollup.TryGetProperty("state", out var state))
+                {
+                    ciState = ParseCIState(state.GetString());
+                }
+            }
+        }
+        return ciState;
+    }
+
+    /// <summary>
+    /// Team-only when the PR has review requests but none is a User request for the current user.
+    /// Other User-type reviewers (different people) do NOT make this a direct request for us.
+    /// </summary>
+    private static bool IsTeamOnlyReviewRequest(JsonElement node, string? currentUsername)
+    {
+        if (!node.TryGetProperty("reviewRequests", out var reviewRequests)
+            || reviewRequests.ValueKind != JsonValueKind.Object
+            || !reviewRequests.TryGetProperty("nodes", out var rrNodes)
+            || rrNodes.ValueKind != JsonValueKind.Array
+            || rrNodes.GetArrayLength() == 0)
+            return false;
+
+        // Direct request = a User reviewer whose login matches the current user
+        bool directForMe = !string.IsNullOrEmpty(currentUsername) && rrNodes.EnumerateArray().Any(rr =>
+            rr.TryGetProperty("requestedReviewer", out var reviewer)
+            && reviewer.TryGetProperty("__typename", out var tn)
+            && tn.GetString() == "User"
+            && reviewer.TryGetProperty("login", out var login)
+            && string.Equals(login.GetString(), currentUsername, StringComparison.OrdinalIgnoreCase));
+        return !directForMe;
+    }
     internal static IReadOnlyList<string> ParseLabels(JsonElement node)
     {
         if (!node.TryGetProperty("labels", out var labels)) return [];
