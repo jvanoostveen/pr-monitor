@@ -30,7 +30,7 @@ Views/            TrayIconManager, IconGenerator, AboutWindow, SettingsWindow, F
 | `GitHubService` | All `gh api graphql` calls; PR queries; per-PR check runs; workflow run helpers; mention notifications |
 | `PollingService` | Timer (120 s default); emits `PrChanged`, `Polled`, `PollFailed`, `MentionDetected` |
 | `NotificationService` | Windows toast via `Microsoft.Toolkit.Uwp.Notifications`; honours `NotificationMode` |
-| `UpdateService` | Checks latest GitHub release; timer (30 s after startup, then 24 h) |
+| `UpdateService` | Checks latest GitHub release; timer (30 s after startup, then 24 h); downloads, SHA-256-verifies and installs an update via a path-free `.bat` |
 | `CopilotService` | GitHub Models API (`gpt-4o-mini`) — flakiness classification |
 | `ClaudeCliService` | Claude (`haiku`) via `claude -p` — flakiness classification |
 | `FlakinessService` | Orchestrates CI failure → local rule check → selected AI provider → auto-rerun |

@@ -56,13 +56,18 @@ public class UpdateServiceVersionTests
     [Fact]
     public void ParseReleaseResult_NewerVersion_ReturnsUpdateAvailable()
     {
-        var json = """{"tag_name":"v2.0.0","html_url":"https://github.com/owner/repo/releases/tag/v2.0.0"}""";
+        var digest = new string('c', 64);
+        var json = $$"""
+            {"tag_name":"v2.0.0","html_url":"https://github.com/owner/repo/releases/tag/v2.0.0",
+             "assets":[{"name":"PrMonitor-2.0.0-win-x64.zip","digest":"sha256:{{digest}}"}]}
+            """;
         var svc = new UpdateService(DiagnosticsLogger.Null);
 
         var result = svc.ParseReleaseResult(json, "1.0.0", "test");
 
         Assert.True(result.IsUpdateAvailable);
         Assert.Equal("2.0.0", result.LatestVersionText);
+        Assert.Equal(digest, result.ZipSha256);
         Assert.Equal("https://github.com/jvanoostveen/pr-monitor/compare/v1.0.0...v2.0.0", result.ReleaseUrl);
         Assert.Equal("https://github.com/owner/repo/releases/tag/v2.0.0", result.ReleaseNotesUrl);
         Assert.Null(result.ErrorMessage);
@@ -275,6 +280,34 @@ public class UpdateServiceVersionTests
             var svc = new UpdateService(DiagnosticsLogger.Null);
             svc.RecordPreparedUpdate(exe);
             File.WriteAllText(exe, "tampered");
+
+            Assert.False(svc.StartUpdateProcess(exe));
+        }
+        finally { File.Delete(exe); }
+    }
+
+    [Fact]
+    public void StartUpdateProcess_FileDeletedSinceDownload_RefusesToInstall()
+    {
+        var exe = Path.Combine(Path.GetTempPath(), $"prupdate_{Guid.NewGuid():N}.exe");
+        File.WriteAllText(exe, "verified");
+        var svc = new UpdateService(DiagnosticsLogger.Null);
+        svc.RecordPreparedUpdate(exe);
+        File.Delete(exe);
+
+        Assert.False(svc.StartUpdateProcess(exe));
+    }
+
+    [Fact]
+    public void StartUpdateProcess_FileLocked_RefusesToInstall()
+    {
+        var exe = Path.Combine(Path.GetTempPath(), $"prupdate_{Guid.NewGuid():N}.exe");
+        try
+        {
+            File.WriteAllText(exe, "verified");
+            var svc = new UpdateService(DiagnosticsLogger.Null);
+            svc.RecordPreparedUpdate(exe);
+            using var lockHandle = new FileStream(exe, FileMode.Open, FileAccess.Read, FileShare.None);
 
             Assert.False(svc.StartUpdateProcess(exe));
         }

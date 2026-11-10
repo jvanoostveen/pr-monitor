@@ -576,6 +576,19 @@ public sealed class UpdateService
         return Convert.ToHexStringLower(SHA256.HashData(stream));
     }
 
+    /// <summary>The file's SHA-256, or null when it is missing, locked or unreadable.</summary>
+    private static string? TryHashFile(string path)
+    {
+        try
+        {
+            return HashFile(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>
     /// Best-effort removal of zip files left behind by previous failed update attempts.
     /// Files still locked (e.g. by antivirus) are silently skipped.
@@ -672,8 +685,7 @@ public sealed class UpdateService
     {
         if (_preparedUpdate is not { } prepared
             || !string.Equals(prepared.Path, newExePath, StringComparison.OrdinalIgnoreCase)
-            || !File.Exists(newExePath)
-            || !string.Equals(HashFile(newExePath), prepared.Sha256, StringComparison.Ordinal))
+            || !string.Equals(TryHashFile(newExePath), prepared.Sha256, StringComparison.Ordinal))
         {
             _logger.Warn($"UpdateService refused to install '{newExePath}': it is missing or changed since it was downloaded and verified.");
             return false;

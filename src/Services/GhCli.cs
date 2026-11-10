@@ -37,14 +37,15 @@ internal static class GhCli
             }
             catch (OperationCanceledException)
             {
-                KillProcessTree(process, logger, logPrefix, arguments);
+                KillProcessTree(process, logger, logPrefix, arguments,
+                    ct.IsCancellationRequested ? "cancelled" : "timed out");
                 return (null, null, -1);
             }
         }
         catch (Exception ex)
         {
-            // gh CLI not installed or not on PATH
-            logger.Error($"{logPrefix} failed to start gh process.", ex);
+            // gh CLI not installed or not on PATH. Warn, not Error: some callers fall back to HTTP.
+            logger.Warn($"{logPrefix} failed to start gh process. {DiagnosticsLogger.SummarizeException(ex)}");
             return (null, null, -1);
         }
     }
@@ -80,13 +81,13 @@ internal static class GhCli
         }
     }
 
-    internal static void KillProcessTree(Process process, DiagnosticsLogger logger, string logPrefix, string[] arguments)
+    internal static void KillProcessTree(Process process, DiagnosticsLogger logger, string logPrefix, string[] arguments, string reason)
     {
         try
         {
             if (!process.HasExited)
             {
-                logger.Warn($"{logPrefix}: killing unresponsive 'gh {string.Join(" ", arguments)}'.");
+                logger.Warn($"{logPrefix}: killing 'gh {string.Join(" ", arguments)}' ({reason}).");
                 process.Kill(entireProcessTree: true);
             }
         }

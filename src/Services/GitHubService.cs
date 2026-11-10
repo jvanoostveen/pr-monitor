@@ -1859,7 +1859,8 @@ public sealed class GitHubService
     private async Task<(string? Output, string? Stderr, int ExitCode)> RunGhAsync(params string[] arguments)
     {
         var (output, stderr, exitCode) = await GhCli.RunAsync(_logger, "GitHubService", CancellationToken.None, arguments);
-        if (exitCode > 0)
+        // A null output means GhCli could not start gh or killed it, and has logged that itself.
+        if (exitCode != 0 && output is not null)
             _logger.Error($"GitHubService gh command failed (exit={exitCode}). args: {string.Join(" ", arguments)}. stderr: {stderr?.Trim()}");
         return (output, stderr, exitCode);
     }
@@ -1908,7 +1909,7 @@ public sealed class GitHubService
                 if (capped)
                 {
                     _logger.Warn($"GitHubService: output cap reached for 'gh {string.Join(" ", arguments)}' — killing process.");
-                    GhCli.KillProcessTree(process, _logger, "GitHubService", arguments);
+                    GhCli.KillProcessTree(process, _logger, "GitHubService", arguments, "output cap reached");
                 }
                 else
                 {
@@ -1917,7 +1918,7 @@ public sealed class GitHubService
             }
             catch (OperationCanceledException)
             {
-                GhCli.KillProcessTree(process, _logger, "GitHubService", arguments);
+                GhCli.KillProcessTree(process, _logger, "GitHubService", arguments, "timed out");
                 return ("", redacted, -1);
             }
 
