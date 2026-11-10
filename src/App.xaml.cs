@@ -163,8 +163,8 @@ public partial class App : System.Windows.Application
                     new System.Action(() => _mainWindow.ReapplySnapIfSnapped()));
             }, onResetStatistics: () =>
             {
-                _statisticsService?.Store.Reset();
-                _statsWindow?.RefreshData();
+                // Reset raises StatsChanged, which refreshes an open stats window.
+                _statisticsService?.Reset();
             });
             settingsWindow.Closed += (_, _) => _settingsWindow = null;
             _settingsWindow = settingsWindow;

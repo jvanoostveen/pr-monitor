@@ -234,4 +234,22 @@ public class StatisticsServiceTests
         }
         finally { Cleanup(path); }
     }
+
+    [Fact]
+    public void Reset_ClearsPersistedCountsAndNotifies()
+    {
+        var (service, _, path) = CreateService();
+        try
+        {
+            service.Record(StatMetric.FlakyReruns);
+            var notified = false;
+            service.StatsChanged += () => notified = true;
+
+            service.Reset();
+
+            Assert.Equal(0, StatisticsStore.LoadFrom(path).ForDay(Today).FlakyReruns);
+            Assert.True(notified);
+        }
+        finally { Cleanup(path); }
+    }
 }

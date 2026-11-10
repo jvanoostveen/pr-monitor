@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **One inaccessible repository no longer takes the whole list offline.** When GitHub answered a search with results plus an error for a single item (for example a repository behind SAML/SSO that your token is not authorised for), PR Monitor threw the whole answer away, retried it three times and showed itself offline on every poll. It now uses the results that did come back and logs the error.
+- **Flakiness analysis no longer races the UI on `settings.json`.** It ran on a background thread and saved settings there, while the window saved them on the UI thread at the same time. That could fail with "Collection was modified" or a locked `settings.json.tmp`, and the failure was swallowed silently, losing the rerun notification and its statistics. The analysis now updates settings on the UI thread (only the regex matching runs in the background), and any error is logged. Resetting statistics now also waits for a statistics update that is in progress.
 
 ## [1.17.0] - 2026-11-02
 

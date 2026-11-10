@@ -164,14 +164,14 @@ public sealed class StatisticsService
                 _previousOwnPrs = currentOwn;
                 _previousReviewPrs = currentReview;
 
-                if (changed)
-                {
-                    _store.Save();
-                }
+                if (!changed)
+                    return;
 
-                if (changed)
-                    RaiseStatsChanged();
+                _store.Save();
             }
+
+            // Outside the lock: the subscriber does a synchronous Dispatcher.Invoke.
+            RaiseStatsChanged();
         }
         catch (Exception ex)
         {
@@ -194,6 +194,16 @@ public sealed class StatisticsService
         {
             _logger.Warn($"StatisticsService: failed to record {metric}. {DiagnosticsLogger.SummarizeException(ex)}");
         }
+    }
+
+    /// <summary>Clears all statistics, under the same lock the collectors use.</summary>
+    public void Reset()
+    {
+        lock (_gate)
+        {
+            _store.Reset();
+        }
+        RaiseStatsChanged();
     }
 
     private void RaiseStatsChanged()

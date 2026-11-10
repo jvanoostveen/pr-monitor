@@ -52,17 +52,43 @@ public sealed class FlakinessService
 
     public void Subscribe(PollingService polling)
     {
+        // PrChanged fires on a thread-pool thread, but AppSettings belongs to the UI thread:
+        // everything else mutates and saves it there, and Save() serialises the live
+        // collections. So the handling runs on the context Subscribe was called on; only the
+        // regex matching over the log goes back to the thread pool.
+        var context = SynchronizationContext.Current;
         polling.PrChanged += (_, e) =>
         {
-            if (e.Kind == PrChangeKind.CIStatusChanged
-                && e.PullRequest.CIState == CIState.Failure
-                && !e.PullRequest.IsDraft
-                && !_settings.HiddenPrKeys.Contains(e.PullRequest.Key)
-                && string.Equals(e.PullRequest.Author, _settings.GitHubUsername, StringComparison.OrdinalIgnoreCase))
-            {
-                _ = HandleCIFailureAsync(e.PullRequest);
-            }
+            if (context is null)
+                OnPrChanged(e);
+            else
+                context.Post(_ => OnPrChanged(e), null);
         };
+    }
+
+    private void OnPrChanged(PrChangeEventArgs e)
+    {
+        if (e.Kind == PrChangeKind.CIStatusChanged
+            && e.PullRequest.CIState == CIState.Failure
+            && !e.PullRequest.IsDraft
+            && !_settings.HiddenPrKeys.Contains(e.PullRequest.Key)
+            && string.Equals(e.PullRequest.Author, _settings.GitHubUsername, StringComparison.OrdinalIgnoreCase))
+        {
+            _ = HandleCIFailureSafeAsync(e.PullRequest);
+        }
+    }
+
+    /// <summary>Fire-and-forget wrapper: an exception here would otherwise go unobserved.</summary>
+    private async Task HandleCIFailureSafeAsync(PullRequestInfo pr)
+    {
+        try
+        {
+            await HandleCIFailureAsync(pr);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"FlakinessService: handling the CI failure of {pr.Key} failed.", ex);
+        }
     }
 
     private async Task HandleCIFailureAsync(PullRequestInfo pr)
@@ -121,7 +147,7 @@ public sealed class FlakinessService
         };
 
         // ── Check built-in infrastructure rules first ────────────────
-        var matchedBuiltIn = Array.Find(_builtInRules, r => IsRegexMatch(r.Pattern, log));
+        var matchedBuiltIn = await Task.Run(() => Array.Find(_builtInRules, r => IsRegexMatch(r.Pattern, log)));
         if (matchedBuiltIn != default)
         {
             _logger.Info($"FlakinessService: built-in rule '{matchedBuiltIn.Description}' matched {prKey}. Rerunning.");
@@ -130,9 +156,9 @@ public sealed class FlakinessService
         }
 
         // ── Check local rules first ──────────────────────────────────
-        var matchedRule = _settings.FlakinessRules
-            .Where(r => r.IsEnabled)
-            .FirstOrDefault(r => IsRegexMatch(r.Pattern, log));
+        // Snapshot on this (UI) thread; only the matching runs on the thread pool.
+        var enabledRules = _settings.FlakinessRules.Where(r => r.IsEnabled).ToList();
+        var matchedRule = await Task.Run(() => enabledRules.FirstOrDefault(r => IsRegexMatch(r.Pattern, log)));
 
         if (matchedRule is not null)
         {
