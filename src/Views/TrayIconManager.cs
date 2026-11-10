@@ -191,9 +191,9 @@ public sealed class TrayIconManager : IDisposable
                               + (_settings.TeamReviewCountsForTrayIcon ? visibleTeamReview : 0)
                               + visibleHotfix;
 
-        // Red: CI failures (incl. merge conflicts) across auto-merge, hotfix and non-draft My PRs
+        // Red: CI failures (incl. merge conflicts) across auto-merge and non-draft hotfix and My PRs
         int failedCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && (p.CIState == CIState.Failure || p.HasConflicts))
-                     + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && (p.CIState == CIState.Failure || p.HasConflicts))
+                     + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && !p.IsDraft && (p.CIState == CIState.Failure || p.HasConflicts))
                      + snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && !p.IsDraft && (p.CIState == CIState.Failure || p.HasConflicts));
 
         // Amber: reviews requested on me + unresolved comments on My PRs
@@ -209,7 +209,7 @@ public sealed class TrayIconManager : IDisposable
             && (_settings.StackBlockedCountsForTrayIcon || !p.IsBlockedByStack);
 
         int pendingCI = snapshot.AutoMergePrs.Count(p => !hidden.Contains(p.Key) && CountsAsPending(p))
-                      + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && CountsAsPending(p))
+                      + snapshot.HotfixPrs.Count(p => !hidden.Contains(p.Key) && !p.IsDraft && CountsAsPending(p))
                       + snapshot.MyPrs.Count(p => !hidden.Contains(p.Key) && !p.IsDraft && CountsAsPending(p));
 
         bool hasLaterPrs = snapshot.AutoMergePrs.Any(p => hidden.Contains(p.Key))
