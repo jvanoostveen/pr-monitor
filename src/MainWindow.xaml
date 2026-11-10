@@ -174,6 +174,51 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- CI dot and status icons shown at the start of every PR row (all sections). -->
+        <DataTemplate x:Key="PrStatusIcons">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
+                        MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
+                        ToolTip="Show CI checks">
+                    <Ellipse Width="10" Height="10"
+                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
+                             VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock Style="{StaticResource IconText}" Text="&#xEB98;" FontSize="14" Foreground="#F85149" Margin="5,0,0,0" Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVisibility}}"/>
+                <TextBlock Style="{StaticResource IconText}"
+                           Text="&#xE24C;"
+                           FontSize="14"
+                           Foreground="#8B949E"
+                           Margin="5,0,0,0"
+                           Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
+                <TextBlock Style="{StaticResource IconText}"
+                           Text="&#xE888;"
+                           FontSize="14"
+                           Foreground="#F85149"
+                           Margin="5,0,0,0"
+                           Visibility="{Binding ShowChangesRequestedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                <TextBlock Style="{StaticResource IconText}"
+                           Text="&#xF567;"
+                           FontSize="14"
+                           Foreground="#D29922"
+                           Margin="5,0,0,0"
+                           Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
+                <TextBlock Style="{StaticResource IconText}"
+                           Text="&#xEFD6;"
+                           FontSize="14"
+                           Foreground="#8B949E"
+                           Margin="5,0,0,0"
+                           Visibility="{Binding ShowReviewPendingIcon, Converter={StaticResource BoolToVisibility}}"/>
+                <TextBlock Style="{StaticResource IconText}"
+                           Text="&#xE0CB;"
+                           FontSize="14"
+                           Foreground="#58A6FF"
+                           Margin="5,0,0,0"
+                           Visibility="{Binding ShowCommentedIcon, Converter={StaticResource BoolToVisibility}}"/>
+                <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
+            </StackPanel>
+        </DataTemplate>
     </Window.Resources>
 
     <!-- Outer border with rounded corners and shadow -->
@@ -362,47 +407,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
-                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
-                                                            ToolTip="Show CI checks">
-                                                        <Ellipse Width="10" Height="10"
-                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                                 VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEB98;" FontSize="14" Foreground="#F85149" Margin="5,0,0,0" Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE24C;"
-                                                               FontSize="14"
-                                                               Foreground="#8B949E"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE888;"
-                                                               FontSize="14"
-                                                               Foreground="#F85149"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowChangesRequestedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xF567;"
-                                                               FontSize="14"
-                                                               Foreground="#D29922"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xEFD6;"
-                                                               FontSize="14"
-                                                               Foreground="#8B949E"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowReviewPendingIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE0CB;"
-                                                               FontSize="14"
-                                                               Foreground="#58A6FF"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowCommentedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                </StackPanel>
+                                                <ContentPresenter Grid.Column="0" Content="{Binding}" ContentTemplate="{StaticResource PrStatusIcons}"/>
                                                 <StackPanel Grid.Column="1">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Style="{StaticResource RepoText}">
@@ -474,47 +479,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
-                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
-                                                            ToolTip="Show CI checks">
-                                                        <Ellipse Width="10" Height="10"
-                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                                 VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEB98;" FontSize="14" Foreground="#F85149" Margin="5,0,0,0" Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE24C;"
-                                                               FontSize="14"
-                                                               Foreground="#8B949E"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE888;"
-                                                               FontSize="14"
-                                                               Foreground="#F85149"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowChangesRequestedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xF567;"
-                                                               FontSize="14"
-                                                               Foreground="#D29922"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xEFD6;"
-                                                               FontSize="14"
-                                                               Foreground="#8B949E"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowReviewPendingIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE0CB;"
-                                                               FontSize="14"
-                                                               Foreground="#58A6FF"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowCommentedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                </StackPanel>
+                                                <ContentPresenter Grid.Column="0" Content="{Binding}" ContentTemplate="{StaticResource PrStatusIcons}"/>
                                                 <StackPanel Grid.Column="1">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Style="{StaticResource RepoText}">
@@ -581,23 +546,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
-                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
-                                                            ToolTip="Show CI checks">
-                                                        <Ellipse Width="10" Height="10"
-                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                                 VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEB98;" FontSize="14" Foreground="#F85149" Margin="5,0,0,0" Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE24C;"
-                                                               FontSize="14"
-                                                               Foreground="#8B949E"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                </StackPanel>
+                                                <ContentPresenter Grid.Column="0" Content="{Binding}" ContentTemplate="{StaticResource PrStatusIcons}"/>
                                                 <StackPanel Grid.Column="1">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Style="{StaticResource RepoText}">
@@ -669,47 +618,7 @@
                                                         <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                        <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
-                                                                MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
-                                                                ToolTip="Show CI checks">
-                                                            <Ellipse Width="10" Height="10"
-                                                                     Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                                     VerticalAlignment="Center"/>
-                                                        </Border>
-                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xEB98;" FontSize="14" Foreground="#F85149" Margin="5,0,0,0" Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVisibility}}"/>
-                                                        <TextBlock Style="{StaticResource IconText}"
-                                                                   Text="&#xE24C;"
-                                                                   FontSize="14"
-                                                                   Foreground="#8B949E"
-                                                                   Margin="5,0,0,0"
-                                                                   Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                        <TextBlock Style="{StaticResource IconText}"
-                                                                   Text="&#xE888;"
-                                                                   FontSize="14"
-                                                                   Foreground="#F85149"
-                                                                   Margin="5,0,0,0"
-                                                                   Visibility="{Binding ShowChangesRequestedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                        <TextBlock Style="{StaticResource IconText}"
-                                                                   Text="&#xF567;"
-                                                                   FontSize="14"
-                                                                   Foreground="#D29922"
-                                                                   Margin="5,0,0,0"
-                                                                   Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
-                                                        <TextBlock Style="{StaticResource IconText}"
-                                                                   Text="&#xEFD6;"
-                                                                   FontSize="14"
-                                                                   Foreground="#8B949E"
-                                                                   Margin="5,0,0,0"
-                                                                   Visibility="{Binding ShowReviewPendingIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                        <TextBlock Style="{StaticResource IconText}"
-                                                                   Text="&#xE0CB;"
-                                                                   FontSize="14"
-                                                                   Foreground="#58A6FF"
-                                                                   Margin="5,0,0,0"
-                                                                   Visibility="{Binding ShowCommentedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    </StackPanel>
+                                                    <ContentPresenter Grid.Column="0" Content="{Binding}" ContentTemplate="{StaticResource PrStatusIcons}"/>
                                                     <StackPanel Grid.Column="1">
                                                         <StackPanel Orientation="Horizontal">
                                                             <TextBlock Style="{StaticResource RepoText}">
@@ -779,47 +688,7 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <!-- EffectiveCIState is grey for draft PRs, red for conflicting PRs -->
-                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
-                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
-                                                            ToolTip="Show CI checks">
-                                                        <Ellipse Width="10" Height="10"
-                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                                 VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEB98;" FontSize="14" Foreground="#F85149" Margin="5,0,0,0" Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE24C;"
-                                                               FontSize="14"
-                                                               Foreground="#8B949E"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE888;"
-                                                               FontSize="14"
-                                                               Foreground="#F85149"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowChangesRequestedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xF567;"
-                                                               FontSize="14"
-                                                               Foreground="#D29922"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xEFD6;"
-                                                               FontSize="14"
-                                                               Foreground="#8B949E"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowReviewPendingIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE0CB;"
-                                                               FontSize="14"
-                                                               Foreground="#58A6FF"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowCommentedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                </StackPanel>
+                                                <ContentPresenter Grid.Column="0" Content="{Binding}" ContentTemplate="{StaticResource PrStatusIcons}"/>
                                                 <StackPanel Grid.Column="1">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Style="{StaticResource RepoText}">
@@ -885,23 +754,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
-                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
-                                                            ToolTip="Show CI checks">
-                                                        <Ellipse Width="10" Height="10"
-                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                                 VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEB98;" FontSize="14" Foreground="#F85149" Margin="5,0,0,0" Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE24C;"
-                                                               FontSize="14"
-                                                               Foreground="#8B949E"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                </StackPanel>
+                                                <ContentPresenter Grid.Column="0" Content="{Binding}" ContentTemplate="{StaticResource PrStatusIcons}"/>
                                                 <StackPanel Grid.Column="1">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Style="{StaticResource RepoText}">
@@ -970,23 +823,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
-                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
-                                                            ToolTip="Show CI checks">
-                                                        <Ellipse Width="10" Height="10"
-                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                                 VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEB98;" FontSize="14" Foreground="#F85149" Margin="5,0,0,0" Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE24C;"
-                                                               FontSize="14"
-                                                               Foreground="#8B949E"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                </StackPanel>
+                                                <ContentPresenter Grid.Column="0" Content="{Binding}" ContentTemplate="{StaticResource PrStatusIcons}"/>
                                                 <StackPanel Grid.Column="1">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Style="{StaticResource RepoText}">
@@ -1054,46 +891,7 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                    <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
-                                                            MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
-                                                            ToolTip="Show CI checks">
-                                                        <Ellipse Width="10" Height="10"
-                                                                 Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                                 VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEB98;" FontSize="14" Foreground="#F85149" Margin="5,0,0,0" Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE24C;"
-                                                               FontSize="14"
-                                                               Foreground="#8B949E"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE888;"
-                                                               FontSize="14"
-                                                               Foreground="#F85149"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowChangesRequestedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xF567;"
-                                                               FontSize="14"
-                                                               Foreground="#D29922"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xEFD6;"
-                                                               FontSize="14"
-                                                               Foreground="#8B949E"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowReviewPendingIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                    <TextBlock Style="{StaticResource IconText}"
-                                                               Text="&#xE0CB;"
-                                                               FontSize="14"
-                                                               Foreground="#58A6FF"
-                                                               Margin="5,0,0,0"
-                                                               Visibility="{Binding ShowCommentedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                </StackPanel>
+                                                <ContentPresenter Grid.Column="0" Content="{Binding}" ContentTemplate="{StaticResource PrStatusIcons}"/>
                                                 <StackPanel Grid.Column="1">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Style="{StaticResource RepoText}">
@@ -1159,47 +957,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                <Border Background="Transparent" Padding="4,3" Margin="-4,-3,-4,-3" Cursor="Hand"
-                                                        MouseLeftButtonUp="CiStatus_Click" Tag="{Binding}"
-                                                        ToolTip="Show CI checks">
-                                                    <Ellipse Width="10" Height="10"
-                                                             Fill="{Binding EffectiveCIState, Converter={StaticResource CIStateToBrush}}"
-                                                             VerticalAlignment="Center"/>
-                                                </Border>
-                                                <TextBlock Style="{StaticResource IconText}" Text="&#xEB98;" FontSize="14" Foreground="#F85149" Margin="5,0,0,0" Visibility="{Binding HasConflicts, Converter={StaticResource BoolToVisibility}}"/>
-                                                <TextBlock Style="{StaticResource IconText}"
-                                                           Text="&#xE24C;"
-                                                           FontSize="14"
-                                                           Foreground="#8B949E"
-                                                           Margin="5,0,0,0"
-                                                           Visibility="{Binding HasUnresolvedReviewComments, Converter={StaticResource BoolToVisibility}}"/>
-                                                <TextBlock Style="{StaticResource IconText}"
-                                                           Text="&#xE888;"
-                                                           FontSize="14"
-                                                           Foreground="#F85149"
-                                                           Margin="5,0,0,0"
-                                                           Visibility="{Binding ShowChangesRequestedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                <TextBlock Style="{StaticResource IconText}"
-                                                           Text="&#xF567;"
-                                                           FontSize="14"
-                                                           Foreground="#D29922"
-                                                           Margin="5,0,0,0"
-                                                           Visibility="{Binding ShowNoReviewerWarning, Converter={StaticResource BoolToVisibility}}"/>
-                                                <TextBlock Style="{StaticResource IconText}"
-                                                           Text="&#xEFD6;"
-                                                           FontSize="14"
-                                                           Foreground="#8B949E"
-                                                           Margin="5,0,0,0"
-                                                           Visibility="{Binding ShowReviewPendingIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                <TextBlock Style="{StaticResource IconText}"
-                                                           Text="&#xE0CB;"
-                                                           FontSize="14"
-                                                           Foreground="#58A6FF"
-                                                           Margin="5,0,0,0"
-                                                           Visibility="{Binding ShowCommentedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                                <TextBlock Style="{StaticResource IconText}" Text="&#xF0BE;" FontSize="14" Foreground="#3FB950" Margin="5,0,0,0" Visibility="{Binding ShowApprovedIcon, Converter={StaticResource BoolToVisibility}}"/>
-                                            </StackPanel>
+                                            <ContentPresenter Grid.Column="0" Content="{Binding}" ContentTemplate="{StaticResource PrStatusIcons}"/>
                                             <StackPanel Grid.Column="1">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Style="{StaticResource RepoText}">

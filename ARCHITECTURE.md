@@ -349,8 +349,8 @@ Every GraphQL query in `GitHubService` — the three search queries used by poll
   3. `ShowNoReviewerWarning` — amber icon (`F567`) when no non-Copilot reviewer is assigned.
   4. `ShowReviewPendingIcon` — grey clock icon (`EFD6`, `schedule`) when reviewer(s) are assigned and all are still `Pending`.
   5. `ShowCommentedIcon` — blue icon (`E0CB`, `chat_bubble`) when any reviewer's latest state is `Commented` and none has requested changes, and the PR isn't `Approved`.
-  6. `ShowApprovedIcon` — green checkmark (`F0BE`), shown last when approved and none of the above apply.
-- Rendered in `MainWindow.xaml` in the PR row icon `StackPanel`, present in Hotfixes, My Auto-Merge PRs, My PRs, My Draft PRs, and Later sections (Draft PRs section omits the Approved icon, matching prior behavior). Non-own-PR sections (Awaiting My Review, Dependabot, Team Review Requests) don't show these reviewer-state icons since they aren't `IsOwnPr`.
+  6. `ShowApprovedIcon` — green checkmark (`F0BE`), shown last when approved, not a draft, and none of the above apply.
+- Rendered by the one shared `PrStatusIcons` data template in `MainWindow.xaml` (CI dot plus every status icon), which every section's row template shows through a `ContentPresenter`. Which icons appear is decided by the view model alone: the reviewer-state icons need `IsOwnPr`, so Awaiting My Review, Dependabot and Team Review Requests never show them, and `ShowApprovedIcon` is false for drafts. A new row icon is therefore added once, in `PrStatusIcons`.
 - `PrTooltip`'s reviewer line includes each reviewer's display state, e.g. `Reviewers: alice (Approved), bob (Pending)`, via `ReviewState.ToDisplayString()`.
 
 ### Label chips and priority indicator

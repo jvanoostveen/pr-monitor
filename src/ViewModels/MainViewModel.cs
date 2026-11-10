@@ -1328,7 +1328,8 @@ public sealed class PrItemViewModel : INotifyPropertyChanged
     public bool CanDisableAutoMerge => IsOwnPr && !IsDraft && HasAutoMerge;
 
     /// <summary>Show the approved checkmark icon: PR is approved but has no unresolved review comments (comments take priority).</summary>
-    public bool ShowApprovedIcon => IsApproved && !HasUnresolvedReviewComments && !HasChangesRequested;
+    /// <summary>Show the approved icon. Never on a draft: it is not ready to merge, however it was reviewed.</summary>
+    public bool ShowApprovedIcon => IsApproved && !IsDraft && !HasUnresolvedReviewComments && !HasChangesRequested;
 
     /// <summary>
     /// CI state used for the indicator: always Unknown (grey) for draft PRs and Failure when the PR

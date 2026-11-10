@@ -186,12 +186,13 @@ public class PrItemViewModelTests
     }
 
     [Theory]
-    [InlineData(true,  0, true)]
-    [InlineData(true,  2, false)]
-    [InlineData(false, 0, false)]
-    public void ShowApprovedIcon_RespectedConditions(bool isApproved, int unresolvedCount, bool expected)
+    [InlineData(true,  0, false, true)]
+    [InlineData(true,  2, false, false)]
+    [InlineData(false, 0, false, false)]
+    [InlineData(true,  0, true,  false)] // a draft never shows approved
+    public void ShowApprovedIcon_RespectedConditions(bool isApproved, int unresolvedCount, bool isDraft, bool expected)
     {
-        var vm = MakeVm(isApproved: isApproved, unresolvedComments: unresolvedCount);
+        var vm = MakeVm(isApproved: isApproved, unresolvedComments: unresolvedCount, isDraft: isDraft);
         Assert.Equal(expected, vm.ShowApprovedIcon);
     }
 
