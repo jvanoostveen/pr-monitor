@@ -11,15 +11,8 @@ namespace PrMonitor.Converters;
 /// </summary>
 public sealed class CIStateToBrushConverter : IValueConverter
 {
-    // GitHub's own status colors
-    private static readonly SolidColorBrush Green   = Brush("#3FB950"); // success
-    private static readonly SolidColorBrush Red     = Brush("#F85149"); // failure
-    private static readonly SolidColorBrush Amber   = Brush("#D29922"); // pending / in-progress
-    private static readonly SolidColorBrush Orange  = Brush("#F0883E"); // error
-    private static readonly SolidColorBrush DimGray = Brush("#484F58"); // unknown
-
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-        value is CIState state ? StateToColor(state) : DimGray;
+        value is CIState state ? StateToColor(state) : StatusBrushes.DimGray;
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         throw new NotSupportedException();
@@ -27,18 +20,10 @@ public sealed class CIStateToBrushConverter : IValueConverter
     /// <summary>The frozen status brush for <paramref name="state"/>, for use outside bindings.</summary>
     internal static SolidColorBrush StateToColor(CIState state) => state switch
     {
-        CIState.Success => Green,
-        CIState.Failure => Red,
-        CIState.Pending => Amber,
-        CIState.Error   => Orange,
-        _               => DimGray,
+        CIState.Success => StatusBrushes.Green,
+        CIState.Failure => StatusBrushes.Red,
+        CIState.Pending => StatusBrushes.Amber,
+        CIState.Error   => StatusBrushes.Orange,
+        _               => StatusBrushes.DimGray,
     };
-
-    private static SolidColorBrush Brush(string hex)
-    {
-        var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();
-        return brush;
-    }
 }

@@ -13,20 +13,14 @@ namespace PrMonitor.Converters;
 /// </summary>
 public sealed class CheckRunStateToBrushConverter : IValueConverter
 {
-    // GitHub's own status colors, matching CIStateToBrushConverter.
-    private static readonly SolidColorBrush Green    = Brush("#3FB950"); // success
-    private static readonly SolidColorBrush Red      = Brush("#F85149"); // failure
-    private static readonly SolidColorBrush Amber    = Brush("#D29922"); // running
-    private static readonly SolidColorBrush Orange   = Brush("#F0883E"); // cancelled
-    private static readonly SolidColorBrush Gray     = Brush("#8B949E"); // queued
-    private static readonly SolidColorBrush DimGray  = Brush("#484F58"); // skipped / unknown
-    private static readonly SolidColorBrush Text     = Brush("#E6EDF3"); // regular job name
-    private static readonly SolidColorBrush TextDim  = Brush("#6E7681"); // job name that never ran
+    private static readonly SolidColorBrush Gray    = StatusBrushes.Frozen("#8B949E"); // queued
+    private static readonly SolidColorBrush Text    = StatusBrushes.Frozen("#E6EDF3"); // regular job name
+    private static readonly SolidColorBrush TextDim = StatusBrushes.Frozen("#6E7681"); // job name that never ran
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is not CheckRunState state)
-            return DimGray;
+            return StatusBrushes.DimGray;
 
         return parameter is "Name"
             ? state is CheckRunState.Skipped or CheckRunState.Neutral ? TextDim : Text
@@ -38,19 +32,11 @@ public sealed class CheckRunStateToBrushConverter : IValueConverter
 
     private static SolidColorBrush StateToColor(CheckRunState state) => state switch
     {
-        CheckRunState.Success   => Green,
-        CheckRunState.Failure   => Red,
-        CheckRunState.Cancelled => Orange,
-        CheckRunState.Running   => Amber,
+        CheckRunState.Success   => StatusBrushes.Green,
+        CheckRunState.Failure   => StatusBrushes.Red,
+        CheckRunState.Cancelled => StatusBrushes.Orange,
+        CheckRunState.Running   => StatusBrushes.Amber,
         CheckRunState.Queued    => Gray,
-        _                       => DimGray,
+        _                       => StatusBrushes.DimGray,
     };
-
-    private static SolidColorBrush Brush(string hex)
-    {
-        var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();
-        return brush;
-    }
 }
