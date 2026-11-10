@@ -790,4 +790,30 @@ public class ExtractErrorLinesTests
         var result = GitHubService.ExtractErrorLines("");
         Assert.Equal("", result);
     }
+
+    [Fact]
+    public void ParseGraphQlSearchResponse_PartialDataOnNonZeroExit_IsUsable()
+    {
+        // gh exits 1 for any response with an `errors` array, even when data is present.
+        const string body = """
+            {
+              "data": { "search": { "nodes": [ { "number": 1 } ] } },
+              "errors": [ { "type": "FORBIDDEN", "message": "SAML enforcement" } ]
+            }
+            """;
+
+        var root = new GitHubService(DiagnosticsLogger.Null)
+            .ParseGraphQlSearchResponse(body, "gh: SAML enforcement", exitCode: 1, "is:pr");
+
+        Assert.Equal(1, root.GetProperty("data").GetProperty("search").GetProperty("nodes").GetArrayLength());
+    }
+
+    [Fact]
+    public void ParseGraphQlSearchResponse_ErrorsWithoutData_Throws()
+    {
+        const string body = """{ "errors": [ { "type": "RATE_LIMITED", "message": "API rate limit exceeded" } ] }""";
+
+        Assert.Throws<GitHubApiException>(() => new GitHubService(DiagnosticsLogger.Null)
+            .ParseGraphQlSearchResponse(body, "", exitCode: 1, "is:pr"));
+    }
 }

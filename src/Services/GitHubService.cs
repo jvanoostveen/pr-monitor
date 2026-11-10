@@ -471,8 +471,8 @@ public sealed class GitHubService
     /// </summary>
     public async Task<string?> GetCurrentUserAsync()
     {
-        var (output, _, _) = await RunGhAsync("api", "user", "-q", ".login");
-        return string.IsNullOrWhiteSpace(output) ? null : output.Trim();
+        var (output, _, exitCode) = await RunGhAsync("api", "user", "-q", ".login");
+        return exitCode != 0 || string.IsNullOrWhiteSpace(output) ? null : output.Trim();
     }
 
     /// <summary>
@@ -683,10 +683,8 @@ public sealed class GitHubService
 
                 var (stdout, stderr, exitCode) = await RunGhAsync(ghArgs);
                 if (exitCode != 0)
-                {
                     _logger.Warn($"FetchOrgMembersAsync: GraphQL failed for '{org}' (exit={exitCode}): {stderr?.Trim()}");
-                    break;
-                }
+                // A non-zero exit can still carry partial data; the parse below decides.
                 if (string.IsNullOrWhiteSpace(stdout))
                     break;
 
@@ -1029,11 +1027,23 @@ public sealed class GitHubService
     private async Task<JsonElement> RunGraphQlOnceAsync(string[] ghArgs, string searchString)
     {
         var (output, stderr, exitCode) = await RunGhAsync(ghArgs);
-        if (exitCode != 0)
-            throw new GitHubApiException($"gh api graphql failed (exit={exitCode}) for query '{searchString}': {stderr?.Trim()}");
+        return ParseGraphQlSearchResponse(output, stderr, exitCode, searchString);
+    }
 
+    /// <summary>
+    /// Turns one <c>gh api graphql</c> search result into a usable response, or throws
+    /// <see cref="GitHubApiException"/>. A non-zero exit is not decisive on its own: gh exits 1
+    /// for every response with an <c>errors</c> array, including partial ones that still carry
+    /// search results (e.g. one repository behind SAML/SSO).
+    /// </summary>
+    internal JsonElement ParseGraphQlSearchResponse(string? output, string? stderr, int exitCode, string searchString)
+    {
         if (string.IsNullOrWhiteSpace(output))
-            throw new GitHubApiException($"gh api graphql returned empty output for query '{searchString}'.");
+        {
+            throw new GitHubApiException(exitCode != 0
+                ? $"gh api graphql failed (exit={exitCode}) for query '{searchString}': {stderr?.Trim()}"
+                : $"gh api graphql returned empty output for query '{searchString}'.");
+        }
 
         JsonElement root;
         try
@@ -1044,7 +1054,7 @@ public sealed class GitHubService
         }
         catch (JsonException ex)
         {
-            throw new GitHubApiException($"gh api graphql returned unparseable JSON for query '{searchString}'.", ex);
+            throw new GitHubApiException($"gh api graphql returned unparseable JSON (exit={exitCode}) for query '{searchString}': {stderr?.Trim()}", ex);
         }
 
         // Every search query asks for rateLimit, so polling keeps the shared budget current.
@@ -1888,7 +1898,9 @@ public sealed class GitHubService
                 _logger.Error($"GitHubService gh command failed (exit={process.ExitCode}). args: {string.Join(" ", arguments)}. stderr: {stderr?.Trim()}");
             }
 
-            return (process.ExitCode == 0 ? output : null, stderr, process.ExitCode);
+            // stdout is returned on failure too: `gh api graphql` exits 1 whenever the body has
+            // an `errors` array, even when it also carries usable partial `data`.
+            return (output, stderr, process.ExitCode);
         }
         catch (Exception ex)
         {

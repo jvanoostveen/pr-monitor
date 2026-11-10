@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PR rows with merge conflicts now show a red merge icon next to the CI dot, so a conflict can be told apart from a CI failure without opening the tooltip.
 
+### Fixed
+
+- **One inaccessible repository no longer takes the whole list offline.** When GitHub answered a search with results plus an error for a single item (for example a repository behind SAML/SSO that your token is not authorised for), PR Monitor threw the whole answer away, retried it three times and showed itself offline on every poll. It now uses the results that did come back and logs the error.
+
 ## [1.17.0] - 2026-11-02
 
 ### Added
