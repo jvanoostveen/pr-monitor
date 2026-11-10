@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-11-10
+
 ### Added
 
 - PR rows with merge conflicts now show a red merge icon next to the CI dot, so a conflict can be told apart from a CI failure without opening the tooltip.
