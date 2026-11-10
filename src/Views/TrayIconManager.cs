@@ -17,6 +17,7 @@ namespace PrMonitor.Views;
 public sealed class TrayIconManager : IDisposable
 {
     private readonly Forms.NotifyIcon _notifyIcon;
+    private (int Total, int Failed, int Amber, int Pending, bool HasLater)? _lastIconState;
     private readonly Forms.Form _menuOwner;   // hidden HWND owner for TrackPopupMenuEx
     private readonly AppSettings _settings;
 
@@ -217,10 +218,16 @@ public sealed class TrayIconManager : IDisposable
                         || snapshot.TeamReviewRequestedPrs.Any(p => hidden.Contains(p.Key))
                         || snapshot.HotfixPrs.Any(p => hidden.Contains(p.Key));
 
-        // Update icon
-        var oldIcon = _notifyIcon.Icon;
-        _notifyIcon.Icon = IconGenerator.CreateTrayIcon(totalVisible, failedCI, amberCount, pendingCI, hasLaterPrs);
-        oldIcon?.Dispose();
+        // Update icon — only when what it shows changed: generating one creates a bitmap, a font
+        // and an HICON, and most polls change nothing.
+        var iconState = (totalVisible, failedCI, amberCount, pendingCI, hasLaterPrs);
+        if (iconState != _lastIconState)
+        {
+            _lastIconState = iconState;
+            var oldIcon = _notifyIcon.Icon;
+            _notifyIcon.Icon = IconGenerator.CreateTrayIcon(totalVisible, failedCI, amberCount, pendingCI, hasLaterPrs);
+            oldIcon?.Dispose();
+        }
 
         // Tooltip
         var tooltipParts = new System.Text.StringBuilder("PR Monitor");

@@ -38,7 +38,7 @@ public partial class AssignReviewerSearchWindow : Window
 
     // In-memory mirror of the persisted cache (projected from AppSettings)
     private List<(string Login, string? Name)>? _cachedMembers;
-    private bool _isFetchingMembers;
+    private Task<List<(string Login, string? Name)>?>? _membersFetch;
 
     // Search results mapped by index → login (for AcceptSelectedItem)
     private List<(string Login, string? Name)> _currentResults = [];
@@ -77,18 +77,49 @@ public partial class AssignReviewerSearchWindow : Window
         ShowRecents();
 
         // Only fetch from GitHub when cache is absent or older than 30 days
-        if (_orgs.Count > 0 && !_isFetchingMembers)
+        if (_orgs.Count > 0)
         {
             bool cacheExpired = _settings.OrgMembersCachedAt is null
                 || DateTimeOffset.UtcNow - _settings.OrgMembersCachedAt.Value > CacheMaxAge;
             if (_cachedMembers is null || cacheExpired)
-                _ = PrefetchOrgMembersAsync(forceRefresh: false);
+                _ = PrefetchOrgMembersAsync();
         }
     }
 
-    private async Task PrefetchOrgMembersAsync(bool forceRefresh)
+    protected override void OnClosed(EventArgs e)
     {
-        _isFetchingMembers = true;
+        // A debounced search still waiting must not touch a closed window.
+        _searchCts?.Cancel();
+        base.OnClosed(e);
+    }
+
+    private async Task PrefetchOrgMembersAsync()
+    {
+        await FetchMembersOnceAsync();
+
+        // If the user already typed something while we were fetching, apply the filter now
+        var query = SearchBox.Text;
+        if (!string.IsNullOrWhiteSpace(query) && _cachedMembers is not null)
+        {
+            _searchCts?.Cancel();
+            var filtered = GitHubService.FilterOrgMembers(_cachedMembers, query);
+            ShowSearchResults(filtered, query.Trim());
+        }
+        // Refresh recents labels now that cache has names
+        if (string.IsNullOrWhiteSpace(SearchBox.Text))
+            ShowRecents();
+    }
+
+    /// <summary>
+    /// The org-member fetch, at most one at a time: the prefetch and every search typed while it
+    /// runs share it, instead of each keystroke starting another fetch of every member.
+    /// Runs on the UI thread (all callers are), so the cache fields need no locking.
+    /// </summary>
+    private Task<List<(string Login, string? Name)>?> FetchMembersOnceAsync() =>
+        _membersFetch is { IsCompleted: false } running ? running : _membersFetch = FetchAndCacheMembersAsync();
+
+    private async Task<List<(string Login, string? Name)>?> FetchAndCacheMembersAsync()
+    {
         try
         {
             var all = await _github.FetchOrgMembersAsync(_orgs);
@@ -100,27 +131,12 @@ public partial class AssignReviewerSearchWindow : Window
                 .ToList();
             _settings.OrgMembersCachedAt = DateTimeOffset.UtcNow;
             _settings.Save();
+            return all;
         }
-        catch { /* logged by GitHubService */ }
-        finally
+        catch
         {
-            _isFetchingMembers = false;
+            return null; // logged by GitHubService
         }
-
-        // If the user already typed something while we were fetching, apply the filter now
-        await Dispatcher.InvokeAsync(() =>
-        {
-            var query = SearchBox.Text;
-            if (!string.IsNullOrWhiteSpace(query) && _cachedMembers is not null)
-            {
-                _searchCts?.Cancel();
-                var filtered = GitHubService.FilterOrgMembers(_cachedMembers, query);
-                ShowSearchResults(filtered, query.Trim());
-            }
-            // Refresh recents labels now that cache has names
-            if (string.IsNullOrWhiteSpace(SearchBox.Text))
-                ShowRecents();
-        });
     }
 
     // ── Recents panel ────────────────────────────────────────────────────
@@ -186,9 +202,10 @@ public partial class AssignReviewerSearchWindow : Window
 
         RecentsPanel.Visibility = Visibility.Collapsed;
 
-        if (_orgs.Count > 0 && _cachedMembers is not null && !_isFetchingMembers)
+        if (_orgs.Count > 0 && _cachedMembers is not null)
         {
-            // Cache warm: filter client-side immediately, no debounce
+            // Cache warm: filter client-side immediately, no debounce. A refresh that is still
+            // running re-applies the filter when it lands (PrefetchOrgMembersAsync).
             var filtered = GitHubService.FilterOrgMembers(_cachedMembers, query);
             ShowSearchResults(filtered, query.Trim());
             return;
@@ -197,45 +214,40 @@ public partial class AssignReviewerSearchWindow : Window
         // Cache cold or global search: debounce then fetch
         _searchCts?.Cancel();
         _searchCts = new CancellationTokenSource();
-        var token = _searchCts.Token;
+        _ = SearchAfterDebounceAsync(query.Trim(), _searchCts.Token);
+    }
 
-        Task.Delay(400, token).ContinueWith(async t =>
+    private async Task SearchAfterDebounceAsync(string query, CancellationToken token)
+    {
+        try
         {
-            if (t.IsCanceled) return;
+            await Task.Delay(400, token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
 
-            await Dispatcher.InvokeAsync(() =>
-            {
-                SpinnerText.Visibility = Visibility.Visible;
-                NoResultsText.Visibility = Visibility.Collapsed;
-                ResultsList.Items.Clear();
-                ResultsList.Visibility = Visibility.Collapsed;
-                AssignButton.IsEnabled = false;
-            });
+        SpinnerText.Visibility = Visibility.Visible;
+        NoResultsText.Visibility = Visibility.Collapsed;
+        ResultsList.Items.Clear();
+        ResultsList.Visibility = Visibility.Collapsed;
+        AssignButton.IsEnabled = false;
 
-            List<(string Login, string? Name)>? found = null;
-            try
-            {
-                if (_orgs.Count > 0)
-                {
-                    _isFetchingMembers = true;
-                    var all = await _github.FetchOrgMembersAsync(_orgs);
-                    _cachedMembers = all;
-                    _isFetchingMembers = false;
-                    found = GitHubService.FilterOrgMembers(all, query.Trim());
-                }
-                else
-                {
-                    found = await _github.SearchUsersAsync(query.Trim(), _orgs);
-                }
-            }
-            catch
-            {
-                _isFetchingMembers = false;
-            }
+        List<(string Login, string? Name)>? found = null;
+        try
+        {
+            found = _orgs.Count > 0
+                ? await FetchMembersOnceAsync() is { } all ? GitHubService.FilterOrgMembers(all, query) : null
+                : await _github.SearchUsersAsync(query, _orgs);
+        }
+        catch
+        {
+            // logged by GitHubService
+        }
 
-            if (token.IsCancellationRequested) return;
-            await Dispatcher.InvokeAsync(() => ShowSearchResults(found ?? [], query.Trim()));
-        }, TaskScheduler.Default);
+        if (token.IsCancellationRequested) return;
+        ShowSearchResults(found ?? [], query);
     }
 
     private void SearchBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -342,7 +354,7 @@ public partial class AssignReviewerSearchWindow : Window
         _cachedMembers = null;
         _settings.OrgMembersCache = [];
         _settings.OrgMembersCachedAt = null;
-        _ = PrefetchOrgMembersAsync(forceRefresh: true);
+        _ = PrefetchOrgMembersAsync();
         var text = SearchBox.Text;
         if (!string.IsNullOrWhiteSpace(text))
         {

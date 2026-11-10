@@ -26,7 +26,7 @@ public partial class MainWindow : Window
     private readonly GitHubService _github;
     private readonly NotificationService _notifications;
     private readonly DiagnosticsLogger _logger;
-    private DoubleAnimation? _spinAnimation;
+    private bool _refreshSpinnerRunning;
     private bool _loadingSpinnerRunning;
     private bool _userMoved;
 
@@ -121,7 +121,7 @@ public partial class MainWindow : Window
         viewModel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(MainViewModel.IsRefreshing))
-                UpdateRefreshIcon(viewModel.IsRefreshing);
+                UpdateRefreshIcon();
             else if (e.PropertyName is nameof(MainViewModel.IsInitialLoading) or nameof(MainViewModel.HasLoadedOnce))
                 UpdateLoadingSpinner();
         };
@@ -129,7 +129,11 @@ public partial class MainWindow : Window
         // A running animation keeps WPF's render loop alive permanently. On this window
         // (AllowsTransparency = software-rendered layered window) that burns CPU and leaks
         // native surface memory, so the spinner must never animate while it is not on screen.
-        IsVisibleChanged += (_, _) => UpdateLoadingSpinner();
+        IsVisibleChanged += (_, _) =>
+        {
+            UpdateLoadingSpinner();
+            UpdateRefreshIcon();
+        };
 
         Loaded += (_, _) =>
         {
@@ -246,9 +250,18 @@ public partial class MainWindow : Window
 
         // Hiding is the app's idle moment: reclaim the render/layout allocations now
         // instead of letting them sit in the working set until the next gen2 collection.
-        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle,
-            () => MemoryDiagnostics.TrimMemory(_logger, "hide-to-tray"));
+        // The trim is a blocking compacting collection on the UI thread, so at most once per
+        // interval however often the window is toggled.
+        if (DateTimeOffset.UtcNow - _lastHideTrim >= HideTrimInterval)
+        {
+            _lastHideTrim = DateTimeOffset.UtcNow;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle,
+                () => MemoryDiagnostics.TrimMemory(_logger, "hide-to-tray"));
+        }
     }
+
+    private static readonly TimeSpan HideTrimInterval = TimeSpan.FromMinutes(2);
+    private DateTimeOffset _lastHideTrim = DateTimeOffset.MinValue;
 
     /// <summary>
     /// Persist current window state (used during app shutdown).
@@ -423,23 +436,38 @@ public partial class MainWindow : Window
             _settings.MainWindowLeft = Left;
             _settings.MainWindowTop = Top;
             _settings.MainWindowSnappedCorner = _snappedCorner == SnapCorner.None ? null : _snappedCorner.ToString();
-            if (previousLeft != _settings.MainWindowLeft
+            var changed = previousLeft != _settings.MainWindowLeft
                 || previousTop != _settings.MainWindowTop
-                || previousCorner != _settings.MainWindowSnappedCorner)
+                || previousCorner != _settings.MainWindowSnappedCorner;
+            if (changed)
             {
                 LogPlacement("PersistWindowPosition", $"saveToDisk={saveToDisk}; saved=({FormatNullable(_settings.MainWindowLeft)},{FormatNullable(_settings.MainWindowTop)}); savedCorner={_settings.MainWindowSnappedCorner}");
             }
-            if (saveToDisk)
+            // A drag only updates the in-memory values (saveToDisk: false), so a position that
+            // differs from the file may also be pending from an earlier move: save then too.
+            if (saveToDisk && (changed || _unsavedWindowPosition))
+            {
                 _settings.Save();
+                _unsavedWindowPosition = false;
+            }
+            else if (!saveToDisk && changed)
+            {
+                _unsavedWindowPosition = true;
+            }
         }
     }
 
+    /// <summary>True when a drag moved the window without writing settings.json yet.</summary>
+    private bool _unsavedWindowPosition;
+
     private void PersistWindowState(bool isVisible)
     {
-        var previousVisibility = _settings.MainWindowVisible;
+        // Saving serialises the whole settings file on the UI thread; skip it when nothing changed.
+        if (_settings.MainWindowVisible == isVisible)
+            return;
+
         _settings.MainWindowVisible = isVisible;
-        if (previousVisibility != isVisible)
-            LogPlacement("PersistWindowState", $"visible={isVisible}");
+        LogPlacement("PersistWindowState", $"visible={isVisible}");
         _settings.Save();
     }
 
@@ -736,6 +764,11 @@ public partial class MainWindow : Window
 
     private void LogPlacement(string phase, string? reason = null, bool includeScreens = false)
     {
+        // Info lines are dropped without verbose logging; don't build this one (it describes
+        // every screen) on every drag move for nothing.
+        if (!_logger.VerboseLogging)
+            return;
+
         var message = $"MainWindowPlacement phase={phase}";
         if (!string.IsNullOrWhiteSpace(reason))
             message += $" reason={reason}";
@@ -820,23 +853,34 @@ public partial class MainWindow : Window
         }
     }
 
-    private void UpdateRefreshIcon(bool isRefreshing)
+    /// <summary>
+    /// Colours the refresh icon while a refresh runs, and spins it only while the window is on
+    /// screen — like <see cref="UpdateLoadingSpinner"/>, a refresh still running after the window
+    /// was hidden must not keep the layered window redrawing.
+    /// </summary>
+    private void UpdateRefreshIcon()
     {
-        if (isRefreshing)
+        var isRefreshing = ViewModel.IsRefreshing;
+        RefreshIcon.Foreground = isRefreshing ? RefreshBlueBrush : RefreshGreyBrush;
+
+        var shouldSpin = isRefreshing && IsVisible;
+        if (shouldSpin == _refreshSpinnerRunning)
+            return;
+
+        _refreshSpinnerRunning = shouldSpin;
+
+        if (shouldSpin)
         {
-            RefreshIcon.Foreground = RefreshBlueBrush;
-            _spinAnimation = new DoubleAnimation(0, 360, new Duration(TimeSpan.FromMilliseconds(800)))
+            var animation = new DoubleAnimation(0, 360, new Duration(TimeSpan.FromMilliseconds(800)))
             {
                 RepeatBehavior = RepeatBehavior.Forever,
             };
-            RefreshRotate.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, _spinAnimation);
+            RefreshRotate.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, animation);
         }
         else
         {
             RefreshRotate.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, null);
             RefreshRotate.Angle = 0;
-            RefreshIcon.Foreground = RefreshGreyBrush;
-            _spinAnimation = null;
         }
     }
 
